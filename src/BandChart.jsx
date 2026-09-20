@@ -5,7 +5,7 @@ import { DAY, chartSegments, dateLabel, money, priced } from './model.mjs';
 // and two x labels are the whole axis: they state this panel's own scale, which is what makes six independently
 // scaled panels honest to compare by shape but not by height.
 export default function BandChart({ rows, earlier = [], startDate, endDate, name, height = 96, maxGapDays = 7 }) {
-  const list = rows.filter(priced); const prior = earlier.filter(priced);
+  const list = rows.filter(priced); const prior = earlier.filter((r) => typeof r.low === 'number' && typeof r.high === 'number');
   const values = [...list, ...prior].flatMap((r) => [r.low, r.high, r.advertised_average]).filter((v) => typeof v === 'number');
   if (!values.length) return <div className="band band--empty">No quotes in the past year</div>;
   const w = 300, h = height, p = { l: 34, r: 2, t: 3, b: 3 };

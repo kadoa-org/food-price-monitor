@@ -61,8 +61,7 @@ export default function PriceChart({ rows, retail = false, compact = false, star
       {ticks.map((v) => <g key={v}><line x1={p.l} x2={w - p.r} y1={y(v)} y2={y(v)} className="chart-grid" /><text x={p.l - 8} y={y(v) + 4} textAnchor="end" className="chart-axis">{v >= 100 ? `$${Math.round(v)}` : `$${v.toFixed(v % 1 ? 2 : 0)}`}</text></g>)}
       {xTicks(from, to).map((tick) => <g key={tick.t}><line x1={x(new Date(tick.t).toISOString())} x2={x(new Date(tick.t).toISOString())} y1={h - p.b} y2={h - p.b + 5} className="chart-tick" /><text x={x(new Date(tick.t).toISOString())} y={h - 8} textAnchor="middle" className="chart-axis">{tick.label}</text></g>)}
       <line x1={p.l} x2={w - p.r} y1={h - p.b} y2={h - p.b} className="chart-baseline" />
-      {compare.length > 0 && !retail && band(compare.filter(valid), 'chart-band chart-band--compare')}
-      {compare.length > 0 && lines(compare.filter(valid), 'chart-line chart-line--compare')}
+      {compare.length > 0 && band(compare.filter(valid), 'chart-band chart-band--compare')}
       {!retail && band(rows.filter(valid), 'chart-band')}
       {lines(rows.filter(valid), 'chart-line')}
       {sparse && pointRows.map((r) => fields.map((f) => typeof r[f] === 'number' && <circle key={`${r.id}-${f}`} className="chart-marker" cx={x(r.date)} cy={y(r[f])} r="3" />))}
@@ -70,7 +69,7 @@ export default function PriceChart({ rows, retail = false, compact = false, star
       {hover && <g><line className="chart-cursor" x1={x(hover.date)} x2={x(hover.date)} y1={p.t} y2={h - p.b} />{fields.map((f) => typeof hover[f] === 'number' && <circle key={f} cx={x(hover.date)} cy={y(hover[f])} r="4" className="chart-hover-dot" />)}</g>}
     </svg>
     <div className="chart-tooltip" role="status" style={hover ? { left: `${tooltipLeft}%` } : undefined} hidden={!hover}>
-      {hover && <><strong>{dateLabel(hover.date)}</strong>{retail ? <span>{money(hover.advertised_average)}</span> : <><span>High {money(hover.high)}</span><span>Low {money(hover.low)}</span>{(hover.mostly_low !== null || hover.mostly_high !== null) && <span>Mostly {[hover.mostly_low, hover.mostly_high].filter((v) => v !== null).map(money).join(' to ')}</span>}</>}{hover.comment && <span className="chart-tooltip-comment">{hover.comment}</span>}{hoverCompare && <span className="chart-tooltip-compare">A year earlier: {retail ? money(hoverCompare.advertised_average) : `${money(hoverCompare.low)} to ${money(hoverCompare.high)}`}</span>}</>}
+      {hover && <><strong>{dateLabel(hover.date)}</strong>{retail ? <span>{money(hover.advertised_average)}</span> : <><span>High {money(hover.high)}</span><span>Low {money(hover.low)}</span>{(hover.mostly_low !== null || hover.mostly_high !== null) && <span>Mostly {[hover.mostly_low, hover.mostly_high].filter((v) => v !== null).map(money).join(' to ')}</span>}</>}{hover.comment && <span className="chart-tooltip-comment">{hover.comment}</span>}{hoverCompare && <span className="chart-tooltip-compare">Previous years: {hoverCompare.low === hoverCompare.high ? money(hoverCompare.low) : `${money(hoverCompare.low)} to ${money(hoverCompare.high)}`}</span>}</>}
     </div>
   </div>;
 }

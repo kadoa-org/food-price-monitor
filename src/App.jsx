@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button, DataTable, GitHubButton, LiveBadge, NavBar, SearchInput, Section, SiteFooter, SiteHeader, Tag } from './kit';
 import CommandPalette from './CommandPalette';
-import { BASE, HOME, addDays, dataPath, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, quote, summarize, unitLabel, yearEarlier } from './model.mjs';
+import { BASE, HOME, addDays, dataPath, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, priorYears, quote, summarize, unitLabel } from './model.mjs';
 import PriceChart from './PriceChart';
 import BandChart from './BandChart';
 import EvidenceDialog from './EvidenceDialog';
@@ -95,7 +95,8 @@ function Commodity({ page }) {
   const endDate = summary ? summary.latest.date : selected.lastDate;
   const startDate = range === 'all' ? null : addDays(endDate, -Number(range));
   const filtered = pending ? [] : history.rows.filter((r) => !startDate || r.date >= startDate);
-  const earlier = compare && startDate && !pending ? yearEarlier(history.rows, startDate, endDate) : [];
+  const prior = compare && startDate && !pending ? priorYears(history.rows, startDate, endDate) : { years: 0, rows: [] };
+  const earlier = prior.rows;
   const sorted = [...filtered].sort((a, b) => { const av = a[sort.key], bv = b[sort.key]; if (av == null) return bv == null ? 0 : 1; if (bv == null) return -1; return (typeof av === 'number' ? av - bv : String(av).localeCompare(String(bv))) * (sort.dir === 'asc' ? 1 : -1); });
   function changeMarket(value) { const next = allSeries.find((s) => marketKey(s) === value); if (!next) return; setMarket(value); setPack(next.package); setSeriesId(next.id); setVisible(25); }
   function changePack(value) { setPack(value); setSeriesId(marketSeries.find((s) => s.package === value).id); setVisible(25); }
@@ -119,11 +120,11 @@ function Commodity({ page }) {
     <section className="chart-panel" aria-labelledby="chart-title">
       <div className="quote-heading">
         <div><h2 id="chart-title" className="quote-value">{quote(selected.latest)} <span>{unit}</span></h2><p className="product-caption">{selected.product}{selected.origin ? `, ${selected.origin}` : ''}. {selected.stage}, {selected.market}, {dateLabel(selected.lastDate)}{selected.lastDate !== page.common.lastDate ? ' (not in the newest report)' : ''}.</p></div>
-        <div className="chart-controls"><div className="range-control" role="group" aria-label="Period">{RANGES.map(([value, label]) => <button key={value} type="button" aria-pressed={range === value} onClick={() => { setRange(value); setVisible(25); }}>{label}</button>)}</div><label className="compare-toggle"><input type="checkbox" checked={compare} disabled={range === 'all'} onChange={(e) => setCompare(e.target.checked)} /> Show a year earlier</label></div>
+        <div className="chart-controls"><div className="range-control" role="group" aria-label="Period">{RANGES.map(([value, label]) => <button key={value} type="button" aria-pressed={range === value} onClick={() => { setRange(value); setVisible(25); }}>{label}</button>)}</div><label className="compare-toggle"><input type="checkbox" checked={compare} disabled={range === 'all'} onChange={(e) => setCompare(e.target.checked)} /> Show previous years</label></div>
       </div>
       {pending ? <div className="chart-loading" role="status">Loading price history…<div className="skeleton-chart" aria-hidden="true" /></div> : history.error ? <div role="alert" className="chart-empty">Price history could not be loaded. <button className="text-button" onClick={() => setHistory({ id: '', rows: [], dimensions: {}, error: false })}>Retry</button></div> : <PriceChart rows={filtered} compare={earlier} startDate={startDate ?? filtered[0]?.date} endDate={endDate} unit={unit} />}
       {!pending && gapNote(history.rows, startDate, endDate) && <p className="dk-inset">{gapNote(history.rows, startDate, endDate)}</p>}
-      <p className="chart-note">Shaded band: USDA low to high quote, US dollars {unit}. Weekends and holidays are joined; hatching marks longer stretches with no quote. {compare && range !== 'all' ? 'Grey: the same product a year earlier.' : ''}</p>
+      <p className="chart-note">Shaded band: USDA low to high quote, US dollars {unit}. Weekends and holidays are joined; hatching marks longer stretches with no quote. {compare && range !== 'all' && prior.years > 0 ? `Grey: the range this product traded in over the same weeks of the previous ${prior.years === 1 ? 'year' : `${prior.years} years`}.` : ''}</p>
     </section>
     {summary && <Section title="Compared with earlier reports" hint="Percentages compare the midpoint of the quoted range.">
       <dl className="dk-summary dk-summary--wide">

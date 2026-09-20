@@ -112,7 +112,7 @@ export function summarize(series) {
   const lowOf = (r) => (field ? r[field] : r.low ?? r.high); const highOf = (r) => (field ? r[field] : r.high ?? r.low);
   const yearLow = yearRows.reduce((b, r) => (lowOf(r) !== null && (!b || lowOf(r) < lowOf(b)) ? r : b), null);
   const yearHigh = yearRows.reduce((b, r) => (highOf(r) !== null && (!b || highOf(r) > highOf(b)) ? r : b), null);
-  return { latest, monthAgo, yearAgo, monthChange: pctChange(latest, monthAgo), yearChange: pctChange(latest, yearAgo), gap: longestGap(yearRows), yearLow, yearHigh, yearReports: yearRows.length, sparkline: yearRows.map((r) => ({ date: r.date, low: r.low, high: r.high, advertised_average: r.advertised_average })), earlier: yearEarlier(rows.filter(priced), addDays(latest.date, -364), latest.date).map((r) => ({ date: r.date, low: r.low, high: r.high, advertised_average: r.advertised_average })) };
+  return { latest, monthAgo, yearAgo, monthChange: pctChange(latest, monthAgo), yearChange: pctChange(latest, yearAgo), gap: longestGap(yearRows), yearLow, yearHigh, yearReports: yearRows.length, sparkline: yearRows.map((r) => ({ date: r.date, low: r.low, high: r.high, advertised_average: r.advertised_average })), earlier: priorYears(rows, addDays(latest.date, -364), latest.date).rows, earlierYears: priorYears(rows, addDays(latest.date, -364), latest.date).years };
 }
 // The benchmark for a commodity is the product USDA quoted most consistently over the past two years and still quotes.
 // A family can name the everyday commodity to prefer (iceberg over mesclun) so the headline row stays recognisable.
@@ -136,7 +136,24 @@ export function chartSegments(rows, field, maxGapDays = 7) {
   }
   if (segment.length) segments.push(segment); return segments;
 }
-// Shifts the previous year's observations forward by 364 days (52 weeks) so weekdays align with the current window.
+// The seasonal reference band: for the same weeks in every previous year we hold (weekday-aligned, 52-week shifts),
+// the lowest low and the highest high. An envelope, not an average, so no price is invented.
+export function priorYears(rows, startDate, endDate, maxYears = 6) {
+  const byDate = new Map(); let years = 0;
+  for (let k = 1; k <= maxYears; k++) {
+    const shift = 364 * k;
+    const slice = rows.filter((r) => priced(r) && r.date >= addDays(startDate, -shift) && r.date <= addDays(endDate, -shift));
+    if (!slice.length) continue; years = k;
+    for (const r of slice) {
+      const lo = r.low ?? r.advertised_average ?? r.high, hi = r.high ?? r.advertised_average ?? r.low;
+      if (lo === null || hi === null) continue;
+      const date = addDays(r.date, shift); const e = byDate.get(date) ?? { date, low: Infinity, high: -Infinity, advertised_average: null };
+      e.low = Math.min(e.low, lo); e.high = Math.max(e.high, hi); byDate.set(date, e);
+    }
+  }
+  return { years, rows: [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date)) };
+}
+// Kept for callers that want exactly last year.
 export function yearEarlier(rows, startDate, endDate) {
   return rows.filter((r) => r.date >= addDays(startDate, -364) && r.date <= addDays(endDate, -364)).map((r) => ({ ...r, date: addDays(r.date, 364) }));
 }
