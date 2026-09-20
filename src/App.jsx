@@ -78,6 +78,11 @@ function NewsSection({ items, common, slug }) {
   </Section>;
 }
 const RANGES = [['30', '30 days'], ['365', '1 year'], ['all', 'All']];
+// GOV.UK treats a select as a last resort. One option is not a choice, so it is shown as a fact instead of a control.
+function Choice({ label, value, options, onChange, className = '' }) {
+  if (options.length === 1) return <div className={`filter-fact ${className}`.trim()}><span className="filter-fact-label">{label}</span><span className="filter-fact-value">{options[0].label}</span></div>;
+  return <label className={className || undefined}>{label}<select value={value} onChange={(e) => onChange(e.target.value)}>{options.map((o) => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}</select></label>;
+}
 function Commodity({ page }) {
   const initial = page.series.find((s) => s.id === page.initialSeriesId);
   const [market, setMarket] = useState(marketKey(initial)); const [pack, setPack] = useState(initial.package); const [seriesId, setSeriesId] = useState(initial.id);
@@ -113,11 +118,11 @@ function Commodity({ page }) {
   const unit = unitLabel(selected.package);
   return <>
     <nav className="breadcrumbs" aria-label="Breadcrumb"><a href={HOME}>US food price monitor</a><span aria-hidden="true">/</span><span>{page.summary.name}</span></nav>
-    <div className="hero detail-hero"><div><h1>{page.title}</h1><p className="lede">{page.summary.description}</p><p className="dk-hint">{number(page.summary.seriesCount)} products in {page.summary.markets} markets, {dateLabel(page.summary.firstDate)} to {dateLabel(page.summary.lastDate)}.</p></div><Download slug={page.summary.slug} common={page.common} /></div>
+    <div className="hero detail-hero"><div><h1>{page.title}</h1><p className="lede">{page.summary.description}</p><p className="dk-hint">{number(page.summary.seriesCount)} {page.summary.seriesCount === 1 ? 'product' : 'products'} in {page.summary.markets} {page.summary.markets === 1 ? 'market' : 'markets'}, {dateLabel(page.summary.firstDate)} to {dateLabel(page.summary.lastDate)}.</p></div><Download slug={page.summary.slug} common={page.common} /></div>
     <div className="filters">
-      <label>Market<select value={market} onChange={(e) => changeMarket(e.target.value)}>{markets.map((m) => <option key={m} disabled={allSeries.length < page.seriesTotal && !allSeries.some((s) => marketKey(s) === m)}>{m}</option>)}</select></label>
-      <label>Package<select value={pack} onChange={(e) => changePack(e.target.value)}>{packs.map((p) => <option key={p}>{p}</option>)}</select></label>
-      <label className="product-select">Product<select value={selected.id} onChange={(e) => { setSeriesId(e.target.value); setVisible(25); }}>{options.map((s) => <option key={s.id} value={s.id}>{s.product}{s.origin ? `, ${s.origin}` : ''} (latest {dateLabel(s.lastDate)})</option>)}</select></label>
+      <Choice label="Market" value={market} options={markets.map((m) => ({ value: m, label: m, disabled: allSeries.length < page.seriesTotal && !allSeries.some((s) => marketKey(s) === m) }))} onChange={changeMarket} />
+      <Choice label="Package" value={pack} options={packs.map((p) => ({ value: p, label: p }))} onChange={changePack} />
+      <Choice className="product-select" label="Product" value={selected.id} options={options.map((s) => ({ value: s.id, label: `${s.product}${s.origin ? `, ${s.origin}` : ''} (latest ${dateLabel(s.lastDate)})` }))} onChange={(v) => { setSeriesId(v); setVisible(25); }} />
     </div>
     <section className="chart-panel" aria-labelledby="chart-title">
       <div className="quote-heading">

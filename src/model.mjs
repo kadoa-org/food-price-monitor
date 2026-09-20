@@ -39,6 +39,20 @@ export const reports = {
   'usda-2391': { name: 'Fresno shipping point vegetables', stage: 'Shipping Point', cadence: 'Daily, in season' },
   'usda-2390': { name: 'Fresno shipping point fruit', stage: 'Shipping Point', cadence: 'Daily, in season' },
   'usda-3324': { name: 'US retail produce promotions', stage: 'Retail - Specialty Crops', cadence: 'Weekly' },
+  'usda-2314': { name: 'New York wholesale fruit', stage: 'Terminal', cadence: 'Daily' },
+  'usda-2290': { name: 'Chicago wholesale fruit', stage: 'Terminal', cadence: 'Daily' },
+  'usda-2291': { name: 'Chicago wholesale vegetables', stage: 'Terminal', cadence: 'Daily' },
+  'usda-2306': { name: 'Los Angeles wholesale fruit', stage: 'Terminal', cadence: 'Daily' },
+  'usda-2307': { name: 'Los Angeles wholesale vegetables', stage: 'Terminal', cadence: 'Daily' },
+  'usda-2277': { name: 'Atlanta wholesale fruit', stage: 'Terminal', cadence: 'Daily' },
+  'usda-2278': { name: 'Atlanta wholesale vegetables', stage: 'Terminal', cadence: 'Daily' },
+  'usda-2279': { name: 'Atlanta wholesale onions and potatoes', stage: 'Terminal', cadence: 'Daily' },
+  'usda-2285': { name: 'Boston wholesale fruit', stage: 'Terminal', cadence: 'Daily' },
+  'usda-2286': { name: 'Boston wholesale vegetables', stage: 'Terminal', cadence: 'Daily' },
+  'usda-2287': { name: 'Boston wholesale onions and potatoes', stage: 'Terminal', cadence: 'Daily' },
+  'usda-2318': { name: 'Philadelphia wholesale fruit', stage: 'Terminal', cadence: 'Daily' },
+  'usda-2319': { name: 'Philadelphia wholesale vegetables', stage: 'Terminal', cadence: 'Daily' },
+  'usda-2320': { name: 'Philadelphia wholesale onions and potatoes', stage: 'Terminal', cadence: 'Daily' },
   'usda-2734': { name: 'New York shell eggs', stage: 'Terminal', cadence: 'Daily' },
   'usda-2843': { name: 'National shell egg index', stage: 'Terminal', cadence: 'Daily' },
   'usda-2757': { name: 'US grocery store egg features', stage: 'Retail - Livestock/Poultry/Egg', cadence: 'Weekly' },
@@ -51,7 +65,8 @@ export const RETAIL = 'Retail - Specialty Crops';
 export const RETAIL_STAGES = new Set(['Retail - Specialty Crops', 'Retail - Livestock/Poultry/Egg']);
 export const isRetail = (stage) => RETAIL_STAGES.has(stage);
 export const stageName = (s) => ({ 'Shipping Point': 'Shipping point', Terminal: 'Wholesale', 'Point of Sale - Eggs': 'Wholesale', 'Retail - Specialty Crops': 'Retail promotion', 'Retail - Livestock/Poultry/Egg': 'Retail promotion' }[s] ?? s);
-export const clean = (v) => (v && v !== 'N/A' ? String(v) : '');
+// USDA writes 'N/A' and 'None' for attributes that do not apply; neither is a fact worth showing.
+export const clean = (v) => (v && v !== 'N/A' && v !== 'None' ? String(v) : '');
 // USDA writes varieties and districts in capitals. Title case them for reading; leave mixed-case values alone.
 const SMALL = new Set(['and', 'of', 'the', 'or', 'in', 'through', 'to', 'type']);
 export const titleCase = (v) => { const text = clean(v); if (text !== text.toUpperCase() || !/[A-Z]/.test(text)) return text; return text.toLowerCase().replace(/[a-z][a-z']*/g, (w, i) => (i && SMALL.has(w) ? w : w[0].toUpperCase() + w.slice(1))); };
@@ -79,7 +94,7 @@ export function productLabel(d, commodity, plain = commodity) {
   return [kind, titleCase(d.var ?? d.variety), clean(d.type), clean(d.section) && d.section !== d.type ? clean(d.section) : '', clean(d.properties), clean(d.item_size), clean(d.class), clean(d.color), clean(d.egg_type), clean(d.package_size), clean(d.environment) === 'Conventional' ? '' : clean(d.environment), clean(d.grade), organic, clean(d.qualifier), clean(d.repack) && 'Repacked', clean(d.appearance), clean(d.condition) === 'Fresh' ? '' : clean(d.condition)]
     .filter(Boolean).join(', ') || commodity;
 }
-export const originLabel = (d) => titleCase(d.district) || titleCase(d.origin) || '';
+export const originLabel = (d) => titleCase(clean(d.district)) || titleCase(clean(d.origin)) || '';
 export function groupSeries(rows, plain) {
   const map = new Map();
   for (const row of rows) { let group = map.get(row.series_id); if (!group) { group = { id: row.series_id, rows: [] }; map.set(group.id, group); } group.rows.push(row); }
