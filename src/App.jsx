@@ -123,7 +123,7 @@ function Commodity({ page }) {
       </div>
       {pending ? <div className="chart-loading" role="status">Loading price history…<div className="skeleton-chart" aria-hidden="true" /></div> : history.error ? <div role="alert" className="chart-empty">Price history could not be loaded. <button className="text-button" onClick={() => setHistory({ id: '', rows: [], dimensions: {}, error: false })}>Retry</button></div> : <PriceChart rows={filtered} compare={earlier} startDate={startDate ?? filtered[0]?.date} endDate={endDate} unit={unit} />}
       {!pending && gapNote(history.rows, startDate, endDate) && <p className="dk-inset">{gapNote(history.rows, startDate, endDate)}</p>}
-      <p className="chart-note">Shaded band: USDA low to high quote, US dollars {unit}. Weekends and holidays are joined; longer gaps are left open. {compare && range !== 'all' ? 'Grey: the same product a year earlier.' : ''}</p>
+      <p className="chart-note">Shaded band: USDA low to high quote, US dollars {unit}. Weekends and holidays are joined; hatching marks longer stretches with no quote. {compare && range !== 'all' ? 'Grey: the same product a year earlier.' : ''}</p>
     </section>
     {summary && <Section title="Compared with earlier reports" hint="Percentages compare the midpoint of the quoted range.">
       <dl className="dk-summary dk-summary--wide">

@@ -46,11 +46,18 @@ export default function PriceChart({ rows, retail = false, compact = false, star
   const collide = labelPositions.length === 2 && Math.abs(y(labelPositions[0].v) - y(labelPositions[1].v)) < 14;
   function pointer(event) { const box = event.currentTarget.getBoundingClientRect(); const targetX = ((event.clientX - box.left) / box.width) * w; setHover(pointRows.reduce((best, r) => (Math.abs(x(r.date) - targetX) < Math.abs(x(best.date) - targetX) ? r : best), pointRows[0])); }
   if (compact) return <div ref={container} className="spark" aria-hidden="true"><svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">{!retail && band(rows.filter(valid), 'chart-band')}{lines(rows.filter(valid), 'chart-line')}</svg></div>;
+  // Stretches with no quote for longer than a reporting interval are hatched, as on the landing panels.
+  const priced = rows.filter((r) => valid(r) && fields.some((f) => typeof r[f] === 'number'));
+  const gaps = []; let prevDate = startDate ?? priced[0]?.date;
+  for (const r of priced) { if (prevDate && Date.parse(r.date) - Date.parse(prevDate) > maxGapDays * DAY) gaps.push([prevDate, r.date]); prevDate = r.date; }
+  if (endDate && prevDate && Date.parse(endDate) - Date.parse(prevDate) > maxGapDays * DAY) gaps.push([prevDate, endDate]);
   const hoverCompare = hover && compareByDate.get(hover.date);
   const tooltipLeft = hover ? Math.min(Math.max(x(hover.date) / w * 100, 12), 88) : 0;
   return <div className="price-chart" ref={container}>
     <svg viewBox={`0 0 ${w} ${h}`} role="img" tabIndex={0} aria-label={retail ? `Advertised average price, ${dateLabel(rows[0].date)} to ${dateLabel(rows.at(-1).date)}` : `Quoted low and high prices, ${dateLabel(rows[0].date)} to ${dateLabel(rows.at(-1).date)}`} onFocus={() => setHover(last)} onBlur={() => setHover(null)} onPointerMove={pointer} onPointerLeave={() => setHover(null)} onKeyDown={(event) => { if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return; event.preventDefault(); const index = hover ? pointRows.findIndex((r) => r.date === hover.date) : pointRows.length - 1; setHover(pointRows[Math.max(0, Math.min(pointRows.length - 1, index + (event.key === 'ArrowLeft' ? -1 : 1)))]); }}>
       <desc>{`Latest ${dateLabel(last.date)}: ${fields.map((f) => money(last[f])).join(' to ')} ${unit}. Values are also listed in the table below.`}</desc>
+      <defs><pattern id="nodata-detail" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" className="band-hatch" /></pattern></defs>
+      {gaps.map(([a, b]) => <rect key={a} x={x(a)} y={p.t} width={Math.max(1, x(b) - x(a))} height={h - p.t - p.b} fill="url(#nodata-detail)" />)}
       {ticks.map((v) => <g key={v}><line x1={p.l} x2={w - p.r} y1={y(v)} y2={y(v)} className="chart-grid" /><text x={p.l - 8} y={y(v) + 4} textAnchor="end" className="chart-axis">{v >= 100 ? `$${Math.round(v)}` : `$${v.toFixed(v % 1 ? 2 : 0)}`}</text></g>)}
       {xTicks(from, to).map((tick) => <g key={tick.t}><line x1={x(new Date(tick.t).toISOString())} x2={x(new Date(tick.t).toISOString())} y1={h - p.b} y2={h - p.b + 5} className="chart-tick" /><text x={x(new Date(tick.t).toISOString())} y={h - 8} textAnchor="middle" className="chart-axis">{tick.label}</text></g>)}
       <line x1={p.l} x2={w - p.r} y1={h - p.b} y2={h - p.b} className="chart-baseline" />
