@@ -90,6 +90,8 @@ function Commodity({ page }) {
   const marketSeries = allSeries.filter((s) => marketKey(s) === market); const packs = [...new Set(marketSeries.map((s) => s.package))].sort(); const options = marketSeries.filter((s) => s.package === pack); const selected = options.find((s) => s.id === seriesId) ?? options[0];
   useEffect(() => { if (history.id === selected.id) return; const controller = new AbortController(); fetch(`${dataPath(page.common)}/series/${selected.id}.json`, { signal: controller.signal }).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then((file) => setHistory({ id: selected.id, rows: file.observations, dimensions: file.dimensions, error: false })).catch((error) => { if (error.name !== 'AbortError') setHistory({ id: selected.id, rows: [], dimensions: {}, error: true }); }); return () => controller.abort(); }, [selected.id, history.id]);
   const pending = history.id !== selected.id;
+  // The national egg index reports one value per day rather than a low and a high; retail ads do too.
+  const retail = selected.stage === 'Retail promotion' || (!pending && history.rows.length > 0 && history.rows.every((r) => r.low === null && r.high === null));
   const series = { ...selected, observations: history.rows };
   const summary = pending || !history.rows.length ? null : summarize(series);
   const endDate = summary ? summary.latest.date : selected.lastDate;
@@ -102,8 +104,8 @@ function Commodity({ page }) {
   function changePack(value) { setPack(value); setSeriesId(marketSeries.find((s) => s.package === value).id); setVisible(25); }
   const columns = [
     { key: 'date', header: 'Report date', sortable: true, render: (r) => dateLabel(r.date) },
-    { key: 'low', header: 'Low', sortable: true, align: 'right', render: (r) => (r.ambiguous ? 'Conflicting records' : money(r.low)) },
-    { key: 'high', header: 'High', sortable: true, align: 'right', render: (r) => (r.ambiguous ? '' : money(r.high)) },
+    ...(retail ? [{ key: 'advertised_average', header: selected.stage === 'Retail promotion' ? 'Advertised average' : 'Average', sortable: true, align: 'right', render: (r) => (r.ambiguous ? 'Conflicting records' : money(r.advertised_average)) }] : [{ key: 'low', header: 'Low', sortable: true, align: 'right', render: (r) => (r.ambiguous ? 'Conflicting records' : money(r.low)) },
+    { key: 'high', header: 'High', sortable: true, align: 'right', render: (r) => (r.ambiguous ? '' : money(r.high)) }]),
     { key: 'mostly_low', header: 'Most sales', align: 'right', hideBelow: 'sm', render: (r) => (r.mostly_low === null && r.mostly_high === null ? '' : [r.mostly_low, r.mostly_high].filter((v) => v !== null).map(money).join(' to ')) },
     { key: 'comment', header: 'USDA note', hideBelow: 'md', render: (r) => r.comment ?? '' },
     { key: 'source', header: 'Source', render: (r) => <button className="text-button" onClick={() => setEvidence(r)} aria-label={`View USDA record for ${dateLabel(r.date)}`}>View</button> },
@@ -122,9 +124,9 @@ function Commodity({ page }) {
         <div><h2 id="chart-title" className="quote-value">{quote(selected.latest)} <span>{unit}</span></h2><p className="product-caption">{selected.product}{selected.origin ? `, ${selected.origin}` : ''}. {selected.stage}, {selected.market}, {dateLabel(selected.lastDate)}{selected.lastDate !== page.common.lastDate ? ' (not in the newest report)' : ''}.</p></div>
         <div className="chart-controls"><div className="range-control" role="group" aria-label="Period">{RANGES.map(([value, label]) => <button key={value} type="button" aria-pressed={range === value} onClick={() => { setRange(value); setVisible(25); }}>{label}</button>)}</div><label className="compare-toggle"><input type="checkbox" checked={compare} disabled={range === 'all'} onChange={(e) => setCompare(e.target.checked)} /> Show previous years</label></div>
       </div>
-      {pending ? <div className="chart-loading" role="status">Loading price history…<div className="skeleton-chart" aria-hidden="true" /></div> : history.error ? <div role="alert" className="chart-empty">Price history could not be loaded. <button className="text-button" onClick={() => setHistory({ id: '', rows: [], dimensions: {}, error: false })}>Retry</button></div> : <PriceChart rows={filtered} compare={earlier} startDate={startDate ?? filtered[0]?.date} endDate={endDate} unit={unit} />}
+      {pending ? <div className="chart-loading" role="status">Loading price history…<div className="skeleton-chart" aria-hidden="true" /></div> : history.error ? <div role="alert" className="chart-empty">Price history could not be loaded. <button className="text-button" onClick={() => setHistory({ id: '', rows: [], dimensions: {}, error: false })}>Retry</button></div> : <PriceChart rows={filtered} retail={retail} compare={earlier} startDate={startDate ?? filtered[0]?.date} endDate={endDate} unit={unit} />}
       {!pending && gapNote(history.rows, startDate, endDate) && <p className="dk-inset">{gapNote(history.rows, startDate, endDate)}</p>}
-      <p className="chart-note">Shaded band: USDA low to high quote, US dollars {unit}. Weekends and holidays are joined; hatching marks longer stretches with no quote. {compare && range !== 'all' && prior.years > 0 ? `Grey: the range this product traded in over the same weeks of the previous ${prior.years === 1 ? 'year' : `${prior.years} years`}.` : ''}</p>
+      <p className="chart-note">{retail ? `USDA reported average, US dollars ${unit}.` : `Shaded band: USDA low to high quote, US dollars ${unit}.`} Weekends and holidays are joined; hatching marks longer stretches with no quote. {compare && range !== 'all' && prior.years > 0 ? `Grey: the range this product traded in over the same weeks of the previous ${prior.years === 1 ? 'year' : `${prior.years} years`}.` : ''}</p>
     </section>
     {summary && <Section title="Compared with earlier reports" hint="Percentages compare the midpoint of the quoted range.">
       <dl className="dk-summary dk-summary--wide">

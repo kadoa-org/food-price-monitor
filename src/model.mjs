@@ -8,9 +8,10 @@ export const curated = [
   { slug: 'onions', name: 'Onions', singular: 'Onion', emoji: '🧅', news: /\bonions?\b/i, matches: ['Onions, Dry'], description: 'Dry onions by variety, size, origin and package.' },
   { slug: 'potatoes', name: 'Potatoes', singular: 'Potato', emoji: '🥔', news: /\bpotato(es)?\b/i, matches: ['Potatoes'], description: 'Russet, red, yellow and white potatoes by growing region, size and package.' },
   { slug: 'tomatoes', name: 'Tomatoes', singular: 'Tomato', emoji: '🍅', news: /\btomato(es)?\b|\bromas?\b/i, matches: ['Tomatoes', 'Tomatoes, Plum Type', 'Tomatoes, Cherry', 'Tomatoes, Grape Type'], prefer: ['Tomatoes'], description: 'Round, plum, cherry and grape tomatoes, kept as separate products.' },
-  { slug: 'lettuce', name: 'Lettuce', singular: 'Lettuce', emoji: '🥬', news: /\blettuce\b|\biceberg\b|\bromaine\b|\bgreen leaf\b|\bred leaf\b|\bbutter lettuce\b/i, matches: ['Lettuce', 'Lettuce, Romaine', 'Lettuce, Mesculin Mix', 'Lettuce, Green Leaf', 'Lettuce, Boston', 'Lettuce, Iceberg', 'Lettuce, Frisee', 'Lettuce, Red Leaf'], prefer: ['Lettuce, Iceberg', 'Lettuce, Romaine', 'Lettuce'], description: 'Iceberg, romaine and leaf lettuce by origin and package.' },
+  { slug: 'lettuce', name: 'Lettuce', singular: 'Lettuce', emoji: '🥬', featured: false, news: /\blettuce\b|\biceberg\b|\bromaine\b|\bgreen leaf\b|\bred leaf\b|\bbutter lettuce\b/i, matches: ['Lettuce', 'Lettuce, Romaine', 'Lettuce, Mesculin Mix', 'Lettuce, Green Leaf', 'Lettuce, Boston', 'Lettuce, Iceberg', 'Lettuce, Frisee', 'Lettuce, Red Leaf'], prefer: ['Lettuce, Iceberg', 'Lettuce, Romaine', 'Lettuce'], description: 'Iceberg, romaine and leaf lettuce by origin and package.' },
   { slug: 'avocados', name: 'Avocados', singular: 'Avocado', emoji: '🥑', news: /\bavocados?\b|\bhass\b/i, matches: ['Avocados'], description: 'Hass and greenskin avocados by origin, size and package.' },
   { slug: 'strawberries', name: 'Strawberries', singular: 'Strawberry', emoji: '🍓', news: /\bstrawberr(y|ies)\b/i, matches: ['Strawberries'], description: 'Strawberries by origin and package.' },
+  { slug: 'eggs', name: 'Eggs', singular: 'Egg', emoji: '🥚', news: /\beggs?\b/i, matches: ['Shell Eggs'], preferSeries: (s) => s.market === 'New York' && /^Large\b/.test(s.product), description: 'Shell eggs by size, colour and housing: New York volume prices to retail buyers and the national weighted index, in dollars per dozen.' },
 ];
 export const families = curated;
 // Decorative lines USDA quotes alongside food. Never published.
@@ -34,9 +35,11 @@ export const reports = {
   'usda-2391': { name: 'Fresno shipping point vegetables', stage: 'Shipping Point', cadence: 'Daily, in season' },
   'usda-2390': { name: 'Fresno shipping point fruit', stage: 'Shipping Point', cadence: 'Daily, in season' },
   'usda-3324': { name: 'US retail produce promotions', stage: 'Retail - Specialty Crops', cadence: 'Weekly' },
+  'usda-2734': { name: 'New York shell eggs', stage: 'Terminal', cadence: 'Daily' },
+  'usda-2843': { name: 'National shell egg index', stage: 'Terminal', cadence: 'Daily' },
 };
 export const RETAIL = 'Retail - Specialty Crops';
-export const stageName = (s) => ({ 'Shipping Point': 'Shipping point', Terminal: 'Wholesale', [RETAIL]: 'Retail promotion' }[s] ?? s);
+export const stageName = (s) => ({ 'Shipping Point': 'Shipping point', Terminal: 'Wholesale', 'Point of Sale - Eggs': 'Wholesale', [RETAIL]: 'Retail promotion' }[s] ?? s);
 export const clean = (v) => (v && v !== 'N/A' ? String(v) : '');
 // USDA writes varieties and districts in capitals. Title case them for reading; leave mixed-case values alone.
 const SMALL = new Set(['and', 'of', 'the', 'or', 'in', 'through', 'to', 'type']);
@@ -62,7 +65,7 @@ export const priced = (row) => row && !row.ambiguous && (row.advertised_average 
 export function productLabel(d, commodity, plain = commodity) {
   const organic = ['Y', 'Yes'].includes(d.organic) ? 'Organic' : '';
   const kind = commodity !== plain && commodity.includes(', ') ? commodity.split(', ').slice(1).join(' ') : '';
-  return [kind, titleCase(d.var ?? d.variety), clean(d.properties), clean(d.item_size), clean(d.grade), organic, clean(d.qualifier), clean(d.repack) && 'Repacked', clean(d.appearance), clean(d.condition)]
+  return [kind, titleCase(d.var ?? d.variety), clean(d.properties), clean(d.item_size), clean(d.class), clean(d.color), clean(d.egg_type), clean(d.environment), clean(d.grade), organic, clean(d.qualifier), clean(d.repack) && 'Repacked', clean(d.appearance), clean(d.condition)]
     .filter(Boolean).join(', ') || commodity;
 }
 export const originLabel = (d) => titleCase(d.district) || titleCase(d.origin) || '';
@@ -116,7 +119,7 @@ export function summarize(series) {
 }
 // The benchmark for a commodity is the product USDA quoted most consistently over the past two years and still quotes.
 // A family can name the everyday commodity to prefer (iceberg over mesclun) so the headline row stays recognisable.
-export function pickBenchmark(groups, lastDate, prefer = []) {
+export function pickBenchmark(groups, lastDate, prefer = [], preferSeries = () => false) {
   const rank = { 'Shipping point': 0, Wholesale: 1, 'Retail promotion': 2 };
   const recent = groups.filter((s) => !s.retail && priced(s.latest) && s.lastDate >= addDays(lastDate, -7));
   const pool = recent.length ? recent : groups.filter((s) => priced(s.latest));
@@ -124,7 +127,7 @@ export function pickBenchmark(groups, lastDate, prefer = []) {
   // A headline row should be able to say what the product cost 4 weeks and a year earlier.
   const comparable = (s) => (nearest(s.observations, addDays(lastDate, -28), 4) ? 1 : 0) + (nearest(s.observations, addDays(lastDate, -364), 7) ? 1 : 0);
   const score = (s) => s.observations.filter((r) => priced(r) && r.date > addDays(lastDate, -730)).length;
-  return pool.sort((a, b) => preference(a) - preference(b) || rank[a.stage] - rank[b.stage] || comparable(b) - comparable(a) || score(b) - score(a) || a.id.localeCompare(b.id))[0] ?? groups[0];
+  return pool.sort((a, b) => Number(preferSeries(b)) - Number(preferSeries(a)) || preference(a) - preference(b) || rank[a.stage] - rank[b.stage] || comparable(b) - comparable(a) || score(b) - score(a) || a.id.localeCompare(b.id))[0] ?? groups[0];
 }
 // Lines break at gaps longer than a normal reporting interval. Weekends and single holidays are joined, seasonal stops and missing quotes are not.
 export function chartSegments(rows, field, maxGapDays = 7) {

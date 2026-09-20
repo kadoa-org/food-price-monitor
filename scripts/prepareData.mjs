@@ -68,13 +68,13 @@ for (const family of families) {
   for (const group of groups) await writeFile(join(data, 'series', `${group.id}.json`), JSON.stringify({ dimensions: group.dimensions, observations: compactAll(group.observations) }));
   const wholesale = groups.filter((s) => !s.retail);
   if (!wholesale.length) throw new Error(`No wholesale or shipping-point series for ${family.name}`);
-  const benchmark = pickBenchmark(wholesale, lastDate, family.prefer ?? []);
+  const benchmark = pickBenchmark(wholesale, lastDate, family.prefer ?? [], family.preferSeries);
   const dates = familyRows.map((r) => r.date).sort();
   const summary = { slug: family.slug, name: family.name, singular: family.singular, description: family.description, curated: !family.auto, emoji: family.emoji ?? null, rows: familyRows.length, seriesCount: wholesale.length, markets: new Set(wholesale.map((s) => `${s.stage}/${s.market}`)).size, stages: [...new Set(wholesale.map((s) => s.stage))].sort(), firstDate: dates[0], lastDate: dates.at(-1), retailSeries: groups.length - wholesale.length };
   summaries.push(summary);
   const bench = summarize(benchmark);
   const entry = { summary, benchmark: { ...meta(benchmark), retail: benchmark.retail, ...bench, latest: compact(bench.latest), monthAgo: bench.monthAgo && compact(bench.monthAgo), yearAgo: bench.yearAgo && compact(bench.yearAgo), yearLow: bench.yearLow && compact(bench.yearLow), yearHigh: bench.yearHigh && compact(bench.yearHigh) } };
-  if (!family.auto) featured.push(entry);
+  if (!family.auto && family.featured !== false) featured.push(entry);
   index.push({ slug: family.slug, name: family.name, curated: !family.auto, stages: summary.stages, markets: summary.markets, seriesCount: summary.seriesCount, firstDate: summary.firstDate, lastDate: summary.lastDate, product: benchmark.product, market: benchmark.market, stage: benchmark.stage, package: benchmark.package, latest: compact(bench.latest), yearAgo: bench.yearAgo && compact(bench.yearAgo), yearChange: bench.yearChange, matches: family.matches });
   await writeFile(join(data, 'commodity', `${family.slug}.json`), JSON.stringify({ kind: 'commodity', key: `commodity/${family.slug}`, title: family.auto ? `${family.name} prices` : `${family.singular} prices`, summary, markets: [...new Set(wholesale.map(marketKey))].sort(), series: wholesale.filter((x) => marketKey(x) === marketKey(benchmark)).map(meta), seriesTotal: wholesale.length, initialSeriesId: benchmark.id, initialDimensions: benchmark.dimensions, initialObservations: compactAll(benchmark.observations), common }));
   // The full product list loads after first paint; potatoes alone has close to 4,000 products.

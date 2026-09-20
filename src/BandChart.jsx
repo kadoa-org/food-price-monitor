@@ -16,6 +16,9 @@ export default function BandChart({ rows, earlier = [], startDate, endDate, name
   const path = (seg) => seg.map((r, i) => `${i ? 'L' : 'M'}${x(r.date).toFixed(1)},${y(r.value).toFixed(1)}`).join('');
   const band = (data, cls) => { const byDate = new Map(data.map((r) => [r.date, r])); return chartSegments(data.filter((r) => typeof r.low === 'number' && typeof r.high === 'number'), 'low', maxGapDays).filter((s) => s.length > 1).map((s, i) => <path key={i} className={cls} d={`${path(s)}${s.toReversed().map((r) => `L${x(r.date).toFixed(1)},${y(byDate.get(r.date).high).toFixed(1)}`).join('')}Z`} />); };
   const edges = (data) => ['low', 'high'].map((f) => chartSegments(data, f, maxGapDays).map((s, i) => s.length > 1 ? <path key={`${f}${i}`} className="band-edge" d={path(s)} /> : <circle key={`${f}${i}`} className="band-point" cx={x(s[0].date)} cy={y(s[0].value)} r="1.5" />));
+  // Single-value series (the egg index, retail averages) draw as one line instead of a band.
+  const single = list.every((r) => typeof r.low !== 'number' && typeof r.high !== 'number');
+  const singleLine = () => chartSegments(list.filter((r) => typeof r.advertised_average === 'number'), 'advertised_average', maxGapDays).map((s, i) => s.length > 1 ? <path key={`avg${i}`} className="band-edge" d={path(s)} /> : <circle key={`avg${i}`} className="band-point" cx={x(s[0].date)} cy={y(s[0].value)} r="1.5" />);
   const gaps = []; let prev = startDate;
   for (const r of list) { if (Date.parse(r.date) - Date.parse(prev) > maxGapDays * DAY) gaps.push([prev, r.date]); prev = r.date; }
   if (Date.parse(endDate) - Date.parse(prev) > maxGapDays * DAY) gaps.push([prev, endDate]);
@@ -25,8 +28,7 @@ export default function BandChart({ rows, earlier = [], startDate, endDate, name
       <defs><pattern id="nodata" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" className="band-hatch" /></pattern></defs>
       {gaps.map(([a, b]) => <rect key={a} x={x(a)} y={p.t} width={Math.max(1, x(b) - x(a))} height={h - p.t - p.b} fill="url(#nodata)" />)}
       {band(prior, 'band-fill band-fill--earlier')}
-      {band(list, 'band-fill')}
-      {edges(list)}
+      {single ? singleLine() : <>{band(list, 'band-fill')}{edges(list)}</>}
     </svg>
     <span className="band-y band-y--top">{money(max).replace(/\.00$/, '')}</span><span className="band-y band-y--bottom">{money(min).replace(/\.00$/, '')}</span>
   </div>;
