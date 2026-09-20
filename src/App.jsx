@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, DataTable, LiveBadge, NavBar, SearchInput, Section, SiteFooter, SiteHeader, Tag } from './kit';
+import { Button, DataTable, GitHubButton, LiveBadge, NavBar, SearchInput, Section, SiteFooter, SiteHeader, Tag } from './kit';
 import CommandPalette from './CommandPalette';
 import { BASE, HOME, addDays, dataPath, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, quote, summarize, unitLabel, yearEarlier } from './model.mjs';
 import PriceChart from './PriceChart';
@@ -13,7 +13,7 @@ export function Shell({ page, children }) {
   const [search, setSearch] = useState(false);
   useEffect(() => { const onKey = (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearch((o) => !o); } }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey); }, []);
   return <><a className="skip-link" href="#main-content">Skip to content</a>
-    <SiteHeader brand="🥕 US Food Price Monitor" brandHref={HOME} right={<span className="header-right"><LiveBadge>Updated daily</LiveBadge><Button inverse onClick={() => setSearch(true)} aria-label="Search (Cmd+K)">Search <kbd className="header-kbd">⌘K</kbd></Button></span>} />
+    <SiteHeader brand="🥕 US Food Price Monitor" brandHref={HOME} right={<span className="header-right"><LiveBadge>Updated daily</LiveBadge><GitHubButton repo="kadoa-org/food-price-monitor" /><Button inverse onClick={() => setSearch(true)} aria-label="Search (Cmd+K)">Search <kbd className="header-kbd">⌘K</kbd></Button></span>} />
     <CommandPalette open={search} onClose={() => setSearch(false)} dataPath={dataPath(page?.common)} />
     <NavBar items={[{ href: HOME, label: 'Overview', active: kind === 'home' }, { href: `${BASE}/commodities`, label: 'Commodities', active: kind === 'commodity' || kind === 'commodities' }, { href: `${BASE}/retail`, label: 'Retail prices', active: kind === 'retail' }, { href: `${BASE}/about`, label: 'About the data', active: kind === 'about' }]} />
     <main id="main-content" className="dk-container main">{children}</main><SiteFooter current="food-prices" /></>;
