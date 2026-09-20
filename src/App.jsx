@@ -82,13 +82,13 @@ function Commodity({ page }) {
   const initial = page.series.find((s) => s.id === page.initialSeriesId);
   const [market, setMarket] = useState(marketKey(initial)); const [pack, setPack] = useState(initial.package); const [seriesId, setSeriesId] = useState(initial.id);
   const [range, setRange] = useState('365'); const [compare, setCompare] = useState(true); const [evidence, setEvidence] = useState(null); const [visible, setVisible] = useState(25); const [sort, setSort] = useState({ key: 'date', dir: 'desc' });
-  const [history, setHistory] = useState({ id: initial.id, rows: page.initialObservations, dimensions: page.initialDimensions, error: false });
+  const [history, setHistory] = useState({ id: initial.id, rows: page.initialObservations, dimensions: page.initialDimensions, reportTitle: page.initialReportTitle, error: false });
   // The page ships only the products of the initial market; the full list arrives after first paint.
   const [allSeries, setAllSeries] = useState(page.series);
   useEffect(() => { if (page.seriesTotal <= page.series.length) return; const controller = new AbortController(); fetch(`${dataPath(page.common)}/commodity/${page.summary.slug}.series.json`, { signal: controller.signal }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))).then(setAllSeries).catch(() => {}); return () => controller.abort(); }, [page]);
   const markets = page.markets ?? [...new Set(allSeries.map(marketKey))].sort();
   const marketSeries = allSeries.filter((s) => marketKey(s) === market); const packs = [...new Set(marketSeries.map((s) => s.package))].sort(); const options = marketSeries.filter((s) => s.package === pack); const selected = options.find((s) => s.id === seriesId) ?? options[0];
-  useEffect(() => { if (history.id === selected.id) return; const controller = new AbortController(); fetch(`${dataPath(page.common)}/series/${selected.id}.json`, { signal: controller.signal }).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then((file) => setHistory({ id: selected.id, rows: file.observations, dimensions: file.dimensions, error: false })).catch((error) => { if (error.name !== 'AbortError') setHistory({ id: selected.id, rows: [], dimensions: {}, error: true }); }); return () => controller.abort(); }, [selected.id, history.id]);
+  useEffect(() => { if (history.id === selected.id) return; const controller = new AbortController(); fetch(`${dataPath(page.common)}/series/${selected.id}.json`, { signal: controller.signal }).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then((file) => setHistory({ id: selected.id, rows: file.observations, dimensions: file.dimensions, reportTitle: file.report_title, error: false })).catch((error) => { if (error.name !== 'AbortError') setHistory({ id: selected.id, rows: [], dimensions: {}, reportTitle: null, error: true }); }); return () => controller.abort(); }, [selected.id, history.id]);
   const pending = history.id !== selected.id;
   // The national egg index reports one value per day rather than a low and a high; retail ads do too.
   const retail = selected.stage === 'Retail promotion' || (!pending && history.rows.length > 0 && history.rows.every((r) => r.low === null && r.high === null));
@@ -139,10 +139,10 @@ function Commodity({ page }) {
     </Section>}
     <NewsSection items={page.news} common={page.common} slug={page.summary.slug} />
     <Section title="Daily prices" hint={pending ? 'Loading' : `Every USDA report for this product in this period: ${number(filtered.length)} reports, ${unit}`}>
-      <DataTable rows={sorted.slice(0, visible)} columns={columns} rowKey={(r) => r.id} sort={sort} onSort={(key) => { setSort((s) => ({ key, dir: s.key === key && s.dir === 'desc' ? 'asc' : 'desc' })); setVisible(25); }} empty={pending ? 'Loading…' : history.error ? 'History could not be loaded.' : 'No reports in this period.'} />
+      <DataTable rows={sorted.slice(0, visible)} columns={columns} rowKey={(r) => r.date} sort={sort} onSort={(key) => { setSort((s) => ({ key, dir: s.key === key && s.dir === 'desc' ? 'asc' : 'desc' })); setVisible(25); }} empty={pending ? 'Loading…' : history.error ? 'History could not be loaded.' : 'No reports in this period.'} />
       {sorted.length > visible && <div className="table-more"><Button onClick={() => setVisible((n) => n + 50)}>Show more</Button><span className="dk-hint">Showing {visible} of {number(sorted.length)}</span></div>}
     </Section>
-    {evidence && <EvidenceDialog row={evidence} series={{ ...selected, commodity: selected.commodity ?? page.summary.name, dimensions: history.dimensions ?? {} }} onClose={() => setEvidence(null)} />}
+    {evidence && <EvidenceDialog row={evidence} series={{ ...selected, commodity: selected.commodity ?? page.summary.name, dimensions: history.dimensions ?? {}, reportTitle: history.reportTitle }} onClose={() => setEvidence(null)} />}
   </>;
 }
 function Commodities({ page }) {

@@ -3,7 +3,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { createGunzip } from 'node:zlib';
-import { BASE, RETAIL, addDays, curated, familyFor, marketKey, newsFamilies, groupSeries, markonNews, nearest, pickBenchmark, reports, summarize, usdaNews } from '../src/model.mjs';
+import { BASE, addDays, curated, familyFor, marketKey, newsFamilies, groupSeries, markonNews, nearest, pickBenchmark, reports, summarize, usdaNews, isRetail } from '../src/model.mjs';
 import { existsSync } from 'node:fs';
 
 const root = resolve(import.meta.dirname, '..');
@@ -25,7 +25,7 @@ for await (const line of createInterface({ input: createReadStream(join(dir, man
 }
 const wanted = new Map([...familyByCommodity.entries()].filter(([, f]) => f).map(([c, f]) => [c, f.slug]));
 // Retail-only commodities have no price history to chart, so they get no page.
-const wholesaleCommodities = new Set(rows.filter((r) => r.market_stage !== RETAIL).map((r) => r.commodity));
+const wholesaleCommodities = new Set(rows.filter((r) => !isRetail(r.market_stage)).map((r) => r.commodity));
 const families = [...curated, ...[...familyByCommodity.values()].filter((f) => f?.auto && wholesaleCommodities.has(f.matches[0])).sort((a, b) => a.name.localeCompare(b.name))];
 if (total !== manifest.rows) throw new Error(`Export row count mismatch: ${total} lines, manifest says ${manifest.rows}`);
 
@@ -47,8 +47,14 @@ const na = (v) => (v === 'N/A' ? '' : v);
 const toCsv = (list) => [csvFields.join(','), ...list.map((r) => { const f = flat(r); return csvFields.map((k) => cell(na(f[k]))).join(','); })].join('\n') + '\n';
 // Page payloads carry a slim series list; product attributes travel with the series file, fetched on demand.
 const meta = (s) => ({ id: s.id, source_id: s.source_id, market: s.market, stage: s.stage, origin: s.origin, package: s.package, product: s.product, lastDate: s.lastDate, latest: { date: s.latest.date, low: s.latest.low, high: s.latest.high, advertised_average: s.latest.advertised_average } });
-// Series files carry only what changes per report; product attributes live once on the series.
-const compact = ({ id, date, period_start, period_end, low, high, mostly_low, mostly_high, advertised_average, comment, ambiguous, evidence }) => ({ id, date, period_start, period_end, low, high, mostly_low, mostly_high, advertised_average, comment, ...(ambiguous ? { ambiguous } : {}), evidence });
+// Series files carry only what changes per report; product attributes live once on the series. The observation id is
+// derivable and unused by the site, reporting periods are written only when they differ from the report date, a null
+// comment is omitted, and the report title moves to the series file because it never changes within a series.
+const compact = ({ date, period_start, period_end, low, high, mostly_low, mostly_high, advertised_average, comment, ambiguous, evidence }) => {
+  const { report_title, ...rest } = evidence ?? {};
+  return { date, ...(period_start !== date || period_end !== date ? { period_start, period_end } : {}), low, high, mostly_low, mostly_high, advertised_average, ...(comment ? { comment } : {}), ...(ambiguous ? { ambiguous } : {}), evidence: rest };
+};
+const seriesFile = (group) => JSON.stringify({ dimensions: group.dimensions, report_title: group.latest.evidence?.report_title ?? null, observations: compactAll(group.observations) });
 const compactAll = (list) => list.map(compact);
 const lastDate = rows.map((r) => r.date).sort().at(-1);
 const firstDate = rows.map((r) => r.date).sort()[0];
@@ -65,18 +71,21 @@ for (const family of families) {
   if (!familyRows.length) throw new Error(`No source data for ${family.name}`);
   const groups = groupSeries(familyRows, family.matches[0]);
   feed.push(...usdaNews(familyRows, family, newsCutoff, sourceUrl));
-  for (const group of groups) await writeFile(join(data, 'series', `${group.id}.json`), JSON.stringify({ dimensions: group.dimensions, observations: compactAll(group.observations) }));
-  const wholesale = groups.filter((s) => !s.retail);
-  if (!wholesale.length) throw new Error(`No wholesale or shipping-point series for ${family.name}`);
+  for (const group of groups) await writeFile(join(data, 'series', `${group.id}.json`), seriesFile(group));
+  // A commodity page charts wholesale series when there are any; retail-only commodities (meat) chart their weekly ad prices.
+  let wholesale = groups.filter((s) => !s.retail);
+  const retailOnly = !wholesale.length;
+  if (retailOnly) wholesale = groups;
+  if (!wholesale.length) throw new Error(`No series for ${family.name}`);
   const benchmark = pickBenchmark(wholesale, lastDate, family.prefer ?? [], family.preferSeries);
   const dates = familyRows.map((r) => r.date).sort();
-  const summary = { slug: family.slug, name: family.name, singular: family.singular, description: family.description, curated: !family.auto, emoji: family.emoji ?? null, rows: familyRows.length, seriesCount: wholesale.length, markets: new Set(wholesale.map((s) => `${s.stage}/${s.market}`)).size, stages: [...new Set(wholesale.map((s) => s.stage))].sort(), firstDate: dates[0], lastDate: dates.at(-1), retailSeries: groups.length - wholesale.length };
+  const summary = { slug: family.slug, name: family.name, singular: family.singular, description: family.description, curated: !family.auto, emoji: family.emoji ?? null, rows: familyRows.length, seriesCount: wholesale.length, markets: new Set(wholesale.map((s) => `${s.stage}/${s.market}`)).size, stages: [...new Set(wholesale.map((s) => s.stage))].sort(), firstDate: dates[0], lastDate: dates.at(-1), retailSeries: groups.filter((s) => s.retail).length, retailOnly };
   summaries.push(summary);
   const bench = summarize(benchmark);
   const entry = { summary, benchmark: { ...meta(benchmark), retail: benchmark.retail, ...bench, latest: compact(bench.latest), monthAgo: bench.monthAgo && compact(bench.monthAgo), yearAgo: bench.yearAgo && compact(bench.yearAgo), yearLow: bench.yearLow && compact(bench.yearLow), yearHigh: bench.yearHigh && compact(bench.yearHigh) } };
   if (!family.auto && family.featured !== false) featured.push(entry);
   index.push({ slug: family.slug, name: family.name, curated: !family.auto, stages: summary.stages, markets: summary.markets, seriesCount: summary.seriesCount, firstDate: summary.firstDate, lastDate: summary.lastDate, product: benchmark.product, market: benchmark.market, stage: benchmark.stage, package: benchmark.package, latest: compact(bench.latest), yearAgo: bench.yearAgo && compact(bench.yearAgo), yearChange: bench.yearChange, matches: family.matches });
-  await writeFile(join(data, 'commodity', `${family.slug}.json`), JSON.stringify({ kind: 'commodity', key: `commodity/${family.slug}`, title: family.auto ? `${family.name} prices` : `${family.singular} prices`, summary, markets: [...new Set(wholesale.map(marketKey))].sort(), series: wholesale.filter((x) => marketKey(x) === marketKey(benchmark)).map(meta), seriesTotal: wholesale.length, initialSeriesId: benchmark.id, initialDimensions: benchmark.dimensions, initialObservations: compactAll(benchmark.observations), common }));
+  await writeFile(join(data, 'commodity', `${family.slug}.json`), JSON.stringify({ kind: 'commodity', key: `commodity/${family.slug}`, title: family.auto ? `${family.name} prices` : `${family.singular} prices`, summary, markets: [...new Set(wholesale.map(marketKey))].sort(), series: wholesale.filter((x) => marketKey(x) === marketKey(benchmark)).map(meta), seriesTotal: wholesale.length, initialSeriesId: benchmark.id, initialDimensions: benchmark.dimensions, initialReportTitle: benchmark.latest.evidence?.report_title ?? null, initialObservations: compactAll(benchmark.observations), common }));
   // The full product list loads after first paint; potatoes alone has close to 4,000 products.
   await writeFile(join(data, 'commodity', `${family.slug}.series.json`), JSON.stringify(wholesale.map(meta)));
   await writeFile(join(data, 'downloads', `${family.slug}.csv`), toCsv(familyRows));

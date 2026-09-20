@@ -24,7 +24,8 @@ export default function PriceChart({ rows, retail = false, compact = false, star
   useEffect(() => { const observer = new ResizeObserver(([entry]) => setWidth(Math.max(compact ? 80 : 280, Math.round(entry.contentRect.width)))); observer.observe(container.current); return () => observer.disconnect(); }, [compact]);
   const fields = retail ? FIELDS.retail : FIELDS.range;
   const valid = (r) => !r.ambiguous;
-  const values = [...rows, ...compare].filter(valid).flatMap((r) => fields.map((f) => r[f])).filter((v) => typeof v === 'number' && Number.isFinite(v));
+  // The previous-years band always carries low and high, even for single-value series, so it joins the scale explicitly.
+  const values = [...rows.filter(valid).flatMap((r) => fields.map((f) => r[f])), ...compare.filter(valid).flatMap((r) => [r.low, r.high])].filter((v) => typeof v === 'number' && Number.isFinite(v));
   const w = width, h = compact ? 32 : 320, p = compact ? { l: 0, r: 0, t: 2, b: 2 } : { l: 52, r: 44, t: 16, b: 30 };
   if (!values.length) return compact ? <div ref={container} className="spark spark--empty" aria-hidden="true" /> : <div ref={container} className="chart-empty">No quotes in this period. Choose a longer period or another product.</div>;
   const from = Date.parse(startDate ?? rows[0].date), to = Date.parse(endDate ?? rows.at(-1).date), span = Math.max(to - from, DAY);
@@ -64,7 +65,7 @@ export default function PriceChart({ rows, retail = false, compact = false, star
       {compare.length > 0 && band(compare.filter(valid), 'chart-band chart-band--compare')}
       {!retail && band(rows.filter(valid), 'chart-band')}
       {lines(rows.filter(valid), 'chart-line')}
-      {sparse && pointRows.map((r) => fields.map((f) => typeof r[f] === 'number' && <circle key={`${r.id}-${f}`} className="chart-marker" cx={x(r.date)} cy={y(r[f])} r="3" />))}
+      {sparse && pointRows.map((r) => fields.map((f) => typeof r[f] === 'number' && <circle key={`${r.date}-${f}`} className="chart-marker" cx={x(r.date)} cy={y(r[f])} r="3" />))}
       {last && (collide ? <text x={x(last.date) + 6} y={y(labelPositions[0].v) + 4} className="chart-label">Quote</text> : labelPositions.map(({ f, v }) => <text key={f} x={x(last.date) + 6} y={y(v) + 4} className="chart-label">{retail ? 'Average' : f === 'high' ? 'High' : 'Low'}</text>))}
       {hover && <g><line className="chart-cursor" x1={x(hover.date)} x2={x(hover.date)} y1={p.t} y2={h - p.b} />{fields.map((f) => typeof hover[f] === 'number' && <circle key={f} cx={x(hover.date)} cy={y(hover[f])} r="4" className="chart-hover-dot" />)}</g>}
     </svg>

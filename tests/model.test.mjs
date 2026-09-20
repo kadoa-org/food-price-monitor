@@ -66,6 +66,8 @@ test('benchmark prefers a shipping-point product still quoted, with the most rep
   const groups = [make('w', 'Wholesale', ['2026-09-01', '2026-09-02', '2026-09-18']), make('s', 'Shipping point', ['2026-09-18']), make('old', 'Shipping point', ['2025-01-01', '2025-01-02'])];
   expect(pickBenchmark(groups, '2026-09-18').id).toBe('s');
   expect(pickBenchmark(groups, '2026-09-18', [], (g) => g.id === 'w').id).toBe('w');
+  const alaska = { ...make('ak', 'Retail promotion', ['2026-09-11', '2026-09-18']), market: 'Alaska', retail: true }; const national = { ...make('us', 'Retail promotion', ['2026-09-18']), market: 'National', retail: true };
+  expect(pickBenchmark([alaska, national], '2026-09-18').id).toBe('us');
   const seasonal = make('gap', 'Shipping point', ['2026-08-21', '2026-09-18']);
   expect(pickBenchmark([make('busy', 'Shipping point', ['2026-01-05', '2026-01-06', '2026-01-07', '2026-09-18']), seasonal], '2026-09-18').id).toBe('gap');
   expect(pickBenchmark(groups.map((g) => ({ ...g, commodity: g.id === 'w' ? 'Lettuce, Iceberg' : 'Lettuce, Mesculin Mix' })), '2026-09-18', ['Lettuce, Iceberg']).id).toBe('w');
@@ -112,6 +114,9 @@ test('every food commodity becomes a family; curated names merge sub-commodities
   expect(familyFor('Lettuce, Romaine').slug).toBe('lettuce');
   expect(familyFor('Ornamental Gourds')).toBeNull();
   expect(familyFor('Shell Eggs').slug).toBe('eggs');
+  expect(familyFor('Egg').slug).toBe('eggs');
+  expect(familyFor('Beef').slug).toBe('beef');
+  expect(groupSeries([{ ...row, commodity: 'Beef', market_stage: 'Retail - Livestock/Poultry/Egg', dimensions: { type: 'Chuck Roast', section: 'Roasts', condition: 'Fresh', environment: 'Conventional' } }], 'Beef')[0]).toMatchObject({ product: 'Chuck Roast, Roasts', retail: true, stage: 'Retail promotion' });
   expect(groupSeries([{ ...row, commodity: 'Shell Eggs', dimensions: { class: 'Large', color: 'White', egg_type: 'Cartoned', environment: 'Caged' } }], 'Shell Eggs')[0].product).toBe('Large, White, Cartoned, Caged');
   const peppers = familyFor('Peppers, Bell Type');
   expect([peppers.slug, peppers.auto]).toEqual(['peppers-bell-type', true]);

@@ -11,7 +11,11 @@ export const curated = [
   { slug: 'lettuce', name: 'Lettuce', singular: 'Lettuce', emoji: '🥬', featured: false, news: /\blettuce\b|\biceberg\b|\bromaine\b|\bgreen leaf\b|\bred leaf\b|\bbutter lettuce\b/i, matches: ['Lettuce', 'Lettuce, Romaine', 'Lettuce, Mesculin Mix', 'Lettuce, Green Leaf', 'Lettuce, Boston', 'Lettuce, Iceberg', 'Lettuce, Frisee', 'Lettuce, Red Leaf'], prefer: ['Lettuce, Iceberg', 'Lettuce, Romaine', 'Lettuce'], description: 'Iceberg, romaine and leaf lettuce by origin and package.' },
   { slug: 'avocados', name: 'Avocados', singular: 'Avocado', emoji: '🥑', news: /\bavocados?\b|\bhass\b/i, matches: ['Avocados'], description: 'Hass and greenskin avocados by origin, size and package.' },
   { slug: 'strawberries', name: 'Strawberries', singular: 'Strawberry', emoji: '🍓', news: /\bstrawberr(y|ies)\b/i, matches: ['Strawberries'], description: 'Strawberries by origin and package.' },
-  { slug: 'eggs', name: 'Eggs', singular: 'Egg', emoji: '🥚', news: /\beggs?\b/i, matches: ['Shell Eggs'], preferSeries: (s) => s.market === 'New York' && /^Large\b/.test(s.product), description: 'Shell eggs by size, colour and housing: New York volume prices to retail buyers and the national weighted index, in dollars per dozen.' },
+  { slug: 'eggs', name: 'Eggs', singular: 'Egg', emoji: '🥚', news: /\beggs?\b/i, matches: ['Shell Eggs', 'Egg'], preferSeries: (s) => s.market === 'New York' && /^Large\b/.test(s.product), description: 'Shell eggs by size, colour and housing: New York volume prices to retail buyers and the national weighted index, in dollars per dozen.' },
+  { slug: 'beef', name: 'Beef', singular: 'Beef', emoji: '🥩', featured: false, news: /\bbeef\b|\bcattle\b/i, matches: ['Beef'], preferSeries: (s) => /^national$/i.test(s.market) && /^Ground Beef 80-89%, Ground, 1-2 Lbs$/.test(s.product), description: 'Beef cuts advertised in US supermarket weekly ads, by region, weighted by store count.' },
+  { slug: 'pork', name: 'Pork', singular: 'Pork', emoji: '🥓', featured: false, news: /\bpork\b|\bhogs?\b/i, matches: ['Pork'], preferSeries: (s) => /^national$/i.test(s.market) && /^Sliced Bacon, Processed, 1-2 Lbs$/.test(s.product), description: 'Pork cuts advertised in US supermarket weekly ads, by region, weighted by store count.' },
+  { slug: 'chicken', name: 'Chicken', singular: 'Chicken', emoji: '🍗', featured: false, news: /\bchicken\b|\bbroilers?\b/i, matches: ['Chicken'], preferSeries: (s) => /^national$/i.test(s.market) && /^Breast, Boneless\/Skinless/.test(s.product), description: 'Chicken cuts advertised in US supermarket weekly ads, by region, weighted by store count.' },
+  { slug: 'turkey', name: 'Turkey', singular: 'Turkey', emoji: '🦃', featured: false, news: /\bturkeys?\b/i, matches: ['Turkey'], description: 'Turkey cuts advertised in US supermarket weekly ads, by region, weighted by store count.' },
 ];
 export const families = curated;
 // Decorative lines USDA quotes alongside food. Never published.
@@ -37,9 +41,16 @@ export const reports = {
   'usda-3324': { name: 'US retail produce promotions', stage: 'Retail - Specialty Crops', cadence: 'Weekly' },
   'usda-2734': { name: 'New York shell eggs', stage: 'Terminal', cadence: 'Daily' },
   'usda-2843': { name: 'National shell egg index', stage: 'Terminal', cadence: 'Daily' },
+  'usda-2757': { name: 'US grocery store egg features', stage: 'Retail - Livestock/Poultry/Egg', cadence: 'Weekly' },
+  'usda-3228': { name: 'US grocery store beef features', stage: 'Retail - Livestock/Poultry/Egg', cadence: 'Weekly' },
+  'usda-2868': { name: 'US grocery store pork features', stage: 'Retail - Livestock/Poultry/Egg', cadence: 'Weekly' },
+  'usda-2756': { name: 'US grocery store chicken features', stage: 'Retail - Livestock/Poultry/Egg', cadence: 'Weekly' },
+  'usda-2867': { name: 'US grocery store turkey features', stage: 'Retail - Livestock/Poultry/Egg', cadence: 'Weekly' },
 };
 export const RETAIL = 'Retail - Specialty Crops';
-export const stageName = (s) => ({ 'Shipping Point': 'Shipping point', Terminal: 'Wholesale', 'Point of Sale - Eggs': 'Wholesale', [RETAIL]: 'Retail promotion' }[s] ?? s);
+export const RETAIL_STAGES = new Set(['Retail - Specialty Crops', 'Retail - Livestock/Poultry/Egg']);
+export const isRetail = (stage) => RETAIL_STAGES.has(stage);
+export const stageName = (s) => ({ 'Shipping Point': 'Shipping point', Terminal: 'Wholesale', 'Point of Sale - Eggs': 'Wholesale', 'Retail - Specialty Crops': 'Retail promotion', 'Retail - Livestock/Poultry/Egg': 'Retail promotion' }[s] ?? s);
 export const clean = (v) => (v && v !== 'N/A' ? String(v) : '');
 // USDA writes varieties and districts in capitals. Title case them for reading; leave mixed-case values alone.
 const SMALL = new Set(['and', 'of', 'the', 'or', 'in', 'through', 'to', 'type']);
@@ -51,7 +62,7 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 export const dateLabel = (s) => { const [y, m, d] = s.split('-'); return `${Number(d)} ${MONTHS[Number(m) - 1]} ${y}`; };
 export const monthLabel = (s) => { const [y, m] = s.split('-'); return `${MONTHS[Number(m) - 1]} ${y}`; };
 export const addDays = (iso, days) => new Date(Date.parse(iso) + days * DAY).toISOString().slice(0, 10);
-export const unitLabel = (pkg) => (/^(per|each)\b/i.test(pkg) ? pkg : `per ${pkg.replace(/s$/, '')}`);
+export const unitLabel = (pkg) => (/^(per|each)\b/i.test(pkg) ? pkg : /^(lb|dozen|carton of|bag of)/.test(pkg) ? `per ${pkg}` : `per ${pkg.replace(/s$/, '')}`);
 // A quote is the reported range or the retail advertised average. "to" instead of a dash follows GOV.UK style.
 export function quote(row) {
   if (row.advertised_average !== null && row.advertised_average !== undefined) return money(row.advertised_average);
@@ -65,7 +76,7 @@ export const priced = (row) => row && !row.ambiguous && (row.advertised_average 
 export function productLabel(d, commodity, plain = commodity) {
   const organic = ['Y', 'Yes'].includes(d.organic) ? 'Organic' : '';
   const kind = commodity !== plain && commodity.includes(', ') ? commodity.split(', ').slice(1).join(' ') : '';
-  return [kind, titleCase(d.var ?? d.variety), clean(d.properties), clean(d.item_size), clean(d.class), clean(d.color), clean(d.egg_type), clean(d.environment), clean(d.grade), organic, clean(d.qualifier), clean(d.repack) && 'Repacked', clean(d.appearance), clean(d.condition)]
+  return [kind, titleCase(d.var ?? d.variety), clean(d.type), clean(d.section) && d.section !== d.type ? clean(d.section) : '', clean(d.properties), clean(d.item_size), clean(d.class), clean(d.color), clean(d.egg_type), clean(d.package_size), clean(d.environment) === 'Conventional' ? '' : clean(d.environment), clean(d.grade), organic, clean(d.qualifier), clean(d.repack) && 'Repacked', clean(d.appearance), clean(d.condition) === 'Fresh' ? '' : clean(d.condition)]
     .filter(Boolean).join(', ') || commodity;
 }
 export const originLabel = (d) => titleCase(d.district) || titleCase(d.origin) || '';
@@ -77,7 +88,7 @@ export function groupSeries(rows, plain) {
     // Two records for one product and date cannot be resolved; they are shown as a conflict, never averaged.
     const observations = [...byDate.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, items]) => items.length === 1 ? items[0] : { ...items[0], low: null, high: null, mostly_low: null, mostly_high: null, advertised_average: null, comment: null, ambiguous: true });
     const latest = observations.at(-1); const d = latest.dimensions;
-    return { id: group.id, source_id: latest.source_id, dimensions: d, market: latest.market, stage: stageName(latest.market_stage), retail: latest.market_stage === RETAIL, origin: originLabel(d), package: latest.package, product: productLabel(d, latest.commodity, plain ?? latest.commodity), commodity: latest.commodity, firstDate: observations[0].date, lastDate: latest.date, count: observations.length, latest, observations };
+    return { id: group.id, source_id: latest.source_id, dimensions: d, market: titleCase(latest.market), stage: stageName(latest.market_stage), retail: isRetail(latest.market_stage), origin: originLabel(d), package: latest.package, product: productLabel(d, latest.commodity, plain ?? latest.commodity), commodity: latest.commodity, firstDate: observations[0].date, lastDate: latest.date, count: observations.length, latest, observations };
   }).sort((a, b) => b.lastDate.localeCompare(a.lastDate) || b.count - a.count || a.id.localeCompare(b.id));
 }
 export const marketKey = (s) => `${s.stage}: ${s.market}${s.origin ? ', ' + s.origin : ''}`;
@@ -127,7 +138,9 @@ export function pickBenchmark(groups, lastDate, prefer = [], preferSeries = () =
   // A headline row should be able to say what the product cost 4 weeks and a year earlier.
   const comparable = (s) => (nearest(s.observations, addDays(lastDate, -28), 4) ? 1 : 0) + (nearest(s.observations, addDays(lastDate, -364), 7) ? 1 : 0);
   const score = (s) => s.observations.filter((r) => priced(r) && r.date > addDays(lastDate, -730)).length;
-  return pool.sort((a, b) => Number(preferSeries(b)) - Number(preferSeries(a)) || preference(a) - preference(b) || rank[a.stage] - rank[b.stage] || comparable(b) - comparable(a) || score(b) - score(a) || a.id.localeCompare(b.id))[0] ?? groups[0];
+  // National figures beat regional ones for a headline; Alaska should never be the benchmark for chicken.
+  const national = (s) => (/^national$/i.test(s.market) ? 1 : 0);
+  return pool.sort((a, b) => Number(preferSeries(b)) - Number(preferSeries(a)) || preference(a) - preference(b) || rank[a.stage] - rank[b.stage] || national(b) - national(a) || comparable(b) - comparable(a) || score(b) - score(a) || a.id.localeCompare(b.id))[0] ?? groups[0];
 }
 // Lines break at gaps longer than a normal reporting interval. Weekends and single holidays are joined, seasonal stops and missing quotes are not.
 export function chartSegments(rows, field, maxGapDays = 7) {
@@ -190,7 +203,7 @@ const toneText = (t) => (t ? String(t).toLowerCase().replace(/^market\s+/, '').r
 const sentence = (label, v) => (v ? `${label} ${String(v).toLowerCase().replace(/\.$/, '')}.` : '');
 const steady = (t) => /^(about |generally |mostly )?steady$/.test(t);
 export function usdaNews(rows, family, cutoff, sourceUrl) {
-  const groups = Map.groupBy(rows.filter((r) => r.market_stage !== RETAIL), (r) => `${r.source_id}|${r.market}|${r.dimensions.district ?? ''}|${r.commodity}`);
+  const groups = Map.groupBy(rows.filter((r) => !isRetail(r.market_stage)), (r) => `${r.source_id}|${r.market}|${r.dimensions.district ?? ''}|${r.commodity}`);
   const items = [];
   for (const [key, list] of groups) {
     const byDate = Map.groupBy(list, (r) => r.date);
