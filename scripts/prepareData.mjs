@@ -1,9 +1,10 @@
 import { createReadStream } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { createGunzip } from 'node:zlib';
-import { BASE, addDays, curated, familyFor, marketKey, newsFamilies, groupSeries, markonNews, nearest, pickBenchmark, reports, summarize, usdaNews, isRetail } from '../src/model.mjs';
+import { BASE, addDays, curated, familyFor, marketKey, newsFamilies, groupSeries, markonNews, movers, nearest, pickBenchmark, priced, reports, summarize, usdaNews, isRetail } from '../src/model.mjs';
 import { existsSync } from 'node:fs';
 
 const root = resolve(import.meta.dirname, '..');
@@ -46,7 +47,7 @@ const flat = (r) => ({ ...r, district: r.dimensions.district, origin: r.dimensio
 const na = (v) => (v === 'N/A' ? '' : v);
 const toCsv = (list) => [csvFields.join(','), ...list.map((r) => { const f = flat(r); return csvFields.map((k) => cell(na(f[k]))).join(','); })].join('\n') + '\n';
 // Page payloads carry a slim series list; product attributes travel with the series file, fetched on demand.
-const meta = (s) => ({ id: s.id, source_id: s.source_id, market: s.market, stage: s.stage, origin: s.origin, package: s.package, product: s.product, lastDate: s.lastDate, latest: { date: s.latest.date, low: s.latest.low, high: s.latest.high, advertised_average: s.latest.advertised_average } });
+const meta = (s) => ({ id: s.id, v: s.v, source_id: s.source_id, market: s.market, stage: s.stage, origin: s.origin, package: s.package, product: s.product, lastDate: s.lastDate, latest: { date: s.latest.date, low: s.latest.low, high: s.latest.high, advertised_average: s.latest.advertised_average } });
 // Series files carry only what changes per report; product attributes live once on the series. The observation id is
 // derivable and unused by the site, reporting periods are written only when they differ from the report date, a null
 // comment is omitted, and the report title moves to the series file because it never changes within a series.
@@ -55,6 +56,9 @@ const compact = ({ date, period_start, period_end, low, high, mostly_low, mostly
   return { date, ...(period_start !== date || period_end !== date ? { period_start, period_end } : {}), low, high, mostly_low, mostly_high, advertised_average, ...(comment ? { comment } : {}), ...(ambiguous ? { ambiguous } : {}), evidence: rest };
 };
 const seriesFile = (group) => JSON.stringify({ dimensions: group.dimensions, report_title: group.latest.evidence?.report_title ?? null, observations: compactAll(group.observations) });
+// Series files live at fixed CDN paths shared across runs and are re-uploaded only when they change, so the file name
+// carries a content version: the edge caches each version for a month and a changed file is a new path.
+const version = (body) => createHash('sha256').update(body).digest('hex').slice(0, 12);
 const compactAll = (list) => list.map(compact);
 const lastDate = rows.map((r) => r.date).sort().at(-1);
 const firstDate = rows.map((r) => r.date).sort()[0];
@@ -62,6 +66,7 @@ const newsCutoff = addDays(lastDate, -90);
 const common = { generatedAt: manifest.generatedAt, sourceRun: manifest.runId, lastDate, firstDate, totalRows: rows.length, datasetRows: manifest.rows, news: { markon: newsFile ? { fetchedAt: newsFile.fetchedAt, articles: markonItems.length, latest: markonItems[0]?.date ?? null } : null, since: newsCutoff } };
 
 const featured = [];
+const moverCandidates = [];
 const index = [];
 const retailRows = [];
 const summaries = [];
@@ -71,7 +76,8 @@ for (const family of families) {
   if (!familyRows.length) throw new Error(`No source data for ${family.name}`);
   const groups = groupSeries(familyRows, family.matches[0]);
   feed.push(...usdaNews(familyRows, family, newsCutoff, sourceUrl));
-  for (const group of groups) await writeFile(join(data, 'series', `${group.id}.json`), seriesFile(group));
+  for (const group of groups) { const body = seriesFile(group); group.v = version(body); await writeFile(join(data, 'series', `${group.id}.${group.v}.json`), body); }
+  const csv = toCsv(familyRows);
   // A commodity page charts wholesale series when there are any; retail-only commodities (meat) chart their weekly ad prices.
   let wholesale = groups.filter((s) => !s.retail);
   const retailOnly = !wholesale.length;
@@ -84,11 +90,12 @@ for (const family of families) {
   const bench = summarize(benchmark);
   const entry = { summary, benchmark: { ...meta(benchmark), retail: benchmark.retail, ...bench, latest: compact(bench.latest), monthAgo: bench.monthAgo && compact(bench.monthAgo), yearAgo: bench.yearAgo && compact(bench.yearAgo), yearLow: bench.yearLow && compact(bench.yearLow), yearHigh: bench.yearHigh && compact(bench.yearHigh) } };
   if (!family.auto && family.featured !== false) featured.push(entry);
+  moverCandidates.push({ slug: family.slug, name: family.name, product: benchmark.product, origin: benchmark.origin, market: benchmark.market, stage: benchmark.stage, package: benchmark.package, retail: benchmark.retail, latest: compact(bench.latest), weekAgo: bench.weekAgo && compact(bench.weekAgo), weekChange: bench.weekChange, recent: benchmark.observations.filter((r) => priced(r) && r.date > addDays(lastDate, -30)).length });
   index.push({ slug: family.slug, name: family.name, curated: !family.auto, stages: summary.stages, markets: summary.markets, seriesCount: summary.seriesCount, firstDate: summary.firstDate, lastDate: summary.lastDate, product: benchmark.product, market: benchmark.market, stage: benchmark.stage, package: benchmark.package, latest: compact(bench.latest), yearAgo: bench.yearAgo && compact(bench.yearAgo), yearChange: bench.yearChange, matches: family.matches });
   await writeFile(join(data, 'commodity', `${family.slug}.json`), JSON.stringify({ kind: 'commodity', key: `commodity/${family.slug}`, title: family.auto ? `${family.name} prices` : `${family.singular} prices`, summary, markets: [...new Set(wholesale.map(marketKey))].sort(), series: wholesale.filter((x) => marketKey(x) === marketKey(benchmark)).map(meta), seriesTotal: wholesale.length, initialSeriesId: benchmark.id, initialDimensions: benchmark.dimensions, initialReportTitle: benchmark.latest.evidence?.report_title ?? null, initialObservations: compactAll(benchmark.observations), common }));
   // The full product list loads after first paint; potatoes alone has close to 4,000 products.
   await writeFile(join(data, 'commodity', `${family.slug}.series.json`), JSON.stringify(wholesale.map(meta)));
-  await writeFile(join(data, 'downloads', `${family.slug}.csv`), toCsv(familyRows));
+  await writeFile(join(data, 'downloads', `${family.slug}.csv`), csv);
   // Retail promotions: one row per advertised item and region, with the same-week comparisons USDA readers expect.
   for (const s of groups.filter((g) => g.retail)) {
     const latest = s.latest;
@@ -108,7 +115,7 @@ for (const family of families) {
 const retailWeek = retailRows.map((r) => r.date).sort().at(-1) ?? null;
 const currentRetail = retailRows.filter((r) => r.date === retailWeek).sort((a, b) => a.family.localeCompare(b.family) || (b.stores ?? 0) - (a.stores ?? 0) || a.product.localeCompare(b.product));
 const regions = [...new Set(currentRetail.map((r) => r.region))].sort((a, b) => (a === 'National' ? -1 : b === 'National' ? 1 : a.localeCompare(b)));
-await writeFile(join(data, 'home.json'), JSON.stringify({ kind: 'home', key: 'home', title: 'US food price monitor', common, featured, retail: { week: retailWeek, rows: currentRetail.filter((r) => r.region === 'National') }, news: sortFeed([...sortFeed(feed.filter((i) => i.source === 'Markon')).slice(0, 3), ...sortFeed(feed.filter((i) => i.source === 'USDA')).slice(0, 3)]).map(({ notes, ...i }) => i) }));
+await writeFile(join(data, 'home.json'), JSON.stringify({ kind: 'home', key: 'home', title: 'US food price monitor', common, featured, movers: movers(moverCandidates, lastDate), retail: { week: retailWeek, rows: currentRetail.filter((r) => r.region === 'National') }, news: sortFeed([...sortFeed(feed.filter((i) => i.source === 'Markon')).slice(0, 3), ...sortFeed(feed.filter((i) => i.source === 'USDA')).slice(0, 3)]).map(({ notes, ...i }) => i) }));
 await writeFile(join(data, 'retail.json'), JSON.stringify({ kind: 'retail', key: 'retail', title: 'Retail prices', common, week: retailWeek, regions, rows: currentRetail }));
 const sources = manifest.sources.map((s) => ({ ...s, ...(reports[s.source_id] ?? { name: s.source_id, stage: 'Unknown', cadence: 'Unknown' }), reportId: s.source_id.replace('usda-', ''), commodities: s.commodities.length }));
 await writeFile(join(data, 'about.json'), JSON.stringify({ kind: 'about', key: 'about', title: 'About the data', common, sources, commodityCount: families.length, commodities: summaries.filter((c) => c.curated) }));

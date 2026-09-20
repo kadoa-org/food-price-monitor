@@ -3,11 +3,14 @@ export const BASE = '/food-prices';
 export const HOME = BASE;
 // Data files live under the site in development and under a published run folder (proxied to the CDN) in production.
 export const dataPath = (common) => common?.dataPath ?? `${BASE}/data`;
+// Series files sit at fixed paths shared across runs, named by content version; page files belong to one run.
+export const sharedPath = (common) => common?.sharedPath ?? dataPath(common);
+export const seriesUrl = (common, s) => `${sharedPath(common)}/series/${s.id}.${s.v}.json`;
 export const DAY = 86400000;
 export const curated = [
   { slug: 'onions', name: 'Onions', singular: 'Onion', emoji: '🧅', news: /\bonions?\b/i, matches: ['Onions, Dry'], description: 'Dry onions by variety, size, origin and package.' },
   { slug: 'potatoes', name: 'Potatoes', singular: 'Potato', emoji: '🥔', news: /\bpotato(es)?\b/i, matches: ['Potatoes'], description: 'Russet, red, yellow and white potatoes by growing region, size and package.' },
-  { slug: 'tomatoes', name: 'Tomatoes', singular: 'Tomato', emoji: '🍅', news: /\btomato(es)?\b|\bromas?\b/i, matches: ['Tomatoes', 'Tomatoes, Plum Type', 'Tomatoes, Cherry', 'Tomatoes, Grape Type'], prefer: ['Tomatoes'], description: 'Round, plum, cherry and grape tomatoes, kept as separate products.' },
+  { slug: 'tomatoes', name: 'Tomatoes', singular: 'Tomato', emoji: '🍅', news: /\btomato(es)?\b|\bromas?\b/i, matches: ['Tomatoes', 'Tomatoes, Plum Type', 'Tomatoes, Cherry', 'Tomatoes, Grape Type'], prefer: ['Tomatoes'], preferSeries: (s) => s.market === 'New York Terminal Market' && s.commodity === 'Tomatoes', description: 'Round, plum, cherry and grape tomatoes, kept as separate products.' },
   { slug: 'lettuce', name: 'Lettuce', singular: 'Lettuce', emoji: '🥬', featured: false, news: /\blettuce\b|\biceberg\b|\bromaine\b|\bgreen leaf\b|\bred leaf\b|\bbutter lettuce\b/i, matches: ['Lettuce', 'Lettuce, Romaine', 'Lettuce, Mesculin Mix', 'Lettuce, Green Leaf', 'Lettuce, Boston', 'Lettuce, Iceberg', 'Lettuce, Frisee', 'Lettuce, Red Leaf'], prefer: ['Lettuce, Iceberg', 'Lettuce, Romaine', 'Lettuce'], description: 'Iceberg, romaine and leaf lettuce by origin and package.' },
   { slug: 'avocados', name: 'Avocados', singular: 'Avocado', emoji: '🥑', news: /\bavocados?\b|\bhass\b/i, matches: ['Avocados'], description: 'Hass and greenskin avocados by origin, size and package.' },
   { slug: 'strawberries', name: 'Strawberries', singular: 'Strawberry', emoji: '🍓', news: /\bstrawberr(y|ies)\b/i, matches: ['Strawberries'], description: 'Strawberries by origin and package.' },
@@ -134,6 +137,7 @@ export function longestGap(rows, minDays = 14) {
 export function summarize(series) {
   const rows = series.observations; const latest = [...rows].reverse().find(priced) ?? rows.at(-1);
   const tol = series.retail ? 4 : 4;
+  const weekAgo = nearest(rows, addDays(latest.date, -7), 3);
   const monthAgo = nearest(rows, addDays(latest.date, -28), tol);
   const yearAgo = nearest(rows, addDays(latest.date, -364), series.retail ? 4 : 7);
   const yearRows = rows.filter((r) => priced(r) && r.date > addDays(latest.date, -365));
@@ -141,7 +145,7 @@ export function summarize(series) {
   const lowOf = (r) => (field ? r[field] : r.low ?? r.high); const highOf = (r) => (field ? r[field] : r.high ?? r.low);
   const yearLow = yearRows.reduce((b, r) => (lowOf(r) !== null && (!b || lowOf(r) < lowOf(b)) ? r : b), null);
   const yearHigh = yearRows.reduce((b, r) => (highOf(r) !== null && (!b || highOf(r) > highOf(b)) ? r : b), null);
-  return { latest, monthAgo, yearAgo, monthChange: pctChange(latest, monthAgo), yearChange: pctChange(latest, yearAgo), gap: longestGap(yearRows), yearLow, yearHigh, yearReports: yearRows.length, sparkline: yearRows.map((r) => ({ date: r.date, low: r.low, high: r.high, advertised_average: r.advertised_average })), earlier: priorYears(rows, addDays(latest.date, -364), latest.date).rows, earlierYears: priorYears(rows, addDays(latest.date, -364), latest.date).years };
+  return { latest, weekAgo, monthAgo, yearAgo, weekChange: pctChange(latest, weekAgo), monthChange: pctChange(latest, monthAgo), yearChange: pctChange(latest, yearAgo), gap: longestGap(yearRows), yearLow, yearHigh, yearReports: yearRows.length, sparkline: yearRows.map((r) => ({ date: r.date, low: r.low, high: r.high, advertised_average: r.advertised_average })), earlier: priorYears(rows, addDays(latest.date, -364), latest.date).rows, earlierYears: priorYears(rows, addDays(latest.date, -364), latest.date).years };
 }
 // The benchmark for a commodity is the product USDA quoted most consistently over the past two years and still quotes.
 // A family can name the everyday commodity to prefer (iceberg over mesclun) so the headline row stays recognisable.
@@ -266,4 +270,13 @@ export function findingSentence(featured) {
   const pct = Math.abs(top.benchmark.yearChange);
   const second = pct < 10 ? 'No commodity moved more than 10%.' : `${top.summary.name} ${top.benchmark.yearChange > 0 ? 'rose' : 'fell'} most, by ${pctLabel(pct).replace('+', '')}.`;
   return `${first} ${second}`;
+}
+
+// Biggest weekly moves among wholesale and shipping point benchmarks. A benchmark qualifies when it was quoted this
+// week and a week earlier and has been quoted steadily over the past month, so a thin product that gets one quote a
+// season cannot top the list. Retail ad averages are excluded: their week-to-week swings reflect the ad mix, not the price.
+export function movers(entries, lastDate, limit = 5, minRecent = 8) {
+  const eligible = entries.filter((e) => !e.retail && e.weekChange !== null && e.weekChange !== undefined && e.latest.date >= addDays(lastDate, -3) && e.recent >= minRecent);
+  const sorted = [...eligible].sort((a, b) => b.weekChange - a.weekChange);
+  return { rising: sorted.filter((e) => e.weekChange > 0).slice(0, limit), falling: sorted.filter((e) => e.weekChange < 0).reverse().slice(0, limit) };
 }

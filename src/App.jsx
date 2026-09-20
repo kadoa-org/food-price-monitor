@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button, DataTable, GitHubButton, LiveBadge, NavBar, SearchInput, Section, SiteFooter, SiteHeader, Tag } from './kit';
 import CommandPalette from './CommandPalette';
-import { BASE, HOME, addDays, dataPath, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, priorYears, quote, summarize, unitLabel } from './model.mjs';
+import { BASE, HOME, addDays, dataPath, seriesUrl, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, priorYears, quote, summarize, unitLabel } from './model.mjs';
 import PriceChart from './PriceChart';
 import BandChart from './BandChart';
 import EvidenceDialog from './EvidenceDialog';
@@ -39,6 +39,15 @@ function Change({ value }) {
   const dir = value > 0 ? 'up' : value < 0 ? 'down' : '';
   return <span className={`change change--${dir}`}>{dir && <span className={`tri ${dir === 'down' ? 'tri--down' : ''}`} aria-hidden="true" />}{pctLabel(value)}</span>;
 }
+function MoverList({ title, rows }) {
+  const columns = [
+    { key: 'name', header: title, render: (r) => <><a className="cell-link" href={url(r.slug)}>{r.name}</a><span className="cell-note">{r.product === r.name ? '' : `${r.product}. `}{r.stage}, {r.market}</span></> },
+    { key: 'weekAgo', header: 'A week earlier', align: 'right', hideBelow: 'sm', render: (r) => quote(r.weekAgo) },
+    { key: 'latest', header: 'Now', align: 'right', render: (r) => quote(r.latest) },
+    { key: 'weekChange', header: 'Change', align: 'right', render: (r) => <Change value={r.weekChange} /> },
+  ];
+  return <DataTable rows={rows} columns={columns} rowKey={(r) => r.slug} empty={`Nothing ${title.toLowerCase()} this week.`} />;
+}
 function Overview({ page }) {
   const { common, featured, retail } = page;
   const panels = [...featured].sort((a, b) => (b.benchmark.yearChange ?? -Infinity) - (a.benchmark.yearChange ?? -Infinity));
@@ -53,10 +62,16 @@ function Overview({ page }) {
     { key: 'stores', header: 'Stores', align: 'right', hideBelow: 'sm', render: (r) => (r.stores === null ? '' : number(r.stores)) },
   ];
   return <>
-    <div className="title-block"><h1>US food price monitor</h1><p className="lede">Wholesale and shipping point prices for six produce commodities, from USDA.</p><p className="dk-hint">Latest report {dateLabel(common.lastDate)}. Updated after every USDA report, on business days.</p></div>
+    <div className="title-block"><h1>US food price monitor</h1><p className="lede">Wholesale, shipping point and grocery ad prices for US food, from USDA.</p><p className="dk-hint">Latest report {dateLabel(common.lastDate)}. Updated after every USDA report, on business days.</p></div>
     <Section title="Benchmark prices" right={<span className="dk-hint">Year to {dateLabel(common.lastDate)}, sorted by change. <a href={`${BASE}/commodities`}>All commodities</a></span>}>
       <div className="board">{panels.map((f) => <Panel key={f.summary.slug} f={f} common={common} />)}</div>
     </Section>
+    {page.movers && (page.movers.rising.length > 0 || page.movers.falling.length > 0) && <Section title="Biggest moves this week" hint="Wholesale and shipping point benchmarks quoted this week and a week earlier, midpoint to midpoint. Products quoted fewer than 8 times in the past month are left out.">
+      <div className="movers">
+        <MoverList title="Rising" rows={page.movers.rising} />
+        <MoverList title="Falling" rows={page.movers.falling} />
+      </div>
+    </Section>}
     <Section title="Retail prices" hint="Advertised sale prices in US supermarket weekly ads this week, averaged across stores. The last step of the chain the charts start." right={<a href={`${BASE}/retail`}>All items and regions</a>}>
       <DataTable rows={retailRows} columns={retailColumns} rowKey={(r) => r.id} empty="No retail report this week." />
     </Section>
@@ -93,7 +108,7 @@ function Commodity({ page }) {
   useEffect(() => { if (page.seriesTotal <= page.series.length) return; const controller = new AbortController(); fetch(`${dataPath(page.common)}/commodity/${page.summary.slug}.series.json`, { signal: controller.signal }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))).then(setAllSeries).catch(() => {}); return () => controller.abort(); }, [page]);
   const markets = page.markets ?? [...new Set(allSeries.map(marketKey))].sort();
   const marketSeries = allSeries.filter((s) => marketKey(s) === market); const packs = [...new Set(marketSeries.map((s) => s.package))].sort(); const options = marketSeries.filter((s) => s.package === pack); const selected = options.find((s) => s.id === seriesId) ?? options[0];
-  useEffect(() => { if (history.id === selected.id) return; const controller = new AbortController(); fetch(`${dataPath(page.common)}/series/${selected.id}.json`, { signal: controller.signal }).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then((file) => setHistory({ id: selected.id, rows: file.observations, dimensions: file.dimensions, reportTitle: file.report_title, error: false })).catch((error) => { if (error.name !== 'AbortError') setHistory({ id: selected.id, rows: [], dimensions: {}, reportTitle: null, error: true }); }); return () => controller.abort(); }, [selected.id, history.id]);
+  useEffect(() => { if (history.id === selected.id) return; const controller = new AbortController(); fetch(seriesUrl(page.common, selected), { signal: controller.signal }).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then((file) => setHistory({ id: selected.id, rows: file.observations, dimensions: file.dimensions, reportTitle: file.report_title, error: false })).catch((error) => { if (error.name !== 'AbortError') setHistory({ id: selected.id, rows: [], dimensions: {}, reportTitle: null, error: true }); }); return () => controller.abort(); }, [selected.id, history.id]);
   const pending = history.id !== selected.id;
   // The national egg index reports one value per day rather than a low and a high; retail ads do too.
   const retail = selected.stage === 'Retail promotion' || (!pending && history.rows.length > 0 && history.rows.every((r) => r.low === null && r.high === null));

@@ -8,7 +8,7 @@ const template = await readFile(join(dist, 'index.html'), 'utf8');
 // Data comes from the local pipeline output when present, otherwise from the published run on the CDN (Vercel builds).
 const CDN = process.env.BUNNY_CDN_BASE || 'https://kadoa-datasets.b-cdn.net';
 const local = join(root, 'public/data');
-let dataPath = '/food-prices/data'; let load;
+let dataPath = '/food-prices/data'; let sharedPath = dataPath; let load;
 if (process.env.DATA_SOURCE !== 'cdn' && existsSync(join(local, 'routes.json'))) {
   load = async (name) => JSON.parse(await readFile(join(local, `${name}.json`), 'utf8'));
 } else {
@@ -20,7 +20,7 @@ if (process.env.DATA_SOURCE !== 'cdn' && existsSync(join(local, 'routes.json')))
     : `${CDN}/food-prices/latest.json?v=${Date.now()}`;
   const res = await fetch(pointerUrl, { headers: storageKey ? { AccessKey: storageKey } : { 'Cache-Control': 'no-cache' } });
   if (!res.ok) throw new Error(`Cannot read data pointer (${storageKey ? 'storage' : 'CDN'}): HTTP ${res.status}`);
-  const pointer = await res.json(); dataPath = `${CDN}${pointer.base}`;
+  const pointer = await res.json(); dataPath = `${CDN}${pointer.base}`; sharedPath = `${CDN}${pointer.shared ?? pointer.base}`;
   console.log(`Building from published run ${pointer.runId} (${pointer.lastDate}) via ${storageKey ? 'storage' : 'CDN'} pointer`);
   load = async (name) => { const r = await fetch(`${CDN}${pointer.base}/${name}.json`); if (!r.ok) throw new Error(`Cannot read ${name}: HTTP ${r.status}`); return r.json(); };
 }
@@ -73,7 +73,7 @@ try {
   const { render } = await server.ssrLoadModule('/src/render.jsx');
   const lastmod = {};
   for (const route of routes) {
-    const page = await load(route.key); page.common = { ...page.common, dataPath };
+    const page = await load(route.key); page.common = { ...page.common, dataPath, sharedPath };
     if (page.kind === 'about') page.commodityCount ??= routes.filter((r) => r.key.startsWith('commodity/')).length;
     const body = render(page);
     const { title, description, canonical, ld } = seo(page, route.path);
