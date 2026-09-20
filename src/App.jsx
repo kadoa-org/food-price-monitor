@@ -213,7 +213,7 @@ function About({ page }) {
   return <article className="prose">
     <nav className="breadcrumbs" aria-label="Breadcrumb"><a href={HOME}>US food price monitor</a><span aria-hidden="true">/</span><span>About the data</span></nav>
     <h1>About the data</h1>
-    <p className="lede">An open dataset of US produce prices for {number(page.commodityCount)} fruits and vegetables: what growers were paid, what wholesale buyers paid and what supermarkets advertised. The source is the US Department of Agriculture (USDA), whose Market News service publishes these prices every business day. Collected after every report with <a href="https://www.kadoa.com">Kadoa</a>; the code is open source on <a href="https://github.com/kadoa-org/food-price-monitor">GitHub</a>.</p>
+    <p className="lede">An open dataset of US food prices for {number(page.commodityCount)} commodities: what growers were paid, what wholesale buyers paid at six terminal markets, what shell eggs traded at, and what supermarkets advertised for produce, eggs and meat. The source is the US Department of Agriculture (USDA), whose Market News service publishes these prices every business day. Collected after every report with <a href="https://www.kadoa.com">Kadoa</a>; the code is open source on <a href="https://github.com/kadoa-org/food-price-monitor">GitHub</a>.</p>
     <h2>How to read it</h2>
     <ul>
       <li>A price is USDA's low and high for one product in one market, in US dollars per package. Nothing is averaged or converted.</li>

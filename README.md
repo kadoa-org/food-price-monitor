@@ -2,7 +2,7 @@
 
 **Live: [kadoa.com/food-prices](https://www.kadoa.com/food-prices)**
 
-US produce prices as USDA reports them: what growers were paid at shipping point, what wholesale buyers paid at the New York, Chicago and Los Angeles terminal markets, and what supermarkets advertised each week. 137 fruits and vegetables, updated every business day, with a price chart, year-on-year change and a CSV download for each.
+US food prices as USDA reports them: what growers were paid at shipping point, what wholesale buyers paid at six terminal markets (New York, Chicago, Los Angeles, Atlanta, Boston, Philadelphia), what shell eggs traded at, and what supermarkets advertised each week for produce, eggs and meat. Every commodity gets a page with a price chart, year-on-year change and a CSV download, updated every business day.
 
 ## What is in it
 
@@ -14,7 +14,7 @@ US produce prices as USDA reports them: what growers were paid at shipping point
 
 ## Data
 
-**Sources.** Eight USDA Market News reports: shipping point prices (Idaho Falls, Fresno), wholesale prices (New York, Chicago, Los Angeles) and the weekly national retail report of supermarket ads. Market news adds USDA report tone changes and Markon crop updates. USDA data is public domain.
+**Sources.** 29 USDA Market News reports: shipping point prices (Idaho Falls, Fresno), terminal market prices for fruit, vegetables, onions and potatoes at six cities (New York, Chicago, Los Angeles, Atlanta, Boston, Philadelphia), shell eggs (New York and the national index) and the weekly national retail reports of supermarket ads for produce, eggs, beef, pork, chicken and turkey. Market news adds USDA report tone changes and Markon crop updates. USDA data is public domain.
 
 **Pipelines.** A [Kadoa](https://www.kadoa.com) pipeline collects the USDA reports after every publication, keeps every record in SQLite and exports the dataset; a Kadoa workflow collects the Markon updates.
 

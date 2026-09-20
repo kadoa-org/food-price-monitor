@@ -46,11 +46,16 @@ const sha256 = (body) => createHash('sha256').update(body).digest('hex');
 const isShared = (rel) => rel.startsWith('series/');
 
 async function* walk(dir) { for (const entry of await readdir(dir, { withFileTypes: true })) { const p = join(dir, entry.name); if (entry.isDirectory()) yield* walk(p); else if (!entry.name.startsWith('.')) yield p; } }
+// A PUT is retried on an HTTP failure and on a dropped connection alike; both are transient at this volume of requests.
 async function put(path, body, contentType, hash) {
   for (let attempt = 1; attempt <= 4; attempt++) {
-    const res = await fetch(storageUrl(path), { method: 'PUT', headers: { ...headers, 'Content-Type': contentType, Checksum: hash.toUpperCase() }, body });
-    if (res.ok) return;
-    if (attempt === 4) throw new Error(`PUT ${path} failed: HTTP ${res.status}`);
+    let reason;
+    try {
+      const res = await fetch(storageUrl(path), { method: 'PUT', headers: { ...headers, 'Content-Type': contentType, Checksum: hash.toUpperCase() }, body });
+      if (res.ok) return;
+      reason = `HTTP ${res.status}`;
+    } catch (error) { reason = error.code ?? error.name; }
+    if (attempt === 4) throw new Error(`PUT ${path} failed: ${reason}`);
     await new Promise((r) => setTimeout(r, 500 * attempt));
   }
 }
@@ -61,6 +66,11 @@ async function del(path) { const res = await fetch(storageUrl(path), { method: '
 const previous = await fetch(storageUrl(`${SHARED}/manifest.json`), { headers });
 if (!previous.ok && previous.status !== 404) throw new Error(`Cannot read shared manifest: HTTP ${previous.status}`);
 const known = previous.ok ? (await previous.json()).files ?? {} : {};
+// A series file name carries its content hash, so a name already on storage is the file, whether or not the last
+// publish got as far as writing its manifest. The listing is the ground truth; the manifest is a shortcut.
+const listed = await fetch(storageUrl(`${SHARED}/series/`), { headers });
+if (!listed.ok && listed.status !== 404) throw new Error(`Cannot list shared series: HTTP ${listed.status}`);
+const present = new Set(listed.ok ? (await listed.json()).filter((e) => !e.IsDirectory).map((e) => `series/${e.ObjectName}`) : []);
 
 const uploads = []; const manifest = {}; let sharedTotal = 0; let skipped = 0; let bytes = 0;
 for await (const local of walk(dataDir)) {
@@ -71,12 +81,12 @@ for await (const local of walk(dataDir)) {
   const entry = { local, hash, size: body.length, type: types[rel.slice(rel.lastIndexOf('.'))] ?? 'application/octet-stream' };
   if (isShared(rel)) {
     sharedTotal++; manifest[rel] = hash;
-    if (known[rel] === hash) { skipped++; continue; }
+    if (known[rel] === hash || present.has(rel)) { skipped++; continue; }
     uploads.push({ ...entry, remote: `${SHARED}/${rel}` });
   } else uploads.push({ ...entry, remote: `${base}/${rel}` });
 }
 if (existsSync(join(snapshot, 'og-image.png'))) { const local = join(snapshot, 'og-image.png'); const body = await readFile(local); uploads.push({ local, remote: `${base}/og-image.png`, hash: sha256(body), size: body.length, type: 'image/png' }); }
-const orphans = Object.keys(known).filter((rel) => !(rel in manifest));
+const orphans = [...new Set([...Object.keys(known), ...present])].filter((rel) => !(rel in manifest));
 const toUpload = uploads.reduce((n, u) => n + u.size, 0);
 console.log(JSON.stringify({ runId, files: uploads.length, sharedFiles: sharedTotal, sharedUnchanged: skipped, orphans: orphans.length, megabytes: Math.round(toUpload / 1e6), totalMegabytes: Math.round(bytes / 1e6), concurrency: CONCURRENCY, target: `${CDN}/${base}/`, shared: `${CDN}/${SHARED}/`, dryRun }));
 if (dryRun) process.exit(0);
