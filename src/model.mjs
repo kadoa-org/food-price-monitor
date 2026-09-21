@@ -235,7 +235,11 @@ const toneText = (t) => (t ? String(t).toLowerCase().replace(/^market\s+/, '').r
 const sentence = (label, v) => (v ? `${label} ${String(v).toLowerCase().replace(/\.$/, '')}.` : '');
 const steady = (t) => /^(about |generally |mostly )?steady$/.test(t);
 export function usdaNews(rows, family, cutoff, sourceUrl) {
-  const groups = Map.groupBy(rows.filter((r) => !isRetail(r.market_stage)), (r) => `${r.source_id}|${r.market}|${r.dimensions.district ?? ''}|${r.commodity}`);
+  // A terminal market report carries one tone comment for the whole market, so its rows group by market; the origin
+  // in `district` is where the produce came from, not a reporting place. Shipping point reports are written per
+  // growing district, so there the district is the place.
+  const placeOf = (r) => (r.market_stage === 'Terminal' ? '' : (r.dimensions.district ?? ''));
+  const groups = Map.groupBy(rows.filter((r) => !isRetail(r.market_stage)), (r) => `${r.source_id}|${r.market}|${placeOf(r)}|${r.commodity}`);
   const items = [];
   for (const [key, list] of groups) {
     const byDate = Map.groupBy(list, (r) => r.date);
@@ -249,7 +253,7 @@ export function usdaNews(rows, family, cutoff, sourceUrl) {
       // News is a change of market tone away from or back to steady, a seasonal start or a final report. Daily
       // repeats of "steady" and rewordings of supply and demand notes are not.
       const toneChanged = tone && previousTone !== null && tone !== previousTone && !(steady(tone) && steady(previousTone));
-      const first = day[0]; const place = titleCase(first.dimensions.district) || first.market;
+      const first = day[0]; const place = titleCase(placeOf(first)) || first.market;
       if (date >= cutoff && (resumed || last || toneChanged)) {
         const headline = last ? 'final report of the season' : resumed ? `quotes resume${tone ? `, ${tone}` : ''}` : tone;
         items.push({ id: `usda-${key}-${date}`.replace(/[^a-z0-9-]+/gi, '-'), date, source: 'USDA', families: [family.slug], title: `${family.name}, ${place}: ${headline}`, url: sourceUrl(first.source_id), text: [sentence('Supply', supply), sentence('Demand', demand), comment && !last ? String(comment).trim().replace(/([^.])$/, '$1.') : ''].filter(Boolean).join(' '), notes: [] });

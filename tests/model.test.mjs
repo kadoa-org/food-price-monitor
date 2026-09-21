@@ -133,3 +133,12 @@ test('short market captions match the benchmark panels', () => {
   expect(shortMarket('Idaho Falls FOB SC', 'Shipping point')).toBe('Idaho Falls shipping point');
   expect(shortMarket('Fresno (FR) FOB SC', 'Shipping point')).toBe('Fresno shipping point');
 });
+
+test('terminal market news groups by market, not by produce origin', () => {
+  const base = { source_id: 'usda-2278', market: 'Atlanta Terminal Market', market_stage: 'Terminal', commodity: 'Onions', package: '50 lb sacks', low: 10, high: 12, mostly_low: null, mostly_high: null, advertised_average: null, comment: null };
+  const day = (date, tone, origins) => origins.map((o, i) => ({ ...base, id: `${date}-${o}`, series_id: `s-${o}`, date, dimensions: { district: o }, evidence: { market_tone_comments: tone } }));
+  const rows = [...day('2026-09-16', 'STEADY.', ['GEORGIA', 'QUEBEC']), ...day('2026-09-17', 'SLIGHTLY LOWER.', ['GEORGIA', 'QUEBEC'])];
+  const items = usdaNews(rows, { slug: 'onions', name: 'Onions' }, '2026-09-01', () => 'u');
+  expect(items.length).toBe(1);
+  expect(items[0].title).toBe('Onions, Atlanta Terminal Market: slightly lower');
+});
