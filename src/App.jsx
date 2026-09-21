@@ -70,7 +70,7 @@ function Overview({ page }) {
     {page.movers && (page.movers.rising.length > 0 || page.movers.falling.length > 0) && <Section title="Biggest moves this week" hint="Wholesale benchmarks, compared with a week earlier.">
       <MoversTable movers={page.movers} />
     </Section>}
-    <Section title="Retail prices" hint="Sale prices in US supermarket weekly ads this week, averaged across stores." right={<a href={`${BASE}/retail`}>All items and regions</a>}>
+    <Section title="Retail prices" hint="What US supermarkets advertised this week, averaged across stores." right={<a href={`${BASE}/retail`}>All items and regions</a>}>
       <DataTable rows={retailRows} columns={retailColumns} rowKey={(r) => r.id} empty="No retail report this week." />
     </Section>
     <Section title="Market news"><NewsList items={page.news.slice(0, 6)} compact /></Section>
