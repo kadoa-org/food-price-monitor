@@ -12,7 +12,9 @@ import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
-const dataset = process.env.FOOD_PRICES_DATASET_DIR || resolve(root, '../kadoa-backend/services/custom/datasets/food-prices');
+// The dataset pipeline lives outside this repository; point FOOD_PRICES_DATASET_DIR at its folder (a local .env works).
+const dataset = process.env.FOOD_PRICES_DATASET_DIR;
+if (!dataset) throw new Error('FOOD_PRICES_DATASET_DIR is not set; it must point at the food-prices dataset pipeline folder');
 for (const file of [join(dataset, '.env'), join(dataset, '..', '.env')]) {
   if (!existsSync(file)) continue;
   for (const line of readFileSync(file, 'utf8').split('\n')) { const m = /^([A-Z_][A-Z0-9_]*)=(.*)$/.exec(line); if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim(); }

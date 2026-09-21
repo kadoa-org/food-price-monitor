@@ -8,7 +8,9 @@ import { BASE, addDays, curated, familyFor, marketKey, newsFamilies, groupSeries
 import { existsSync } from 'node:fs';
 
 const root = resolve(import.meta.dirname, '..');
-const dataset = process.env.FOOD_PRICES_DATASET_DIR || resolve(root, '../kadoa-backend/services/custom/datasets/food-prices');
+// The dataset pipeline lives outside this repository; point FOOD_PRICES_DATASET_DIR at its folder (a local .env works).
+const dataset = process.env.FOOD_PRICES_DATASET_DIR;
+if (!dataset) throw new Error('FOOD_PRICES_DATASET_DIR is not set; it must point at the food-prices dataset pipeline folder');
 const pointer = JSON.parse(await readFile(join(dataset, 'exports/latest.json'), 'utf8'));
 if (!/^[a-zA-Z0-9_.-]+$/.test(pointer.path)) throw new Error('Invalid export pointer');
 const dir = join(dataset, 'exports', pointer.path);
