@@ -224,13 +224,11 @@ function About({ page }) {
     <p>The project is open source and contributions are welcome: <a href="https://github.com/kadoa-org/food-price-monitor">github.com/kadoa-org/food-price-monitor</a>.</p>
     <h2>How to read it</h2>
     <ul>
-      <li>A price is USDA's low and high for one product in one market, in US dollars per package. Nothing is averaged or converted.</li>
-      <li>Percentages compare the midpoint of that range with the nearest report 4 or 52 weeks earlier. Red is up, green is down.</li>
-      <li>Gaps are real: a product is quoted only while its growing region is shipping. Charts leave them open instead of filling them in.</li>
-      <li>Retail prices are sale prices from supermarket weekly ads, not shelf prices, and are kept on their own page.</li>
+      <li>A price is USDA's low and high quote for one product in one market, in dollars per package, exactly as reported.</li>
+      <li>A change compares the middle of that range with the report closest to 4 or 52 weeks earlier. Red means up, green means down.</li>
+      <li>A chart stops where USDA stopped quoting, usually because the growing region is out of season. We leave those gaps open.</li>
+      <li>Retail prices are sale prices from supermarket weekly ads, not shelf prices. They have their own page.</li>
     </ul>
-    <h2>Market news</h2>
-    <p>USDA items are changes in the market tone USDA reporters record with each report. Markon items are crop updates from <a href="https://www.markon.com/news-press/">Markon</a>, a produce supplier, shown as short summaries with a link.</p>
     <p className="dk-hint">Updated every business day; last update {dateLabel(page.common.generatedAt.slice(0, 10))}. USDA data is public domain. For information only.</p>
   </article>;
 }
