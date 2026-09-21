@@ -63,7 +63,7 @@ function Overview({ page }) {
     { key: 'stores', header: 'Stores', align: 'right', hideBelow: 'sm', render: (r) => (r.stores === null ? '' : number(r.stores)) },
   ];
   return <>
-    <div className="title-block"><h1>US food price monitor</h1><p className="lede">Wholesale, shipping point and grocery ad prices for US food, from USDA.</p><p className="dk-hint">Latest report {dateLabel(common.lastDate)}. Updated after every USDA report, on business days.</p></div>
+    <div className="title-block"><h1>US food price monitor</h1><p className="lede">Daily US food prices from USDA, from the farm gate to the supermarket ad.</p><p className="dk-hint">Latest report {dateLabel(common.lastDate)}. Updated every business day.</p></div>
     <Section title="Benchmark prices" right={<span className="dk-hint">Year to {dateLabel(common.lastDate)}, sorted by change. <a href={`${BASE}/commodities`}>All commodities</a></span>}>
       <div className="board">{panels.map((f) => <Panel key={f.summary.slug} f={f} common={common} />)}</div>
     </Section>
@@ -143,7 +143,7 @@ function Commodity({ page }) {
       </div>
       {pending ? <div className="chart-loading" role="status">Loading price history…<div className="skeleton-chart" aria-hidden="true" /></div> : history.error ? <div role="alert" className="chart-empty">Price history could not be loaded. <button className="text-button" onClick={() => setHistory({ id: '', rows: [], dimensions: {}, error: false })}>Retry</button></div> : <PriceChart rows={filtered} retail={retail} compare={earlier} startDate={startDate ?? filtered[0]?.date} endDate={endDate} unit={unit} />}
       {!pending && gapNote(history.rows, startDate, endDate) && <p className="dk-inset">{gapNote(history.rows, startDate, endDate)}</p>}
-      <p className="chart-note">{retail ? `USDA reported average, US dollars ${unit}.` : `Shaded band: USDA low to high quote, US dollars ${unit}.`} Weekends and holidays are joined; hatching marks longer stretches with no quote. {compare && range !== 'all' && prior.years > 0 ? `Grey: the range this product traded in over the same weeks of the previous ${prior.years === 1 ? 'year' : `${prior.years} years`}.` : ''}</p>
+      <p className="chart-note">{retail ? `The line is USDA's reported average in US dollars ${unit}.` : `The band is USDA's low to high quote in US dollars ${unit}.`} Hatching marks stretches with no quote.{compare && range !== 'all' && prior.years > 0 ? ` Grey is the same weeks in the previous ${prior.years === 1 ? 'year' : `${prior.years} years`}.` : ''}</p>
     </section>
     {summary && <Section title="Compared with earlier reports" hint="Percentages compare the midpoint of the quoted range.">
       <dl className="dk-summary dk-summary--wide">
@@ -155,7 +155,7 @@ function Commodity({ page }) {
       </dl>
     </Section>}
     <NewsSection items={page.news} common={page.common} slug={page.summary.slug} />
-    <Section title="Daily prices" hint={pending ? 'Loading' : `Every USDA report for this product in this period: ${number(filtered.length)} reports, ${unit}`}>
+    <Section title="Daily prices" hint={pending ? 'Loading' : `${number(filtered.length)} USDA reports in this period, ${unit}.`}>
       <DataTable rows={sorted.slice(0, visible)} columns={columns} rowKey={(r) => r.date} sort={sort} onSort={(key) => { setSort((s) => ({ key, dir: s.key === key && s.dir === 'desc' ? 'asc' : 'desc' })); setVisible(25); }} empty={pending ? 'Loading…' : history.error ? 'History could not be loaded.' : 'No reports in this period.'} />
       {sorted.length > visible && <div className="table-more"><Button onClick={() => setVisible((n) => n + 50)}>Show more</Button><span className="dk-hint">Showing {visible} of {number(sorted.length)}</span></div>}
     </Section>
@@ -177,7 +177,7 @@ function Commodities({ page }) {
     { key: 'lastDate', header: 'Latest report', sortable: true, hideBelow: 'sm', render: (c) => dateLabel(c.lastDate) },
   ];
   return <>
-    <div className="hero"><div><h1>Commodities</h1><p className="lede">Every fresh produce commodity USDA quotes at US wholesale markets and shipping points, {number(page.items.length)} in all. Each has its own page with all markets, products and history.</p></div></div>
+    <div className="hero"><div><h1>Commodities</h1><p className="lede">{number(page.items.length)} commodities, each with its own page of markets, products and history.</p></div></div>
     <div className="dk-toolbar"><SearchInput value={query} onChange={setQuery} placeholder="Search commodities" width={280} /><label className="toolbar-select">Price type <select value={stage} onChange={(e) => setStage(e.target.value)}><option value="all">All</option><option value="Shipping point">Shipping point</option><option value="Wholesale">Wholesale</option></select></label><span className="dk-hint">{number(sorted.length)} of {number(page.items.length)}</span></div>
     <DataTable rows={sorted} columns={columns} rowKey={(c) => c.slug} sort={sort} onSort={(key) => setSort((s) => ({ key, dir: s.key === key && s.dir === 'asc' ? 'desc' : 'asc' }))} empty="No commodity matches that search." />
     <p className="dk-hint" style={{ marginTop: 10 }}>The quote shown is the product USDA has quoted most consistently for that commodity over the past two years. Change compares range midpoints with the nearest report 52 weeks earlier.</p>
@@ -222,7 +222,7 @@ function About({ page }) {
       <li>A chart stops where USDA stopped quoting, usually because the growing region is out of season. We leave those gaps open.</li>
       <li>Retail prices are sale prices from supermarket weekly ads, not shelf prices. They have their own page.</li>
     </ul>
-    <p className="dk-hint">Updated every business day; last update {dateLabel(page.common.generatedAt.slice(0, 10))}. USDA data is public domain. For information only.</p>
+    <p className="dk-hint">Updated every business day, last on {dateLabel(page.common.generatedAt.slice(0, 10))}. USDA data is public domain.</p>
   </article>;
 }
 export default function App({ page }) {

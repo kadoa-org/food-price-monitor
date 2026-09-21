@@ -226,7 +226,7 @@ export function gapNote(rows, startDate, endDate, unit) {
   const gap = longestGap(inWindow.filter(priced));
   if (!gap) return null;
   const days = Math.round((Date.parse(gap.to) - Date.parse(gap.from)) / DAY);
-  return `No USDA quotes from ${dateLabel(gap.from)} to ${dateLabel(gap.to)} (${days} days). USDA quotes a product only while its growing region is shipping, so the line stops when that region is out of season and starts again with the new crop.`;
+  return `No quotes from ${dateLabel(gap.from)} to ${dateLabel(gap.to)}, ${days} days. USDA quotes a product only while its growing region is shipping.`;
 }
 
 // USDA report comments become news when they change. Rows are one district/market and commodity, ordered by date.

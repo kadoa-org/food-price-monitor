@@ -83,7 +83,7 @@ test('route matching handles trailing slashes and rejects unknown pages', () => 
 test('news articles map to commodities from their own commodity words and gaps get a plain explanation', () => {
   expect(newsFamilies({ commodities: ['Iceberg', 'Green onions'], signals: [{ commodity: 'Romaine Hearts' }] })).toEqual(['onions', 'lettuce']);
   expect(newsFamilies({ commodities: ['Limes'], signals: [] })).toEqual([]);
-  expect(gapNote([{ date: '2026-05-15', low: 1, high: 2, advertised_average: null }, { date: '2026-07-27', low: 1, high: 2, advertised_average: null }], '2026-01-01', '2026-09-18')).toContain('15 May 2026 to 27 Jul 2026 (73 days)');
+  expect(gapNote([{ date: '2026-05-15', low: 1, high: 2, advertised_average: null }, { date: '2026-07-27', low: 1, high: 2, advertised_average: null }], '2026-01-01', '2026-09-18')).toContain('15 May 2026 to 27 Jul 2026, 73 days');
   expect(gapNote([{ date: '2026-05-15', low: 1, high: 2, advertised_average: null }, { date: '2026-05-18', low: 1, high: 2, advertised_average: null }], null, null)).toBeNull();
 });
 test('USDA news items appear only when the market tone changes, quotes resume or a final report is filed', () => {
