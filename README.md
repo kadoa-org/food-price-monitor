@@ -24,11 +24,13 @@ Every business day the US Department of Agriculture (USDA) publishes food price 
 
 ```sh
 bun install
-bun run dev     # http://127.0.0.1:5188/food-prices/ (needs public/data, see below)
+DATA_SOURCE=cdn bun run dev   # http://127.0.0.1:5188/food-prices/
 bun test
 ```
 
-`bun run data` prepares `public/data` from an export of the dataset pipeline (`FOOD_PRICES_DATASET_DIR`). Without that pipeline, point the site at the published data instead: `DATA_SOURCE=cdn bun run build` prerenders every page from the current CDN run into `dist/food-prices`.
+With `DATA_SOURCE=cdn` the dev server reads the published data from the CDN, so the site runs without the dataset pipeline. `DATA_SOURCE=cdn bun run build` prerenders every page the same way into `dist/food-prices`.
+
+`bun run data` and `bun run publish` rebuild and publish the data from a local export of the pipeline; they need `FOOD_PRICES_DATASET_DIR` and Bunny credentials and are only used by Kadoa.
 
 React, Vite and plain SVG. No chart library, no backend.
 

@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5188",
+    "dev:cdn": "DATA_SOURCE=cdn vite --host 127.0.0.1 --port 5188",
     "data": "bun scripts/prepareData.mjs",
     "build": "vite build && bun scripts/prerender.mjs",
     "preview": "vite preview --host 127.0.0.1 --port 5188",
