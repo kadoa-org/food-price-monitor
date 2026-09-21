@@ -76,6 +76,17 @@ export const titleCase = (v) => { const text = clean(v); if (text !== text.toUpp
 export const number = (n) => new Intl.NumberFormat('en-US').format(n);
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export const money = (n) => (n === null || n === undefined ? 'Not quoted' : usd.format(n));
+// Compact form for dense tables: cents are dropped when every figure in the quote is a whole dollar, never otherwise,
+// so "$60 to $62" and "$40.50 to $42.50" but not "$40.5 to $42.5".
+const usdWhole = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+export function quoteShort(row) {
+  const values = row.advertised_average !== null && row.advertised_average !== undefined ? [row.advertised_average] : [row.low, row.high].filter((v) => v !== null && v !== undefined);
+  if (!values.length) return 'Not quoted';
+  const fmt = values.every(Number.isInteger) ? (n) => usdWhole.format(n) : money;
+  if (values.length === 1 && row.low !== null && row.high === null && row.advertised_average == null) return `${fmt(row.low)} low`;
+  if (values.length === 1 && row.high !== null && row.low === null && row.advertised_average == null) return `${fmt(row.high)} high`;
+  return values[0] === values.at(-1) ? fmt(values[0]) : `${fmt(values[0])} to ${fmt(values[1])}`;
+}
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export const dateLabel = (s) => { const [y, m, d] = s.split('-'); return `${Number(d)} ${MONTHS[Number(m) - 1]} ${y}`; };
 export const monthLabel = (s) => { const [y, m] = s.split('-'); return `${MONTHS[Number(m) - 1]} ${y}`; };

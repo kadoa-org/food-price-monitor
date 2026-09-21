@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button, DataTable, GitHubButton, LiveBadge, NavBar, SearchInput, Section, SiteFooter, SiteHeader, Tag } from './kit';
 import CommandPalette from './CommandPalette';
-import { BASE, HOME, addDays, dataPath, seriesUrl, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, priorYears, quote, summarize, unitLabel } from './model.mjs';
+import { BASE, HOME, addDays, dataPath, seriesUrl, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, priorYears, quote, quoteShort, summarize, unitLabel } from './model.mjs';
 import PriceChart from './PriceChart';
 import BandChart from './BandChart';
 import EvidenceDialog from './EvidenceDialog';
@@ -42,8 +42,8 @@ function Change({ value }) {
 function MoverList({ title, rows }) {
   const columns = [
     { key: 'name', header: title, render: (r) => <><a className="cell-link" href={url(r.slug)}>{r.name}</a><span className="cell-note">{r.product === r.name ? '' : `${r.product}. `}{r.stage}, {r.market}</span></> },
-    { key: 'weekAgo', header: 'A week earlier', align: 'right', hideBelow: 'sm', render: (r) => quote(r.weekAgo) },
-    { key: 'latest', header: 'Now', align: 'right', render: (r) => quote(r.latest) },
+    { key: 'weekAgo', header: 'A week earlier', align: 'right', hideBelow: 'sm', render: (r) => <span className="cell-nowrap">{quoteShort(r.weekAgo)}</span> },
+    { key: 'latest', header: 'Now', align: 'right', render: (r) => <span className="cell-nowrap">{quoteShort(r.latest)}</span> },
     { key: 'weekChange', header: 'Change', align: 'right', render: (r) => <Change value={r.weekChange} /> },
   ];
   return <DataTable rows={rows} columns={columns} rowKey={(r) => r.slug} empty={`Nothing ${title.toLowerCase()} this week.`} />;
