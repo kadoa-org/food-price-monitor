@@ -203,7 +203,7 @@ function Retail({ page }) {
   ];
   return <>
     <nav className="breadcrumbs" aria-label="Breadcrumb"><a href={HOME}>US food price monitor</a><span aria-hidden="true">/</span><span>Retail prices</span></nav>
-    <div className="hero"><div><h1>Retail prices</h1><p className="lede">What shoppers were offered: each week USDA reads the weekly ads of the major grocery chains and records what fresh produce was on sale, at what price, in how many stores{page.week ? `. This is the week ending ${dateLabel(page.week)}` : ''}.</p><p className="dk-hint">The commodity charts show what wholesale buyers paid; this is the retail end of the same chain. Prices are averages weighted by store count, sale prices rather than shelf prices, and an item that disappears was not advertised that week.</p></div></div>
+    <div className="hero"><div><h1>Retail prices</h1><p className="lede">Sale prices in US supermarket weekly ads, averaged across stores, from USDA's survey of the major grocery chains.</p>{page.week && <p className="dk-hint">Week ending {dateLabel(page.week)}.</p>}</div></div>
     <div className="filters filters--single"><label>Region<select value={region} onChange={(e) => setRegion(e.target.value)}>{page.regions.map((r) => <option key={r}>{r}</option>)}</select></label></div>
     <Section title={`${region}`} hint={`${number(rows.length)} items advertised this week.`}>
       <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} empty="Nothing advertised in this region this week." />
