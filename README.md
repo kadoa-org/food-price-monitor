@@ -2,23 +2,23 @@
 
 **Live: [kadoa.com/food-prices](https://www.kadoa.com/food-prices)**
 
-US food prices as USDA reports them: what growers were paid at shipping point, what wholesale buyers paid at six terminal markets (New York, Chicago, Los Angeles, Atlanta, Boston, Philadelphia), what shell eggs traded at, and what supermarkets advertised each week for produce, eggs and meat. Every commodity gets a page with a price chart, year-on-year change and a CSV download, updated every business day.
+Every business day the US Department of Agriculture (USDA) publishes food price data for about 290 commodities: what growers were paid at shipping point, what buyers paid at the big city wholesale markets, and what supermarkets advertised in their weekly ads. It comes out as dozens of separate text reports and PDFs, one per market, with no history and no way to see how a price has moved over time. We think public data should be simple to find and read, so we built this tracker.
 
 ## What is in it
 
-- USDA's low and high quotes per product, market and package, never averaged
-- Two years of history for every commodity, seven for onions and potatoes
-- Change against 4 weeks and a year earlier, with last year's band drawn behind each chart
-- Weekly retail prices from supermarket ads, by region
-- Market news: USDA market tone changes plus Markon crop updates
+- USDA's low and high quote for each product, market and package, exactly as reported
+- Two years of daily history for every commodity, seven for onions and potatoes
+- Change against 4 weeks and a year earlier, with the previous years' range behind each chart
+- Weekly supermarket ad prices by region for produce, eggs and meat
+- Market news from USDA report comments and Markon crop updates
 
 ## Data
 
-**Sources.** 29 USDA Market News reports: shipping point prices (Idaho Falls, Fresno), terminal market prices for fruit, vegetables, onions and potatoes at six cities (New York, Chicago, Los Angeles, Atlanta, Boston, Philadelphia), shell eggs (New York and the national index) and the weekly national retail reports of supermarket ads for produce, eggs, beef, pork, chicken and turkey. Market news adds USDA report tone changes and Markon crop updates. USDA data is public domain.
+**Sources.** 29 USDA Market News reports: shipping point prices from Idaho Falls and Fresno, wholesale prices at six terminal markets (New York, Chicago, Los Angeles, Atlanta, Boston, Philadelphia), shell eggs in New York and the national index, and the weekly national retail reports of supermarket ads for produce, eggs, beef, pork, chicken and turkey. USDA data is public domain.
 
-**Pipelines.** A [Kadoa](https://www.kadoa.com) pipeline collects the USDA reports after every publication, keeps every record in SQLite and exports the dataset; a Kadoa workflow collects the Markon updates.
+**Pipelines.** A [Kadoa](https://www.kadoa.com) pipeline collects each USDA report after it is published, keeps every record in SQLite and exports the dataset. A Kadoa workflow collects the Markon updates.
 
-**Integration.** The site's build reads the latest export from a CDN and prerenders every page; the browser fetches per-product history and CSV downloads from the same CDN. This repository holds the site only.
+**Integration.** The build reads the latest export from a CDN and prerenders every page. The browser fetches per-product history and CSV downloads from the same CDN. This repository holds the site only.
 
 ## Run it locally
 
