@@ -44,8 +44,6 @@ function MoversTable({ movers }) {
   const rows = [...movers.rising, ...movers.falling].sort((a, b) => b.weekChange - a.weekChange);
   const columns = [
     { key: 'name', header: 'Commodity', render: (r) => <a className="cell-link" href={url(r.slug)}>{r.name}</a> },
-    { key: 'product', header: 'Product', hideBelow: 'md', render: (r) => (r.product === r.name ? '' : r.product) },
-    { key: 'market', header: 'Market', hideBelow: 'sm', render: (r) => <span className="cell-nowrap">{shortMarket(r.market, r.stage)}</span> },
     { key: 'weekAgo', header: 'Last week', align: 'right', hideBelow: 'sm', render: (r) => <span className="cell-nowrap">{quote(r.weekAgo)}</span> },
     { key: 'latest', header: 'This week', align: 'right', render: (r) => <span className="cell-nowrap">{quote(r.latest)}</span> },
     { key: 'weekChange', header: 'Change', align: 'right', render: (r) => <Change value={r.weekChange} /> },
@@ -59,7 +57,6 @@ function Overview({ page }) {
   const seen = new Set(); const retailRows = retail.rows.filter((r) => featuredSlugs.has(r.slug) && (seen.has(r.family) ? false : (seen.add(r.family), true)));
   const retailColumns = [
     { key: 'item', header: 'Item', render: (r) => <><a className="cell-link" href={url(r.slug)}>{r.family}</a><span className="cell-note">{r.product === r.commodity ? '' : r.product}</span></> },
-    { key: 'package', header: 'Package', hideBelow: 'sm', render: (r) => r.package },
     { key: 'price', header: 'Ad price', align: 'right', render: (r) => money(r.price) },
     { key: 'yearAgo', header: 'A year earlier', align: 'right', hideBelow: 'sm', render: (r) => money(r.yearAgo) },
     { key: 'yearChange', header: 'Change, 1 year', align: 'right', render: (r) => <Change value={r.yearAgo === null ? null : r.yearChange} /> },
@@ -73,7 +70,7 @@ function Overview({ page }) {
     {page.movers && (page.movers.rising.length > 0 || page.movers.falling.length > 0) && <Section title="Biggest moves this week" hint="Wholesale benchmarks, compared with a week earlier.">
       <MoversTable movers={page.movers} />
     </Section>}
-    <Section title="Retail prices" hint="Advertised sale prices in US supermarket weekly ads this week, averaged across stores. The last step of the chain the charts start." right={<a href={`${BASE}/retail`}>All items and regions</a>}>
+    <Section title="Retail prices" hint="Sale prices in US supermarket weekly ads this week, averaged across stores." right={<a href={`${BASE}/retail`}>All items and regions</a>}>
       <DataTable rows={retailRows} columns={retailColumns} rowKey={(r) => r.id} empty="No retail report this week." />
     </Section>
     <Section title="Market news"><NewsList items={page.news.slice(0, 6)} compact /></Section>
@@ -81,7 +78,7 @@ function Overview({ page }) {
 }
 function NewsList({ items, showFamilies = false, showNotes = false, compact = false }) {
   return <ul className={`news-list${compact ? ' news-list--compact' : ''}`}>{items.map((a) => <li key={a.id}>
-    <div className="news-head"><Tag tone={a.source === 'USDA' ? 'blue' : 'grey'}>{a.source}</Tag><a href={a.url} target="_blank" rel="noreferrer">{a.title}</a><span className="dk-hint news-date">{dateLabel(a.date).replace(/ \d{4}$/, '')}</span></div>
+    <div className="news-head"><span className="news-source">{a.source}</span><a href={a.url} target="_blank" rel="noreferrer">{a.title}</a><span className="dk-hint news-date">{dateLabel(a.date).replace(/ \d{4}$/, '')}</span></div>
     {a.text && !compact && <p className="news-summary">{a.text}</p>}
     {showFamilies && a.source === 'Markon' && a.families.length > 0 && <p className="news-tags">{a.families.map((slug) => <a key={slug} href={url(slug)} className="dk-tag dk-tag--grey">{families.find((f) => f.slug === slug).name}</a>)}</p>}
     {showNotes && a.notes?.length > 0 && <ul className="news-signals">{a.notes.map((n, i) => <li key={i}>{n.text}{n.quote ? <> <q>{n.quote}</q></> : ''}</li>)}</ul>}
