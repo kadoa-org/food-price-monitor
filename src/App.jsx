@@ -214,7 +214,14 @@ function About({ page }) {
   return <article className="prose">
     <nav className="breadcrumbs" aria-label="Breadcrumb"><a href={HOME}>US food price monitor</a><span aria-hidden="true">/</span><span>About the data</span></nav>
     <h1>About the data</h1>
-    <p className="lede">An open dataset of US food prices for {number(page.commodityCount)} commodities: what growers were paid, what wholesale buyers paid at six terminal markets, what shell eggs traded at, and what supermarkets advertised for produce, eggs and meat. The source is the US Department of Agriculture (USDA), whose Market News service publishes these prices every business day. Collected after every report with <a href="https://www.kadoa.com">Kadoa</a>; the code is open source on <a href="https://github.com/kadoa-org/food-price-monitor">GitHub</a>.</p>
+    <p className="lede">Every business day the US Department of Agriculture (USDA) publishes food price data for about {number(page.commodityCount)} commodities:</p>
+    <ul>
+      <li>what growers were paid at shipping point</li>
+      <li>what buyers paid at the big city wholesale markets</li>
+      <li>what supermarkets advertised in their weekly ads</li>
+    </ul>
+    <p>The data comes out as dozens of separate text reports and PDFs, one per market, with no history and no way to see how a price has moved over time. We think public data should be simple to find and read, so <a href="https://www.kadoa.com">Kadoa</a> built an open-source tracker for it.</p>
+    <p>The project is open source and contributions are welcome: <a href="https://github.com/kadoa-org/food-price-monitor">github.com/kadoa-org/food-price-monitor</a>.</p>
     <h2>How to read it</h2>
     <ul>
       <li>A price is USDA's low and high for one product in one market, in US dollars per package. Nothing is averaged or converted.</li>
