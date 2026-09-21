@@ -70,7 +70,7 @@ function Overview({ page }) {
     <Section title="Benchmark prices" right={<span className="dk-hint">Year to {dateLabel(common.lastDate)}, sorted by change. <a href={`${BASE}/commodities`}>All commodities</a></span>}>
       <div className="board">{panels.map((f) => <Panel key={f.summary.slug} f={f} common={common} />)}</div>
     </Section>
-    {page.movers && (page.movers.rising.length > 0 || page.movers.falling.length > 0) && <Section title="Biggest moves this week" hint="The five largest rises and falls among wholesale and shipping point benchmarks quoted this week and last, midpoint to midpoint. Products quoted fewer than 8 times in the past month are left out.">
+    {page.movers && (page.movers.rising.length > 0 || page.movers.falling.length > 0) && <Section title="Biggest moves this week" hint="Wholesale benchmarks, compared with a week earlier.">
       <MoversTable movers={page.movers} />
     </Section>}
     <Section title="Retail prices" hint="Advertised sale prices in US supermarket weekly ads this week, averaged across stores. The last step of the chain the charts start." right={<a href={`${BASE}/retail`}>All items and regions</a>}>
