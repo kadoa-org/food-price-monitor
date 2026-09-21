@@ -9,7 +9,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .dk-container{max-width:1080px}.main{padding-top:28px;padding-bottom:24px;min-height:65vh}
 .hero{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:24px}.hero>div{max-width:760px}
 .lede{font-size:17px;line-height:1.55;color:var(--dk-muted);margin-bottom:0}.detail-hero .dk-hint{margin:10px 0 0}
-.breadcrumbs{display:flex;gap:10px;margin-bottom:20px;font-size:13px;flex-wrap:wrap}
+
 .dk-btn{text-decoration:none;min-height:36px;height:auto;padding-top:7px;padding-bottom:7px}
 .dk-section-head{align-items:flex-end}.dk-section-head .dk-hint{max-width:70ch}
 
