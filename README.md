@@ -16,7 +16,7 @@ Every business day the US Department of Agriculture (USDA) publishes food price 
 
 **Sources.** 29 USDA Market News reports: shipping point prices from Idaho Falls and Fresno, wholesale prices at six terminal markets (New York, Chicago, Los Angeles, Atlanta, Boston, Philadelphia), shell eggs in New York and the national index, and the weekly national retail reports of supermarket ads for produce, eggs, beef, pork, chicken and turkey. USDA data is public domain.
 
-**Pipelines.** A [Kadoa](https://www.kadoa.com) pipeline collects each USDA report after it is published, keeps every record in SQLite and exports the dataset. A Kadoa workflow collects the Markon updates.
+**Pipelines.** A [Kadoa](https://www.kadoa.com) pipeline collects each USDA report after it is published, keeps every record in SQLite and exports the dataset. A Kadoa workflow collects the Markon updates. The pipeline code is not public yet; we are cleaning it up and will open source it here.
 
 **Integration.** The build reads the latest export from a CDN and prerenders every page. The browser fetches per-product history and CSV downloads from the same CDN. This repository holds the site only.
 
