@@ -2,6 +2,8 @@
 
 **Live: [kadoa.com/food-prices](https://www.kadoa.com/food-prices)**
 
+[![Overview page: six benchmark commodities with a year of prices each](docs/screenshot.png)](https://www.kadoa.com/food-prices)
+
 Every business day the US Department of Agriculture (USDA) publishes food price data for about 290 commodities: what growers were paid at shipping point, what buyers paid at the big city wholesale markets, and what supermarkets advertised in their weekly ads. It comes out as dozens of separate text reports and PDFs, one per market, with no history and no way to see how a price has moved over time. We think public data should be simple to find and read, so we built this tracker.
 
 ## What is in it
