@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button, DataTable, GitHubButton, LiveBadge, NavBar, SearchInput, Section, SiteFooter, SiteHeader, Tag } from './kit';
 import CommandPalette from './CommandPalette';
-import { BASE, HOME, addDays, dataPath, seriesUrl, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, priorYears, quote, quoteShort, summarize, unitLabel } from './model.mjs';
+import { BASE, HOME, addDays, dataPath, seriesUrl, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, priorYears, quote, shortMarket, summarize, unitLabel } from './model.mjs';
 import PriceChart from './PriceChart';
 import BandChart from './BandChart';
 import EvidenceDialog from './EvidenceDialog';
@@ -23,11 +23,10 @@ export function Loading({ error = false }) {
 }
 function Panel({ f, common }) {
   const b = f.benchmark; const start = addDays(common.lastDate, -365);
-  const marketShort = b.market.replace(/ FOB SC$/, '').replace(/ \(FR\)/, '').replace(/ Terminal Market$/, '');
   const dir = b.yearChange > 0 ? 'up' : b.yearChange < 0 ? 'down' : '';
   return <article className="panel">
     <div className="panel-head">
-      <div><a href={url(f.summary.slug)}>{f.summary.name}</a><span className="panel-market">{marketShort} {b.stage.toLowerCase()}</span></div>
+      <div><a href={url(f.summary.slug)}>{f.summary.name}</a><span className="panel-market">{shortMarket(b.market, b.stage)}</span></div>
       {b.yearAgo && <div className={`panel-delta panel-delta--${dir}`} title={`A year earlier: ${quote(b.yearAgo)}, ${dateLabel(b.yearAgo.date)}`}><span><span className={`tri ${dir === 'down' ? 'tri--down' : ''}`} aria-hidden="true" />{pctLabel(b.yearChange)}</span><span className="panel-market">past year</span></div>}
     </div>
     <div className="panel-price"><span className="panel-value">{quote(b.latest)}</span><span className="panel-sub">{unitLabel(b.package)}</span></div>
@@ -39,14 +38,19 @@ function Change({ value }) {
   const dir = value > 0 ? 'up' : value < 0 ? 'down' : '';
   return <span className={`change change--${dir}`}>{dir && <span className={`tri ${dir === 'down' ? 'tri--down' : ''}`} aria-hidden="true" />}{pctLabel(value)}</span>;
 }
-function MoverList({ title, rows }) {
+// One full-width table, sorted by change, so the biggest rise is the first row and the biggest fall the last. Every
+// row holds the same six facts on one or two lines, so rows share a height and the eye can run down each column.
+function MoversTable({ movers }) {
+  const rows = [...movers.rising, ...movers.falling].sort((a, b) => b.weekChange - a.weekChange);
   const columns = [
-    { key: 'name', header: title, render: (r) => <><a className="cell-link" href={url(r.slug)}>{r.name}</a><span className="cell-note">{r.product === r.name ? '' : `${r.product}. `}{r.stage}, {r.market}</span></> },
-    { key: 'weekAgo', header: 'A week earlier', align: 'right', hideBelow: 'sm', render: (r) => <span className="cell-nowrap">{quoteShort(r.weekAgo)}</span> },
-    { key: 'latest', header: 'Now', align: 'right', render: (r) => <span className="cell-nowrap">{quoteShort(r.latest)}</span> },
+    { key: 'name', header: 'Commodity', render: (r) => <a className="cell-link" href={url(r.slug)}>{r.name}</a> },
+    { key: 'product', header: 'Product', hideBelow: 'md', render: (r) => (r.product === r.name ? '' : r.product) },
+    { key: 'market', header: 'Market', hideBelow: 'sm', render: (r) => <span className="cell-nowrap">{shortMarket(r.market, r.stage)}</span> },
+    { key: 'weekAgo', header: 'Last week', align: 'right', hideBelow: 'sm', render: (r) => <span className="cell-nowrap">{quote(r.weekAgo)}</span> },
+    { key: 'latest', header: 'This week', align: 'right', render: (r) => <span className="cell-nowrap">{quote(r.latest)}</span> },
     { key: 'weekChange', header: 'Change', align: 'right', render: (r) => <Change value={r.weekChange} /> },
   ];
-  return <DataTable rows={rows} columns={columns} rowKey={(r) => r.slug} empty={`Nothing ${title.toLowerCase()} this week.`} />;
+  return <DataTable rows={rows} columns={columns} rowKey={(r) => r.slug} empty="No benchmark moved this week." />;
 }
 function Overview({ page }) {
   const { common, featured, retail } = page;
@@ -66,11 +70,8 @@ function Overview({ page }) {
     <Section title="Benchmark prices" right={<span className="dk-hint">Year to {dateLabel(common.lastDate)}, sorted by change. <a href={`${BASE}/commodities`}>All commodities</a></span>}>
       <div className="board">{panels.map((f) => <Panel key={f.summary.slug} f={f} common={common} />)}</div>
     </Section>
-    {page.movers && (page.movers.rising.length > 0 || page.movers.falling.length > 0) && <Section title="Biggest moves this week" hint="Wholesale and shipping point benchmarks quoted this week and a week earlier, midpoint to midpoint. Products quoted fewer than 8 times in the past month are left out.">
-      <div className="movers">
-        <MoverList title="Rising" rows={page.movers.rising} />
-        <MoverList title="Falling" rows={page.movers.falling} />
-      </div>
+    {page.movers && (page.movers.rising.length > 0 || page.movers.falling.length > 0) && <Section title="Biggest moves this week" hint="The five largest rises and falls among wholesale and shipping point benchmarks quoted this week and last, midpoint to midpoint. Products quoted fewer than 8 times in the past month are left out.">
+      <MoversTable movers={page.movers} />
     </Section>}
     <Section title="Retail prices" hint="Advertised sale prices in US supermarket weekly ads this week, averaged across stores. The last step of the chain the charts start." right={<a href={`${BASE}/retail`}>All items and regions</a>}>
       <DataTable rows={retailRows} columns={retailColumns} rowKey={(r) => r.id} empty="No retail report this week." />

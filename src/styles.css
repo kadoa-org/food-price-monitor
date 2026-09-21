@@ -70,7 +70,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 
 /* Landing page: title block, one finding, a 3x2 grid of aligned panels, then full-width tables */
 .title-block{margin-bottom:20px}.title-block .lede{margin-bottom:6px}.title-block .dk-hint{margin:0}
-.board{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}.movers{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;align-items:start}
+.board{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
 .panel{border:1px solid var(--dk-rule);background:#fff;padding:14px;display:grid;grid-template-rows:40px 56px auto;row-gap:8px;min-width:0}
 .panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;min-width:0}.panel-head>div{min-width:0}
 .panel-head a{font-size:17px;font-weight:700;color:var(--dk-ink);text-decoration:none;display:block;line-height:1.2}.panel-head a:hover{text-decoration:underline}

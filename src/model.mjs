@@ -69,6 +69,8 @@ export const RETAIL_STAGES = new Set(['Retail - Specialty Crops', 'Retail - Live
 export const isRetail = (stage) => RETAIL_STAGES.has(stage);
 export const stageName = (s) => ({ 'Shipping Point': 'Shipping point', Terminal: 'Wholesale', 'Point of Sale - Eggs': 'Wholesale', 'Retail - Specialty Crops': 'Retail promotion', 'Retail - Livestock/Poultry/Egg': 'Retail promotion' }[s] ?? s);
 // USDA writes 'N/A' and 'None' for attributes that do not apply; neither is a fact worth showing.
+// Short market caption for dense layouts: "New York wholesale", "Idaho Falls shipping point".
+export const shortMarket = (market, stage) => `${market.replace(/ FOB SC$/, '').replace(/ \(FR\)/, '').replace(/ Terminal Market$/, '')} ${stage.toLowerCase()}`;
 export const clean = (v) => (v && v !== 'N/A' && v !== 'None' ? String(v) : '');
 // USDA writes varieties and districts in capitals. Title case them for reading; leave mixed-case values alone.
 const SMALL = new Set(['and', 'of', 'the', 'or', 'in', 'through', 'to', 'type']);

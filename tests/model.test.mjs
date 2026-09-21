@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { autoFamily, chartSegments, quoteShort, dateLabel, familyFor, findingSentence, gapNote, groupSeries, markonTitle, newsFamilies, priorYears, slugify, titleCase, usdaNews, longestGap, nearest, pageKey, pctChange, pctLabel, pickBenchmark, quote, summarize, unitLabel, yearEarlier } from '../src/model.mjs';
+import { autoFamily, chartSegments, shortMarket, dateLabel, familyFor, findingSentence, gapNote, groupSeries, markonTitle, newsFamilies, priorYears, slugify, titleCase, usdaNews, longestGap, nearest, pageKey, pctChange, pctLabel, pickBenchmark, quote, summarize, unitLabel, yearEarlier } from '../src/model.mjs';
 const row = { id: 'a', series_id: 'red-25lb', date: '2026-09-18', commodity: 'Onions, Dry', market: 'Market', market_stage: 'Shipping Point', package: '25 lb sacks', low: 9, high: 11, mostly_low: null, mostly_high: null, advertised_average: null, comment: null, dimensions: { organic: 'N', var: 'RED' } };
 test('formats dates and quotes in GOV.UK style without locale data', () => {
   expect(dateLabel('2026-09-18')).toBe('18 Sep 2026');
@@ -127,13 +127,9 @@ test('every food commodity becomes a family; curated names merge sub-commodities
   expect(autoFamily('Greens, Kale').news.test('Kale greens')).toBe(true);
 });
 
-test('quoteShort drops cents only when every figure is a whole dollar', () => {
-  const row = (low, high, avg = null) => ({ low, high, advertised_average: avg });
-  expect(quoteShort(row(60, 62))).toBe('$60 to $62');
-  expect(quoteShort(row(40.5, 42.5))).toBe('$40.50 to $42.50');
-  expect(quoteShort(row(40, 42.5))).toBe('$40.00 to $42.50');
-  expect(quoteShort(row(45, 45))).toBe('$45');
-  expect(quoteShort(row(32, null))).toBe('$32 low');
-  expect(quoteShort(row(null, null, 6.5))).toBe('$6.50');
-  expect(quoteShort(row(null, null))).toBe('Not quoted');
+
+test('short market captions match the benchmark panels', () => {
+  expect(shortMarket('New York Terminal Market', 'Wholesale')).toBe('New York wholesale');
+  expect(shortMarket('Idaho Falls FOB SC', 'Shipping point')).toBe('Idaho Falls shipping point');
+  expect(shortMarket('Fresno (FR) FOB SC', 'Shipping point')).toBe('Fresno shipping point');
 });
