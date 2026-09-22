@@ -63,8 +63,8 @@ function Overview({ page }) {
     { key: 'stores', header: 'Stores', align: 'right', hideBelow: 'sm', render: (r) => (r.stores === null ? '' : number(r.stores)) },
   ];
   return <>
-    <div className="title-block"><h1>US food price monitor</h1><p className="lede">Daily US food prices from USDA, from the farm gate to the supermarket ad.</p><p className="dk-hint">Latest report {dateLabel(common.lastDate)}. Updated every business day.</p></div>
-    <Section title="Benchmark prices" right={<span className="dk-hint">Year to {dateLabel(common.lastDate)}, sorted by change. <a href={`${BASE}/commodities`}>All commodities</a></span>}>
+    <div className="title-block"><h1>US food price monitor</h1><p className="lede">Daily US food prices from USDA, from the farm gate to the supermarket ad.</p></div>
+    <Section title="Benchmark prices" right={<a href={`${BASE}/commodities`}>All commodities</a>}>
       <div className="board">{panels.map((f) => <Panel key={f.summary.slug} f={f} common={common} />)}</div>
     </Section>
     {page.movers && (page.movers.rising.length > 0 || page.movers.falling.length > 0) && <Section title="Biggest moves this week" hint="Wholesale benchmarks, compared with a week earlier.">
