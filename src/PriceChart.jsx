@@ -33,8 +33,9 @@ export default function PriceChart({ rows, startDate, endDate, unit = '' }) {
     const narrow = canvas.current.clientWidth < 600;
     const y = scale(points.map((p) => p.y), narrow ? 5 : 6);
 
-    // A hole is marked by its ends: a dot on the last quote before it and the first one after. Two points and
-    // the emptiness between them say USDA stopped and started again, without shading, bracket or label.
+    // A hole is marked by its ends, a dot on the last quote before it and the first one after, joined by a thin
+    // grey dotted connector. The connector is deliberately nothing like the series: it carries no quote and only
+    // shows where the line picks up again.
     const data = withGaps(points, GAP_DAYS);
     const edges = new Set();
     data.forEach((p, i) => { if (p.y !== null) return; if (data[i - 1]) edges.add(data[i - 1].x); if (data[i + 1]) edges.add(data[i + 1].x); });
@@ -54,7 +55,12 @@ export default function PriceChart({ rows, startDate, endDate, unit = '' }) {
           pointBorderWidth: 1.5,
           pointHoverRadius: 4,
           pointHitRadius: 24,
-          spanGaps: false,
+          spanGaps: true,
+          segment: {
+            borderDash: (ctx) => (ctx.p0.skip || ctx.p1.skip ? [2, 4] : undefined),
+            borderColor: (ctx) => (ctx.p0.skip || ctx.p1.skip ? BASELINE : undefined),
+            borderWidth: (ctx) => (ctx.p0.skip || ctx.p1.skip ? 1 : undefined),
+          },
         }],
       },
       options: {

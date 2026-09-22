@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Chart, DAY, INK, money, withGaps } from './chartSetup.mjs';
+import { BASELINE, Chart, DAY, INK, money, withGaps } from './chartSetup.mjs';
 import { dateLabel, midpoint, monthLabel, priced, weekly } from './model.mjs';
 
 // The panel version of the same line: one step per week, no axis, no previous year. Two numbers state this
@@ -30,7 +30,12 @@ export default function BandChart({ rows, startDate, endDate, name, height = 120
           stepped: 'before',
           pointRadius: (c) => (c.dataIndex === c.dataset.data.length - 1 ? 2.5 : edges.has(c.raw?.x) ? 2 : 0),
           pointBackgroundColor: INK,
-          spanGaps: false,
+          spanGaps: true,
+          segment: {
+            borderDash: (ctx) => (ctx.p0.skip || ctx.p1.skip ? [2, 3] : undefined),
+            borderColor: (ctx) => (ctx.p0.skip || ctx.p1.skip ? BASELINE : undefined),
+            borderWidth: (ctx) => (ctx.p0.skip || ctx.p1.skip ? 1 : undefined),
+          },
         }],
       },
       options: {
