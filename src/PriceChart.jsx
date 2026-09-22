@@ -33,12 +33,9 @@ export default function PriceChart({ rows, startDate, endDate, unit = '' }) {
     const narrow = canvas.current.clientWidth < 600;
     const y = scale(points.map((p) => p.y), narrow ? 5 : 6);
 
-    // A hole is marked by its ends, a dot on the last quote before it and the first one after, joined by a thin
-    // grey dotted connector. The connector is deliberately nothing like the series: it carries no quote and only
-    // shows where the line picks up again.
+    // A stretch with no quote is crossed by a thin grey dotted segment, styled so it cannot be mistaken for the
+    // series: no marks along it, a lighter colour and a hairline weight. It only shows where the line resumes.
     const data = withGaps(points, GAP_DAYS);
-    const edges = new Set();
-    data.forEach((p, i) => { if (p.y !== null) return; if (data[i - 1]) edges.add(data[i - 1].x); if (data[i + 1]) edges.add(data[i + 1].x); });
 
     chart.current = new Chart(canvas.current, {
       type: 'line',
@@ -49,7 +46,7 @@ export default function PriceChart({ rows, startDate, endDate, unit = '' }) {
           borderColor: INK,
           borderWidth: 2,
           stepped: 'before',
-          pointRadius: (c) => (c.dataIndex === c.dataset.data.length - 1 ? 3.5 : edges.has(c.raw?.x) ? 3 : 0),
+          pointRadius: (c) => (c.dataIndex === c.dataset.data.length - 1 ? 3.5 : 0),
           pointBackgroundColor: INK,
           pointBorderColor: PAPER,
           pointBorderWidth: 1.5,

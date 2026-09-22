@@ -16,8 +16,6 @@ export default function BandChart({ rows, startDate, endDate, name, height = 120
     const from = Date.parse(startDate), to = Date.parse(endDate);
     const pad = (max - min || 1) * 0.12;
     const data = withGaps(points, 16);
-    const edges = new Set();
-    data.forEach((p, i) => { if (p.y !== null) return; if (data[i - 1]) edges.add(data[i - 1].x); if (data[i + 1]) edges.add(data[i + 1].x); });
 
     chart.current = new Chart(canvas.current, {
       type: 'line',
@@ -28,7 +26,7 @@ export default function BandChart({ rows, startDate, endDate, name, height = 120
           borderColor: INK,
           borderWidth: 1.5,
           stepped: 'before',
-          pointRadius: (c) => (c.dataIndex === c.dataset.data.length - 1 ? 2.5 : edges.has(c.raw?.x) ? 2 : 0),
+          pointRadius: (c) => (c.dataIndex === c.dataset.data.length - 1 ? 2.5 : 0),
           pointBackgroundColor: INK,
           spanGaps: true,
           segment: {
