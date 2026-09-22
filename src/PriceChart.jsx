@@ -52,6 +52,9 @@ export default function PriceChart({ rows, startDate, endDate, unit = '' }) {
           pointBorderWidth: 1.5,
           pointHoverRadius: 4,
           pointHitRadius: 24,
+          // Chart.js clips datasets to the plot area, which slices the marker on the latest quote in half. The
+          // layout padding above gives it somewhere to sit.
+          clip: false,
           spanGaps: true,
           segment: {
             borderDash: (ctx) => (ctx.p0.skip || ctx.p1.skip ? [2, 4] : undefined),

@@ -28,6 +28,7 @@ export default function BandChart({ rows, startDate, endDate, name, height = 120
           stepped: 'before',
           pointRadius: (c) => (c.dataIndex === c.dataset.data.length - 1 ? 2.5 : 0),
           pointBackgroundColor: INK,
+          clip: false,
           spanGaps: true,
           segment: {
             borderDash: (ctx) => (ctx.p0.skip || ctx.p1.skip ? [2, 3] : undefined),
@@ -38,7 +39,7 @@ export default function BandChart({ rows, startDate, endDate, name, height = 120
       },
       options: {
         events: [],
-        layout: { padding: { top: 4, bottom: 4 } },
+        layout: { padding: { top: 4, bottom: 4, right: 4 } },
         scales: {
           x: { type: 'linear', min: from, max: to, display: false },
           y: { min: min - pad, max: max + pad, display: false },
