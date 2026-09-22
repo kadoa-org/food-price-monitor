@@ -39,6 +39,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .range-control button+button{border-left:1px solid var(--dk-rule)}
 .range-control button[aria-pressed=true]{background:var(--dk-link);color:#fff;font-weight:600}
 .compare-toggle{display:inline-flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap}.compare-toggle input{width:18px;height:18px;margin:0;accent-color:var(--dk-link)}
+.chart-gap-note{margin:12px 0 0;font-size:13px;line-height:1.5;color:var(--dk-muted)}
 .chart-note{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--dk-rule-soft);font-size:12px;color:var(--dk-muted)}
 .chart-loading{position:relative;color:var(--dk-muted);padding-top:14px}
 .skeleton-chart{height:250px;background:#eeefef;margin-top:16px}.skeleton-title{width:240px;max-width:80%;height:32px;background:#eeefef;margin:20px 0}.skeleton-line{width:70%;height:20px;background:#eeefef;margin-bottom:24px}

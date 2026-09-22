@@ -61,7 +61,7 @@ export default function PriceChart({ rows, startDate, endDate, unit = '' }) {
         }],
       },
       options: {
-        layout: { padding: { top: 12, right: 12 } },
+        layout: { padding: { top: 12, right: 20, bottom: 2 } },
         interaction: { mode: 'nearest', axis: 'x', intersect: false },
         scales: {
           x: {
