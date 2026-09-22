@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { DAY, chartSegments, dateLabel, money, monthLabel } from './model.mjs';
+import { DAY, chartSegments, dateLabel, midpoint, money, monthLabel, quote } from './model.mjs';
 
 // One quoted range per chart: low and high as solid lines with the range shaded between them. A grey band shows the
 // same product a year earlier when requested. Lines break where USDA published no quote for longer than a reporting interval.
@@ -17,7 +17,7 @@ function xTicks(from, to) {
   for (const d = new Date(start); d.getTime() <= to; d.setUTCMonth(d.getUTCMonth() + stepMonths)) if (d.getTime() >= from) ticks.push({ t: d.getTime(), label: yearly ? String(d.getUTCFullYear()) : monthLabel(d.toISOString().slice(0, 10)) });
   return ticks;
 }
-export default function PriceChart({ rows, retail = false, compact = false, startDate, endDate, compare = [], maxGapDays = 7, unit = '' }) {
+export default function PriceChart({ rows, retail = false, compact = false, startDate, endDate, compare = [], compareLabel = '', yearAgo = null, maxGapDays = 7, unit = '' }) {
   const container = useRef(null);
   const [width, setWidth] = useState(compact ? 120 : 900);
   const [hover, setHover] = useState(null);
@@ -53,6 +53,12 @@ export default function PriceChart({ rows, retail = false, compact = false, star
   for (const r of priced) { if (prevDate && Date.parse(r.date) - Date.parse(prevDate) > maxGapDays * DAY) gaps.push([prevDate, r.date]); prevDate = r.date; }
   if (endDate && prevDate && Date.parse(endDate) - Date.parse(prevDate) > maxGapDays * DAY) gaps.push([prevDate, endDate]);
   const hoverCompare = hover && compareByDate.get(hover.date);
+  // The year-earlier quote the headline change refers to, marked on the chart when it falls inside the window.
+  const yearAgoMid = yearAgo && Date.parse(yearAgo.date) >= from && Date.parse(yearAgo.date) <= to ? midpoint(retail ? yearAgo : { ...yearAgo, advertised_average: null }) : null;
+  const annotation = typeof yearAgoMid === 'number' ? { x: x(yearAgo.date), y: y(yearAgoMid), flip: x(yearAgo.date) > p.l + (w - p.l - p.r) * 0.6, text: `A year earlier: ${quote(yearAgo)}` } : null;
+  // The grey band is labelled at its right end with the years it covers, so no legend is needed.
+  const lastCompare = compareLabel ? [...compare].reverse().find((r) => typeof r.high === 'number') : null;
+  const bandLabel = lastCompare ? { x: Math.min(x(lastCompare.date), w - p.r) - 4, y: y(lastCompare.high) - 6, text: compareLabel } : null;
   const tooltipLeft = hover ? Math.min(Math.max(x(hover.date) / w * 100, 12), 88) : 0;
   return <div className="price-chart" ref={container}>
     <svg viewBox={`0 0 ${w} ${h}`} role="img" tabIndex={0} aria-label={retail ? `Reported average price, ${dateLabel(rows[0].date)} to ${dateLabel(rows.at(-1).date)}` : `Quoted low and high prices, ${dateLabel(rows[0].date)} to ${dateLabel(rows.at(-1).date)}`} onFocus={() => setHover(last)} onBlur={() => setHover(null)} onPointerMove={pointer} onPointerLeave={() => setHover(null)} onKeyDown={(event) => { if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return; event.preventDefault(); const index = hover ? pointRows.findIndex((r) => r.date === hover.date) : pointRows.length - 1; setHover(pointRows[Math.max(0, Math.min(pointRows.length - 1, index + (event.key === 'ArrowLeft' ? -1 : 1)))]); }}>
@@ -66,6 +72,8 @@ export default function PriceChart({ rows, retail = false, compact = false, star
       {!retail && band(rows.filter(valid), 'chart-band')}
       {lines(rows.filter(valid), 'chart-line')}
       {sparse && pointRows.map((r) => fields.map((f) => typeof r[f] === 'number' && <circle key={`${r.date}-${f}`} className="chart-marker" cx={x(r.date)} cy={y(r[f])} r="3" />))}
+      {annotation && <g className="chart-anno"><circle cx={annotation.x} cy={annotation.y} r="4" className="chart-anno-dot" /><text x={annotation.x + (annotation.flip ? -8 : 8)} y={annotation.y - 10} textAnchor={annotation.flip ? 'end' : 'start'} className="chart-anno-text">{annotation.text}</text></g>}
+      {bandLabel && <text x={bandLabel.x} y={bandLabel.y} textAnchor="end" className="chart-label chart-label--compare">{bandLabel.text}</text>}
       {last && (collide ? <text x={x(last.date) + 6} y={y(labelPositions[0].v) + 4} className="chart-label">Quote</text> : labelPositions.map(({ f, v }) => <text key={f} x={x(last.date) + 6} y={y(v) + 4} className="chart-label">{retail ? 'Average' : f === 'high' ? 'High' : 'Low'}</text>))}
       {hover && <g><line className="chart-cursor" x1={x(hover.date)} x2={x(hover.date)} y1={p.t} y2={h - p.b} />{fields.map((f) => typeof hover[f] === 'number' && <circle key={f} cx={x(hover.date)} cy={y(hover[f])} r="4" className="chart-hover-dot" />)}</g>}
     </svg>

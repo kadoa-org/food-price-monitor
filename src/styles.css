@@ -46,7 +46,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .chart-line{fill:none;stroke:var(--dk-link);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.chart-dot{fill:var(--dk-link);stroke:none}
 .chart-band{fill:#d2e2f1;stroke:none}
 .chart-line--compare{stroke:#8f9498;stroke-width:1.5}.chart-band--compare{fill:#e6e7e8}.chart-line--compare.chart-dot{fill:#8f9498}
-.chart-marker{fill:var(--dk-link);stroke:#fff;stroke-width:1.5}
+.chart-marker{fill:var(--dk-link);stroke:#fff;stroke-width:1.5}.chart-anno-dot{fill:#fff;stroke:var(--dk-ink);stroke-width:1.5}.chart-anno-text{font:12px var(--dk-font);fill:var(--dk-ink);paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}
 .chart-cursor{stroke:var(--dk-muted);stroke-width:1}.chart-hover-dot{fill:var(--dk-link);stroke:#fff;stroke-width:2}
 .chart-tooltip[hidden]{display:none}.chart-tooltip{position:absolute;top:8px;transform:translateX(-50%);display:flex;flex-direction:column;gap:2px;background:#fff;border:1px solid var(--dk-rule);padding:8px 10px;font-size:12px;line-height:1.4;pointer-events:none;white-space:nowrap;box-shadow:0 1px 3px rgba(11,12,12,.12)}
 .chart-tooltip strong{font-size:13px}.chart-tooltip-comment{color:var(--dk-muted)}.chart-tooltip-compare{color:var(--dk-muted);border-top:1px solid var(--dk-rule-soft);padding-top:3px;margin-top:2px}
