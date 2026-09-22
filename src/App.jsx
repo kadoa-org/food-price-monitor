@@ -64,7 +64,7 @@ function Overview({ page }) {
   ];
   return <>
     <div className="title-block"><h1>US food price monitor</h1><p className="lede">Daily US food prices from USDA, from the farm gate to the supermarket ad.</p><p className="dk-hint">Latest report {dateLabel(common.lastDate)}. Updated every business day.</p></div>
-    <Section title="Benchmark prices" hint="Blue is this year's quoted range, grey the same weeks a year earlier, light grey blocks have no quotes." right={<span className="dk-hint">Year to {dateLabel(common.lastDate)}, sorted by change. <a href={`${BASE}/commodities`}>All commodities</a></span>}>
+    <Section title="Benchmark prices" right={<span className="dk-hint">Year to {dateLabel(common.lastDate)}, sorted by change. <a href={`${BASE}/commodities`}>All commodities</a></span>}>
       <div className="board">{panels.map((f) => <Panel key={f.summary.slug} f={f} common={common} />)}</div>
     </Section>
     {page.movers && (page.movers.rising.length > 0 || page.movers.falling.length > 0) && <Section title="Biggest moves this week" hint="Wholesale benchmarks, compared with a week earlier.">
@@ -140,12 +140,12 @@ function Commodity({ page }) {
     </div>
     <section className="chart-panel" aria-labelledby="chart-title">
       <div className="quote-heading">
-        <div><h2 id="chart-title" className="quote-value">{quote(selected.latest)} <span>{unit}</span>{summary?.yearAgo && summary.yearChange !== null && <span className="quote-change"><Change value={summary.yearChange} /> <span className="dk-hint">on a year earlier</span></span>}</h2><p className="product-caption">{selected.product}{selected.origin ? `, ${selected.origin}` : ''}. {selected.stage}, {selected.market}, {dateLabel(selected.lastDate)}{selected.lastDate !== page.common.lastDate ? ' (not in the newest report)' : ''}.</p></div>
+        <div><h2 id="chart-title" className="quote-value">{quote(selected.latest)} <span>{unit}</span></h2><p className="product-caption">{selected.product}{selected.origin ? `, ${selected.origin}` : ''}. {selected.stage}, {selected.market}, {dateLabel(selected.lastDate)}{selected.lastDate !== page.common.lastDate ? ' (not in the newest report)' : ''}.</p></div>
         <div className="chart-controls"><div className="range-control" role="group" aria-label="Period">{RANGES.map(([value, label]) => <button key={value} type="button" aria-pressed={range === value} onClick={() => { setRange(value); setVisible(25); }}>{label}</button>)}</div><label className="compare-toggle"><input type="checkbox" checked={compare} disabled={range === 'all'} onChange={(e) => setCompare(e.target.checked)} /> Show previous years</label></div>
       </div>
       {pending ? <div className="chart-loading" role="status">Loading price history…<div className="skeleton-chart" aria-hidden="true" /></div> : history.error ? <div role="alert" className="chart-empty">Price history could not be loaded. <button className="text-button" onClick={() => setHistory({ id: '', rows: [], dimensions: {}, error: false })}>Retry</button></div> : <PriceChart rows={filtered} retail={retail} compare={earlier} compareLabel={compareYears(prior.years, endDate)} yearAgo={summary?.yearAgo ?? null} startDate={startDate ?? filtered[0]?.date} endDate={endDate} unit={unit} />}
       {!pending && gapNote(history.rows, startDate, endDate) && <p className="dk-inset">{gapNote(history.rows, startDate, endDate)}</p>}
-      <p className="chart-note">{retail ? `The line is USDA's reported average in US dollars ${unit}.` : `The band is USDA's low to high quote in US dollars ${unit}.`} Light grey blocks mark stretches with no quote.{compare && range !== 'all' && prior.years > 0 ? ` Grey is the same weeks in the previous ${prior.years === 1 ? 'year' : `${prior.years} years`}.` : ''} Source: <a href={`https://mymarketnews.ams.usda.gov/viewReport/${selected.source_id.replace('usda-', '')}`} target="_blank" rel="noreferrer">USDA Market News, {reports[selected.source_id]?.name ?? `report ${selected.source_id.replace('usda-', '')}`}</a>.</p>
+      <p className="chart-note">Source: <a href={`https://mymarketnews.ams.usda.gov/viewReport/${selected.source_id.replace('usda-', '')}`} target="_blank" rel="noreferrer">USDA Market News, {reports[selected.source_id]?.name ?? `report ${selected.source_id.replace('usda-', '')}`}</a>.</p>
     </section>
     {summary && <Section title="Compared with earlier reports" hint="Percentages compare the midpoint of the quoted range.">
       <dl className="dk-summary dk-summary--wide">
