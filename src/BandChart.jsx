@@ -1,7 +1,7 @@
 import React from 'react';
 import { DAY, chartSegments, dateLabel, money, monthLabel, priced } from './model.mjs';
 
-// One year of quoted low to high prices as a band, last year's band in grey behind it, gaps washed grey. Two y labels
+// One year of quoted low to high prices as a band, last year's band in grey behind it, no-quote stretches washed light grey. Two y labels
 // and two x labels are the whole axis: they state this panel's own scale, which is what makes six independently
 // scaled panels honest to compare by shape but not by height.
 export default function BandChart({ rows, earlier = [], startDate, endDate, name, height = 96, maxGapDays = 7 }) {
@@ -25,8 +25,7 @@ export default function BandChart({ rows, earlier = [], startDate, endDate, name
   const label = `Quoted low and high prices for ${name}, ${dateLabel(list[0].date)} to ${dateLabel(list.at(-1).date)}, ${money(Math.min(...list.flatMap((r) => [r.low, r.high]).filter((v) => typeof v === 'number')))} to ${money(Math.max(...list.flatMap((r) => [r.low, r.high]).filter((v) => typeof v === 'number')))} over the period.`;
   return <div className="band">
     <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="img" aria-label={label}>
-      <defs><pattern id="nodata" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" className="band-hatch" /></pattern></defs>
-      {gaps.map(([a, b]) => <rect key={a} x={x(a)} y={p.t} width={Math.max(1, x(b) - x(a))} height={h - p.t - p.b} fill="url(#nodata)" />)}
+      {gaps.map(([a, b]) => <rect key={a} className="chart-gap" x={x(a)} y={p.t} width={Math.max(1, x(b) - x(a))} height={h - p.t - p.b} />)}
       {band(prior, 'band-fill band-fill--earlier')}
       {single ? singleLine() : <>{band(list, 'band-fill')}{edges(list)}</>}
     </svg>
