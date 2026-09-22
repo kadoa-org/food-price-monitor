@@ -158,7 +158,7 @@ export function summarize(series) {
   const lowOf = (r) => (field ? r[field] : r.low ?? r.high); const highOf = (r) => (field ? r[field] : r.high ?? r.low);
   const yearLow = yearRows.reduce((b, r) => (lowOf(r) !== null && (!b || lowOf(r) < lowOf(b)) ? r : b), null);
   const yearHigh = yearRows.reduce((b, r) => (highOf(r) !== null && (!b || highOf(r) > highOf(b)) ? r : b), null);
-  return { latest, weekAgo, monthAgo, yearAgo, weekChange: pctChange(latest, weekAgo), monthChange: pctChange(latest, monthAgo), yearChange: pctChange(latest, yearAgo), gap: longestGap(yearRows), yearLow, yearHigh, yearReports: yearRows.length, sparkline: yearRows.map((r) => ({ date: r.date, low: r.low, high: r.high, advertised_average: r.advertised_average })), earlier: priorYears(rows, addDays(latest.date, -364), latest.date).rows, earlierYears: priorYears(rows, addDays(latest.date, -364), latest.date).years };
+  return { latest, weekAgo, monthAgo, yearAgo, weekChange: pctChange(latest, weekAgo), monthChange: pctChange(latest, monthAgo), yearChange: pctChange(latest, yearAgo), gap: longestGap(yearRows), yearLow, yearHigh, yearReports: yearRows.length, sparkline: yearRows.map((r) => ({ date: r.date, low: r.low, high: r.high, advertised_average: r.advertised_average })) };
 }
 // The benchmark for a commodity is the product USDA quoted most consistently over the past two years and still quotes.
 // A family can name the everyday commodity to prefer (iceberg over mesclun) so the headline row stays recognisable.
@@ -174,32 +174,21 @@ export function pickBenchmark(groups, lastDate, prefer = [], preferSeries = () =
   const national = (s) => (/^national$/i.test(s.market) ? 1 : 0);
   return pool.sort((a, b) => Number(preferSeries(b)) - Number(preferSeries(a)) || preference(a) - preference(b) || rank[a.stage] - rank[b.stage] || national(b) - national(a) || comparable(b) - comparable(a) || score(b) - score(a) || a.id.localeCompare(b.id))[0] ?? groups[0];
 }
-// Lines break at gaps longer than a normal reporting interval. Weekends and single holidays are joined, seasonal stops and missing quotes are not.
-export function chartSegments(rows, field, maxGapDays = 7) {
-  const segments = []; let segment = []; let previous = null;
-  for (const row of rows) {
-    const value = row[field]; const valid = typeof value === 'number' && Number.isFinite(value) && !row.ambiguous;
-    if (!valid || (previous && Date.parse(row.date) - Date.parse(previous) > maxGapDays * DAY)) { if (segment.length) segments.push(segment); segment = []; }
-    if (valid) segment.push({ date: row.date, value }); previous = row.date;
-  }
-  if (segment.length) segments.push(segment); return segments;
-}
 // The seasonal reference band: for the same weeks in every previous year we hold (weekday-aligned, 52-week shifts),
 // the lowest low and the highest high. An envelope, not an average, so no price is invented.
-export function priorYears(rows, startDate, endDate, maxYears = 6) {
-  const byDate = new Map(); let years = 0;
-  for (let k = 1; k <= maxYears; k++) {
-    const shift = 364 * k;
-    const slice = rows.filter((r) => priced(r) && r.date >= addDays(startDate, -shift) && r.date <= addDays(endDate, -shift));
-    if (!slice.length) continue; years = k;
-    for (const r of slice) {
-      const lo = r.low ?? r.advertised_average ?? r.high, hi = r.high ?? r.advertised_average ?? r.low;
-      if (lo === null || hi === null) continue;
-      const date = addDays(r.date, shift); const e = byDate.get(date) ?? { date, low: Infinity, high: -Infinity, advertised_average: null };
-      e.low = Math.min(e.low, lo); e.high = Math.max(e.high, hi); byDate.set(date, e);
-    }
+// Weekly aggregation for sparklines: one bar per Monday-to-Sunday week with the week's lowest low, highest high and
+// mean average, so a 300px panel shows about 52 steps instead of 250 daily points.
+export function weekly(rows) {
+  const weeks = new Map();
+  for (const r of rows) {
+    const d = new Date(r.date); const day = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - day);
+    const key = d.toISOString().slice(0, 10); const w = weeks.get(key) ?? { date: key, low: null, high: null, sum: 0, n: 0 };
+    if (typeof r.low === 'number') w.low = w.low === null ? r.low : Math.min(w.low, r.low);
+    if (typeof r.high === 'number') w.high = w.high === null ? r.high : Math.max(w.high, r.high);
+    if (typeof r.advertised_average === 'number') { w.sum += r.advertised_average; w.n++; }
+    weeks.set(key, w);
   }
-  return { years, rows: [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date)) };
+  return [...weeks.values()].sort((x, y) => x.date.localeCompare(y.date)).map(({ date, low, high, sum, n }) => ({ date, low, high, advertised_average: n ? sum / n : null }));
 }
 // Kept for callers that want exactly last year.
 export function yearEarlier(rows, startDate, endDate) {

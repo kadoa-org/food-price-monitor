@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button, DataTable, GitHubButton, LiveBadge, NavBar, SearchInput, Section, SiteFooter, SiteHeader, Tag } from './kit';
 import CommandPalette from './CommandPalette';
-import { BASE, HOME, addDays, dataPath, seriesUrl, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, priorYears, quote, reports, shortMarket, summarize, unitLabel } from './model.mjs';
+import { BASE, HOME, addDays, dataPath, seriesUrl, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, quote, reports, shortMarket, summarize, unitLabel } from './model.mjs';
 import PriceChart from './PriceChart';
 import BandChart from './BandChart';
 import EvidenceDialog from './EvidenceDialog';
@@ -30,7 +30,7 @@ function Panel({ f, common }) {
       {b.yearAgo && <div className={`panel-delta panel-delta--${dir}`} title={`A year earlier: ${quote(b.yearAgo)}, ${dateLabel(b.yearAgo.date)}`}><span><span className={`tri ${dir === 'down' ? 'tri--down' : ''}`} aria-hidden="true" />{pctLabel(b.yearChange)}</span><span className="panel-market">past year</span></div>}
     </div>
     <div className="panel-price"><span className="panel-value">{quote(b.latest)}</span><span className="panel-sub">{unitLabel(b.package)}</span></div>
-    <BandChart rows={b.sparkline} earlier={b.earlier} startDate={start} endDate={common.lastDate} name={f.summary.name.toLowerCase()} />
+    <BandChart rows={b.sparkline} startDate={start} endDate={common.lastDate} name={f.summary.name.toLowerCase()} />
   </article>;
 }
 function Change({ value }) {
@@ -63,7 +63,7 @@ function Overview({ page }) {
     { key: 'stores', header: 'Stores', align: 'right', hideBelow: 'sm', render: (r) => (r.stores === null ? '' : number(r.stores)) },
   ];
   return <>
-    <div className="title-block"><h1>US food price monitor</h1><p className="lede">Daily US food prices from USDA, from the farm gate to the supermarket ad.</p></div>
+    <div className="title-block"><h1>US food price monitor</h1><p className="lede">Daily US food prices, wholesale and retail, from USDA.</p></div>
     <Section title="Benchmark prices" right={<a href={`${BASE}/commodities`}>All commodities</a>}>
       <div className="board">{panels.map((f) => <Panel key={f.summary.slug} f={f} common={common} />)}</div>
     </Section>
@@ -96,12 +96,10 @@ function Choice({ label, value, options, onChange, className = '' }) {
   if (options.length === 1) return <div className={`filter-fact ${className}`.trim()}><span className="filter-fact-label">{label}</span><span className="filter-fact-value">{options[0].label}</span></div>;
   return <label className={className || undefined}>{label}<select value={value} onChange={(e) => onChange(e.target.value)}>{options.map((o) => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}</select></label>;
 }
-// "2025" for one previous year, "2024 to 2025" for several: the label on the grey band.
-const compareYears = (years, endDate) => { if (!years || !endDate) return ''; const y = Number(endDate.slice(0, 4)); return years === 1 ? String(y - 1) : `${y - years} to ${y - 1}`; };
 function Commodity({ page }) {
   const initial = page.series.find((s) => s.id === page.initialSeriesId);
   const [market, setMarket] = useState(marketKey(initial)); const [pack, setPack] = useState(initial.package); const [seriesId, setSeriesId] = useState(initial.id);
-  const [range, setRange] = useState('365'); const [compare, setCompare] = useState(true); const [evidence, setEvidence] = useState(null); const [visible, setVisible] = useState(25); const [sort, setSort] = useState({ key: 'date', dir: 'desc' });
+  const [range, setRange] = useState('365'); const [evidence, setEvidence] = useState(null); const [visible, setVisible] = useState(25); const [sort, setSort] = useState({ key: 'date', dir: 'desc' });
   const [history, setHistory] = useState({ id: initial.id, rows: page.initialObservations, dimensions: page.initialDimensions, reportTitle: page.initialReportTitle, error: false });
   // The page ships only the products of the initial market; the full list arrives after first paint.
   const [allSeries, setAllSeries] = useState(page.series);
@@ -117,8 +115,6 @@ function Commodity({ page }) {
   const endDate = summary ? summary.latest.date : selected.lastDate;
   const startDate = range === 'all' ? null : addDays(endDate, -Number(range));
   const filtered = pending ? [] : history.rows.filter((r) => !startDate || r.date >= startDate);
-  const prior = compare && startDate && !pending ? priorYears(history.rows, startDate, endDate) : { years: 0, rows: [] };
-  const earlier = prior.rows;
   const sorted = [...filtered].sort((a, b) => { const av = a[sort.key], bv = b[sort.key]; if (av == null) return bv == null ? 0 : 1; if (bv == null) return -1; return (typeof av === 'number' ? av - bv : String(av).localeCompare(String(bv))) * (sort.dir === 'asc' ? 1 : -1); });
   function changeMarket(value) { const next = allSeries.find((s) => marketKey(s) === value); if (!next) return; setMarket(value); setPack(next.package); setSeriesId(next.id); setVisible(25); }
   function changePack(value) { setPack(value); setSeriesId(marketSeries.find((s) => s.package === value).id); setVisible(25); }
@@ -138,12 +134,12 @@ function Commodity({ page }) {
       <Choice label="Package" value={pack} options={packs.map((p) => ({ value: p, label: p }))} onChange={changePack} />
       <Choice className="product-select" label="Product" value={selected.id} options={options.map((s) => ({ value: s.id, label: `${s.product}${s.origin ? `, ${s.origin}` : ''} (latest ${dateLabel(s.lastDate)})` }))} onChange={(v) => { setSeriesId(v); setVisible(25); }} />
     </div>
-    <section className="chart-panel" aria-labelledby="chart-title">
+    <section className="chart-card" aria-labelledby="chart-title">
       <div className="quote-heading">
         <div><h2 id="chart-title" className="quote-value">{quote(selected.latest)} <span>{unit}</span></h2><p className="product-caption">{selected.product}{selected.origin ? `, ${selected.origin}` : ''}. {selected.stage}, {selected.market}, {dateLabel(selected.lastDate)}{selected.lastDate !== page.common.lastDate ? ' (not in the newest report)' : ''}.</p></div>
-        <div className="chart-controls"><div className="range-control" role="group" aria-label="Period">{RANGES.map(([value, label]) => <button key={value} type="button" aria-pressed={range === value} onClick={() => { setRange(value); setVisible(25); }}>{label}</button>)}</div><label className="compare-toggle"><input type="checkbox" checked={compare} disabled={range === 'all'} onChange={(e) => setCompare(e.target.checked)} /> Show previous years</label></div>
+        <div className="chart-controls"><div className="range-control" role="group" aria-label="Period">{RANGES.map(([value, label]) => <button key={value} type="button" aria-pressed={range === value} onClick={() => { setRange(value); setVisible(25); }}>{label}</button>)}</div></div>
       </div>
-      {pending ? <div className="chart-loading" role="status">Loading price history…<div className="skeleton-chart" aria-hidden="true" /></div> : history.error ? <div role="alert" className="chart-empty">Price history could not be loaded. <button className="text-button" onClick={() => setHistory({ id: '', rows: [], dimensions: {}, error: false })}>Retry</button></div> : <PriceChart rows={filtered} retail={retail} compare={earlier} compareLabel={compareYears(prior.years, endDate)} yearAgo={summary?.yearAgo ?? null} startDate={startDate ?? filtered[0]?.date} endDate={endDate} unit={unit} />}
+      {pending ? <div className="chart-loading" role="status">Loading price history…<div className="skeleton-chart" aria-hidden="true" /></div> : history.error ? <div role="alert" className="chart-empty">Price history could not be loaded. <button className="text-button" onClick={() => setHistory({ id: '', rows: [], dimensions: {}, error: false })}>Retry</button></div> : <PriceChart rows={filtered} startDate={startDate ?? filtered[0]?.date} endDate={endDate} unit={unit} />}
       {!pending && gapNote(history.rows, startDate, endDate) && <p className="dk-inset">{gapNote(history.rows, startDate, endDate)}</p>}
       <p className="chart-note">Source: <a href={`https://mymarketnews.ams.usda.gov/viewReport/${selected.source_id.replace('usda-', '')}`} target="_blank" rel="noreferrer">USDA Market News, {reports[selected.source_id]?.name ?? `report ${selected.source_id.replace('usda-', '')}`}</a>.</p>
     </section>

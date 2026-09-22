@@ -1,96 +1,120 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { DAY, chartSegments, dateLabel, midpoint, money, monthLabel, quote } from './model.mjs';
+import React, { useEffect, useRef } from 'react';
+import { AXIS_INK, BASELINE, Chart, DAY, INK, LABEL_INK, PAPER, RULE, dayLabel, money, monthTicks, tickLabel, withGaps } from './chartSetup.mjs';
+import { dateLabel, midpoint, priced, quote } from './model.mjs';
 
-// One quoted range per chart: low and high as solid lines with the range shaded between them. A grey band shows the
-// same product a year earlier when requested. Lines break where USDA published no quote for longer than a reporting interval.
-const FIELDS = { range: ['low', 'high'], retail: ['advertised_average'] };
-function niceStep(span, count) {
-  const raw = span / count; const power = 10 ** Math.floor(Math.log10(raw));
-  return [1, 2, 2.5, 5, 10].map((n) => n * power).find((n) => n >= raw);
-}
-function xTicks(from, to) {
-  const span = to - from; const ticks = [];
-  const start = new Date(from); start.setUTCDate(1); start.setUTCHours(0, 0, 0, 0);
-  const yearly = span > 3 * 365 * DAY; const stepMonths = yearly ? 12 : span > 400 * DAY ? 6 : span > 130 * DAY ? 3 : span > 45 * DAY ? 1 : 0;
-  if (!stepMonths) { for (let t = from; t <= to; t += 7 * DAY) ticks.push({ t, label: dateLabel(new Date(t).toISOString().slice(0, 10)).replace(/ \d{4}$/, '') }); return ticks; }
-  if (yearly) start.setUTCMonth(0);
-  for (const d = new Date(start); d.getTime() <= to; d.setUTCMonth(d.getUTCMonth() + stepMonths)) if (d.getTime() >= from) ticks.push({ t: d.getTime(), label: yearly ? String(d.getUTCFullYear()) : monthLabel(d.toISOString().slice(0, 10)) });
-  return ticks;
-}
-export default function PriceChart({ rows, retail = false, compact = false, startDate, endDate, compare = [], compareLabel = '', yearAgo = null, maxGapDays = 7, unit = '' }) {
-  const container = useRef(null);
-  const [width, setWidth] = useState(compact ? 120 : 900);
-  const [hover, setHover] = useState(null); const [pinned, setPinned] = useState(false);
-  useEffect(() => { const observer = new ResizeObserver(([entry]) => setWidth(Math.max(compact ? 80 : 280, Math.round(entry.contentRect.width)))); observer.observe(container.current); return () => observer.disconnect(); }, [compact]);
-  const fields = retail ? FIELDS.retail : FIELDS.range;
-  const valid = (r) => !r.ambiguous;
-  // The previous-years band always carries low and high, even for single-value series, so it joins the scale explicitly.
-  const values = [...rows.filter(valid).flatMap((r) => fields.map((f) => r[f])), ...compare.filter(valid).flatMap((r) => [r.low, r.high])].filter((v) => typeof v === 'number' && Number.isFinite(v));
-  const w = width, h = compact ? 32 : 320, p = compact ? { l: 0, r: 0, t: 2, b: 2 } : { l: 52, r: 44, t: 16, b: 30 };
-  if (!values.length) return compact ? <div ref={container} className="spark spark--empty" aria-hidden="true" /> : <div ref={container} className="chart-empty">No quotes in this period. Choose a longer period or another product.</div>;
-  const from = Date.parse(startDate ?? rows[0].date), to = Date.parse(endDate ?? rows.at(-1).date), span = Math.max(to - from, DAY);
+// One line: the middle of the day's quoted range, which is the figure every change on the site is measured from.
+// A stretch with no quote is simply absent: the line stops and starts again. The note under the chart gives the
+// dates, so the plot needs no shading, bracket or label of its own.
+// The low and the high are still in the data and appear on hover, but they are not drawn, because a band asks the
+// reader to compare two edges at once when the question is simply whether the price went up.
+// Prices hold between reports, so the line steps. Stretches with no quote are holes, never bridged.
+const GAP_DAYS = 7;
+
+// Round gridlines inside bounds that fit the data. Snapping the bounds themselves to round numbers is what
+// leaves an empty strip above and below the line.
+function scale(values, count) {
   const min = Math.min(...values), max = Math.max(...values);
-  const step = niceStep(Math.max(max - min, max * 0.15, 0.5), compact ? 2 : 4);
-  // ONS guidance: crop the axis but keep about a quarter of the height below the lowest point.
-  const lo = Math.max(0, Math.floor((min - (max - min || step) * 0.3) / step) * step), hi = Math.ceil((max + step * 0.2) / step) * step;
-  const x = (date) => p.l + ((Date.parse(date) - from) / span) * (w - p.l - p.r);
-  const y = (v) => h - p.b - ((v - lo) / (hi - lo)) * (h - p.t - p.b);
-  const ticks = Array.from({ length: Math.round((hi - lo) / step) + 1 }, (_, i) => lo + i * step);
-  const path = (segment) => segment.map((r, i) => `${i ? 'L' : 'M'}${x(r.date).toFixed(1)},${y(r.value).toFixed(1)}`).join('');
-  const band = (list, cls) => { const byDate = new Map(list.map((r) => [r.date, r])); return chartSegments(list.filter((r) => typeof r.low === 'number' && typeof r.high === 'number'), 'low', maxGapDays).filter((s) => s.length > 1).map((s, i) => <path key={i} className={cls} d={`${path(s)}${s.toReversed().map((r) => `L${x(r.date).toFixed(1)},${y(byDate.get(r.date).high).toFixed(1)}`).join('')}Z`} />); };
-  const lines = (list, cls) => fields.map((field) => chartSegments(list, field, maxGapDays).map((s, i) => s.length > 1 ? <path key={`${field}-${i}`} className={cls} d={path(s)} /> : <circle key={`${field}-${i}`} className={`${cls} chart-dot`} cx={x(s[0].date)} cy={y(s[0].value)} r={compact ? 1.5 : 3} />));
-  const pointRows = rows.filter((r) => valid(r) && fields.some((f) => typeof r[f] === 'number'));
-  const sparse = !compact && pointRows.length <= 40;
-  const compareByDate = new Map(compare.map((r) => [r.date, r]));
-  const last = pointRows.at(-1);
-  const labelPositions = last ? fields.map((f) => ({ f, v: last[f] })).filter((d) => typeof d.v === 'number') : [];
-  const collide = labelPositions.length === 2 && Math.abs(y(labelPositions[0].v) - y(labelPositions[1].v)) < 14;
-  const nearest = (event) => { const box = event.currentTarget.getBoundingClientRect(); const targetX = ((event.clientX - box.left) / box.width) * w; return pointRows.reduce((best, r) => (Math.abs(x(r.date) - targetX) < Math.abs(x(best.date) - targetX) ? r : best), pointRows[0]); };
-  function pointer(event) { if (!pinned) setHover(nearest(event)); }
-  // A tap pins the tooltip on touch screens, where there is no hover; a second tap releases it.
-  function tap(event) { if (event.pointerType !== 'touch') return; const r = nearest(event); if (pinned && hover?.date === r.date) { setPinned(false); setHover(null); } else { setPinned(true); setHover(r); } }
-  const leave = () => { if (!pinned) setHover(null); };
-  if (compact) return <div ref={container} className="spark" aria-hidden="true"><svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">{!retail && band(rows.filter(valid), 'chart-band')}{lines(rows.filter(valid), 'chart-line')}</svg></div>;
-  // Stretches with no quote for longer than a reporting interval are washed light grey and labelled, as on the landing panels.
-  const priced = rows.filter((r) => valid(r) && fields.some((f) => typeof r[f] === 'number'));
-  const gaps = []; let prevDate = startDate ?? priced[0]?.date;
-  for (const r of priced) { if (prevDate && Date.parse(r.date) - Date.parse(prevDate) > maxGapDays * DAY) gaps.push([prevDate, r.date]); prevDate = r.date; }
-  if (endDate && prevDate && Date.parse(endDate) - Date.parse(prevDate) > maxGapDays * DAY) gaps.push([prevDate, endDate]);
-  // Alt text says what the chart shows: period, latest quote, the extremes, gaps and whether previous years are drawn.
-  const shown = pointRows.flatMap((r) => fields.map((f) => r[f])).filter((v) => typeof v === 'number');
-  const altText = [
-    `${retail ? 'Reported average price' : 'Quoted low and high prices'} from ${dateLabel(pointRows[0].date)} to ${dateLabel(last.date)}, ${unit}.`,
-    `Latest ${fields.map((f) => money(last[f])).join(' to ')}; lowest ${money(Math.min(...shown))}, highest ${money(Math.max(...shown))} in this period.`,
-    yearAgo ? `A year earlier: ${quote(yearAgo)}.` : '',
-    gaps.length ? `${gaps.length} ${gaps.length === 1 ? 'stretch' : 'stretches'} with no quote.` : '',
-    compare.length ? `The same weeks in ${compareLabel || 'previous years'} are shown as a grey band.` : '',
-  ].filter(Boolean).join(' ');
-  const hoverCompare = hover && compareByDate.get(hover.date);
-  // The year-earlier quote the headline change refers to, marked on the chart when it falls inside the window.
-  const yearAgoMid = yearAgo && Date.parse(yearAgo.date) >= from && Date.parse(yearAgo.date) <= to ? midpoint(retail ? yearAgo : { ...yearAgo, advertised_average: null }) : null;
-  const annotation = typeof yearAgoMid === 'number' ? { x: x(yearAgo.date), y: y(yearAgoMid), flip: x(yearAgo.date) > p.l + (w - p.l - p.r) * 0.6, text: `A year earlier: ${quote(yearAgo)}` } : null;
-  // The grey band is labelled at its right end with the years it covers, so no legend is needed.
-  const lastCompare = compareLabel ? [...compare].reverse().find((r) => typeof r.high === 'number') : null;
-  const bandLabel = lastCompare ? { x: Math.min(x(lastCompare.date), w - p.r) - 4, y: y(lastCompare.high) - 6, text: compareLabel } : null;
-  const tooltipLeft = hover ? Math.min(Math.max(x(hover.date) / w * 100, 12), 88) : 0;
-  return <div className="price-chart" ref={container}>
-    <svg viewBox={`0 0 ${w} ${h}`} role="img" tabIndex={0} aria-label={altText} onFocus={() => setHover(last)} onBlur={() => setHover(null)} onPointerMove={pointer} onPointerDown={tap} onPointerLeave={leave} onKeyDown={(event) => { if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return; event.preventDefault(); const index = hover ? pointRows.findIndex((r) => r.date === hover.date) : pointRows.length - 1; setHover(pointRows[Math.max(0, Math.min(pointRows.length - 1, index + (event.key === 'ArrowLeft' ? -1 : 1)))]); }}>
-      <desc>Values are listed in the table below.</desc>
-      {gaps.map(([a, b]) => <g key={a}><rect className="chart-gap" x={x(a)} y={p.t} width={Math.max(1, x(b) - x(a))} height={h - p.t - p.b} />{x(b) - x(a) > 70 && <text className="chart-gap-label" x={(x(a) + x(b)) / 2} y={p.t + 16} textAnchor="middle">No quotes</text>}</g>)}
-      {ticks.map((v) => <g key={v}><line x1={p.l} x2={w - p.r} y1={y(v)} y2={y(v)} className="chart-grid" /><text x={p.l - 8} y={y(v) + 4} textAnchor="end" className="chart-axis">{v >= 100 ? `$${Math.round(v)}` : `$${v.toFixed(v % 1 ? 2 : 0)}`}</text></g>)}
-      {xTicks(from, to).map((tick) => <g key={tick.t}><line x1={x(new Date(tick.t).toISOString())} x2={x(new Date(tick.t).toISOString())} y1={h - p.b} y2={h - p.b + 5} className="chart-tick" /><text x={x(new Date(tick.t).toISOString())} y={h - 8} textAnchor="middle" className="chart-axis">{tick.label}</text></g>)}
-      <line x1={p.l} x2={w - p.r} y1={h - p.b} y2={h - p.b} className="chart-baseline" />
-      {compare.length > 0 && band(compare.filter(valid), 'chart-band chart-band--compare')}
-      {!retail && band(rows.filter(valid), 'chart-band')}
-      {lines(rows.filter(valid), 'chart-line')}
-      {sparse && pointRows.map((r) => fields.map((f) => typeof r[f] === 'number' && <circle key={`${r.date}-${f}`} className="chart-marker" cx={x(r.date)} cy={y(r[f])} r="3" />))}
-      {annotation && <g className="chart-anno"><circle cx={annotation.x} cy={annotation.y} r="4" className="chart-anno-dot" /><text x={annotation.x + (annotation.flip ? -8 : 8)} y={annotation.y - 10} textAnchor={annotation.flip ? 'end' : 'start'} className="chart-anno-text">{annotation.text}</text></g>}
-      {bandLabel && <text x={bandLabel.x} y={bandLabel.y} textAnchor="end" className="chart-label chart-label--compare">{bandLabel.text}</text>}
-      {last && (collide ? <text x={x(last.date) + 6} y={y(labelPositions[0].v) + 4} className="chart-label">Quote</text> : labelPositions.map(({ f, v }) => <text key={f} x={x(last.date) + 6} y={y(v) + 4} className="chart-label">{retail ? 'Average' : f === 'high' ? 'High' : 'Low'}</text>))}
-      {hover && <g><line className="chart-cursor" x1={x(hover.date)} x2={x(hover.date)} y1={p.t} y2={h - p.b} />{fields.map((f) => typeof hover[f] === 'number' && <circle key={f} cx={x(hover.date)} cy={y(hover[f])} r="4" className="chart-hover-dot" />)}</g>}
-    </svg>
-    <div className="chart-tooltip" role="status" style={hover ? { left: `${tooltipLeft}%` } : undefined} hidden={!hover}>
-      {hover && <><strong>{dateLabel(hover.date)}</strong>{retail ? <span>{money(hover.advertised_average)}</span> : <><span>High {money(hover.high)}</span><span>Low {money(hover.low)}</span>{(hover.mostly_low !== null || hover.mostly_high !== null) && <span>Mostly {[hover.mostly_low, hover.mostly_high].filter((v) => v !== null).map(money).join(' to ')}</span>}</>}{hover.comment && <span className="chart-tooltip-comment">{hover.comment}</span>}{hoverCompare && <span className="chart-tooltip-compare">Previous years: {hoverCompare.low === hoverCompare.high ? money(hoverCompare.low) : `${money(hoverCompare.low)} to ${money(hoverCompare.high)}`}</span>}</>}
-    </div>
-  </div>;
+  const raw = Math.max(max - min, max * 0.15, 0.5) / count;
+  const power = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 2.5, 5, 10].map((n) => n * power).find((n) => n >= raw);
+  const pad = (max - min || step) * 0.1;
+  return { min: Math.max(0, min - pad), max: max + pad * 0.6, step };
+}
+
+export default function PriceChart({ rows, startDate, endDate, unit = '' }) {
+  const canvas = useRef(null), chart = useRef(null);
+  const list = rows.filter((r) => !r.ambiguous && priced(r));
+  const points = list.map((r) => ({ x: Date.parse(r.date), y: midpoint(r), row: r })).filter((p) => typeof p.y === 'number');
+
+  useEffect(() => {
+    if (!points.length || !canvas.current) return undefined;
+    const from = Date.parse(startDate ?? list[0].date), to = Date.parse(endDate ?? list.at(-1).date);
+    const span = Math.max(to - from, DAY);
+    const narrow = canvas.current.clientWidth < 600;
+    const y = scale(points.map((p) => p.y), narrow ? 5 : 6);
+
+    // A hole is marked by its ends: a dot on the last quote before it and the first one after. Two points and
+    // the emptiness between them say USDA stopped and started again, without shading, bracket or label.
+    const data = withGaps(points, GAP_DAYS);
+    const edges = new Set();
+    data.forEach((p, i) => { if (p.y !== null) return; if (data[i - 1]) edges.add(data[i - 1].x); if (data[i + 1]) edges.add(data[i + 1].x); });
+
+    chart.current = new Chart(canvas.current, {
+      type: 'line',
+      data: {
+        datasets: [{
+          data,
+          parsing: false,
+          borderColor: INK,
+          borderWidth: 2,
+          stepped: 'before',
+          pointRadius: (c) => (c.dataIndex === c.dataset.data.length - 1 ? 3.5 : edges.has(c.raw?.x) ? 3 : 0),
+          pointBackgroundColor: INK,
+          pointBorderColor: PAPER,
+          pointBorderWidth: 1.5,
+          pointHoverRadius: 4,
+          pointHitRadius: 24,
+          spanGaps: false,
+        }],
+      },
+      options: {
+        layout: { padding: { top: 12, right: 12 } },
+        interaction: { mode: 'nearest', axis: 'x', intersect: false },
+        scales: {
+          x: {
+            type: 'linear', min: from, max: to,
+            border: { color: BASELINE },
+            grid: { display: false },
+            ticks: {
+              autoSkip: false, maxRotation: 0, padding: 6,
+              color: AXIS_INK,
+              callback: (v) => tickLabel(v, span),
+            },
+            afterBuildTicks: (axis) => { axis.ticks = monthTicks(from, to, narrow ? 3 : 6).map((value) => ({ value })); },
+          },
+          y: {
+            min: y.min, max: y.max,
+            border: { display: false },
+            grid: { color: RULE, drawTicks: false },
+            // Chart.js starts its ticks at the axis floor, which here is a fitted value like 4.75. The gridlines
+            // have to be the round numbers inside the bounds instead.
+            afterBuildTicks: (axis) => {
+              const ticks = [];
+              for (let v = Math.ceil(y.min / y.step) * y.step; v <= y.max + 1e-9; v += y.step) ticks.push({ value: Number(v.toFixed(4)) });
+              axis.ticks = ticks;
+            },
+            ticks: { padding: 8, color: AXIS_INK, callback: (v) => money(v) },
+          },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: PAPER, titleColor: LABEL_INK, bodyColor: LABEL_INK,
+            borderColor: RULE, borderWidth: 1, cornerRadius: 0, displayColors: false,
+            padding: 10, titleFont: { size: 13, weight: '600' }, bodyFont: { size: 12 },
+            callbacks: {
+              title: (items) => dayLabel(items[0].parsed.x),
+              // The line is the middle of the range; the range itself and the reporter's note belong in the readout.
+              label: (item) => {
+                const row = item.raw?.row;
+                if (!row) return money(item.parsed.y);
+                const lines = [quote(row)];
+                if (row.comment) lines.push(row.comment);
+                return lines;
+              },
+            },
+          },
+        },
+      },
+    });
+    return () => { chart.current?.destroy(); chart.current = null; };
+  });
+
+  if (!points.length) return <div className="chart chart--empty">No quotes in this period. Choose a longer period or another product.</div>;
+  const shown = points.map((p) => p.y);
+  const label = [
+    `Price from ${dateLabel(list[0].date)} to ${dateLabel(list.at(-1).date)}, ${unit}.`,
+    `Latest ${quote(list.at(-1))}; the middle of the quoted range ran from ${money(Math.min(...shown))} to ${money(Math.max(...shown))} over this period.`,
+  ].join(' ');
+  return <div className="chart"><div className="chart__canvas"><canvas ref={canvas} role="img" aria-label={label} /></div></div>;
 }

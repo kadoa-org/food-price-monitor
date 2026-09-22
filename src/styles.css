@@ -1,4 +1,5 @@
 /* Page styles for the food price monitor. Tokens and chrome come from the shared kit (GOV.UK palette at data-app density). */
+@import './chart.css';
 *{box-sizing:border-box}
 body{margin:0;background:#fcfcfd;color:var(--dk-ink);font:15px/1.5 var(--dk-font);-webkit-font-smoothing:antialiased}
 button,input,select{font:inherit}button{cursor:pointer}
@@ -18,7 +19,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .cell-link{font-weight:600}.cell-nowrap{white-space:nowrap}.cell-quote{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cell-note{display:block;font-size:12px;color:var(--dk-muted);margin-top:2px;line-height:1.4}
 .dk-table .dk-num .cell-note{text-align:right}
-.spark{width:132px;height:32px}.spark svg{display:block;width:100%;height:100%}.spark--empty{background:var(--dk-bg-hover)}
 .table-more{display:flex;align-items:center;gap:15px;padding-top:15px}
 .text-button{background:none;border:0;color:var(--dk-link);text-decoration:underline;text-underline-offset:3px;padding:0;font-size:14px}
 
@@ -29,7 +29,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .filters select{min-width:0;width:100%;height:40px;padding:0 36px 0 10px;border:1px solid var(--dk-ink);border-radius:0;color:var(--dk-ink);background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%230b0c0c' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 12px center;appearance:none;font-size:14px;font-weight:400;text-overflow:ellipsis}
 
 /* Chart panel */
-.chart-panel{border:1px solid var(--dk-rule);background:#fff;padding:20px;margin-bottom:28px}
+.chart-card{border:1px solid var(--dk-rule);background:#fff;padding:20px;margin-bottom:28px}
 .quote-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:8px}.quote-heading>div:first-child{min-width:0}
 .quote-value{font-size:30px;margin:10px 0 4px;line-height:1.2;letter-spacing:-.4px}.quote-value span{font-size:14px;font-weight:400;color:var(--dk-muted);letter-spacing:0}
 .product-caption{font-size:14px;line-height:1.5;margin-bottom:4px;color:#333;overflow-wrap:anywhere}
@@ -39,19 +39,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .range-control button+button{border-left:1px solid var(--dk-rule)}
 .range-control button[aria-pressed=true]{background:var(--dk-link);color:#fff;font-weight:600}
 .compare-toggle{display:inline-flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap}.compare-toggle input{width:18px;height:18px;margin:0;accent-color:var(--dk-link)}
-.price-chart{position:relative;margin-top:8px}.price-chart svg{display:block;width:100%;height:auto;overflow:visible}
-.price-chart svg:focus-visible{outline:3px solid var(--dk-focus);outline-offset:3px}
-.chart-axis{font:12px var(--dk-font);fill:var(--dk-muted)}.chart-label{font:600 12px var(--dk-font);fill:var(--dk-ink)}.chart-label--compare{fill:var(--dk-muted);font-weight:400}
-.chart-grid{stroke:var(--dk-rule-soft);stroke-width:1}.chart-baseline{stroke:var(--dk-faint);stroke-width:1}.chart-tick{stroke:var(--dk-faint);stroke-width:1}
-.chart-line{fill:none;stroke:var(--dk-link);stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}.chart-dot{fill:var(--dk-link);stroke:none}.chart-gap{fill:#f3f4f5}.chart-gap-label{font:12px var(--dk-font);fill:var(--dk-muted)}
-.chart-band{fill:#dce8f4;stroke:none}
-.chart-line--compare{stroke:#8f9498;stroke-width:1.5}.chart-band--compare{fill:#e6e7e8}.chart-line--compare.chart-dot{fill:#8f9498}
-.chart-marker{fill:var(--dk-link);stroke:#fff;stroke-width:1.5}.chart-anno-dot{fill:#fff;stroke:var(--dk-ink);stroke-width:1.5}.chart-anno-text{font:12px var(--dk-font);fill:var(--dk-ink);paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}
-.chart-cursor{stroke:var(--dk-muted);stroke-width:1}.chart-hover-dot{fill:var(--dk-link);stroke:#fff;stroke-width:2}
-.chart-tooltip[hidden]{display:none}.chart-tooltip{position:absolute;top:8px;transform:translateX(-50%);display:flex;flex-direction:column;gap:2px;background:#fff;border:1px solid var(--dk-rule);padding:8px 10px;font-size:12px;line-height:1.4;pointer-events:none;white-space:nowrap;box-shadow:0 1px 3px rgba(11,12,12,.12)}
-.chart-tooltip strong{font-size:13px}.chart-tooltip-comment{color:var(--dk-muted)}.chart-tooltip-compare{color:var(--dk-muted);border-top:1px solid var(--dk-rule-soft);padding-top:3px;margin-top:2px}
 .chart-note{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--dk-rule-soft);font-size:12px;color:var(--dk-muted)}
-.chart-empty{padding:64px 12px;text-align:center;color:var(--dk-muted);background:var(--dk-bg-hover);margin-top:12px}
 .chart-loading{position:relative;color:var(--dk-muted);padding-top:14px}
 .skeleton-chart{height:250px;background:#eeefef;margin-top:16px}.skeleton-title{width:240px;max-width:80%;height:32px;background:#eeefef;margin:20px 0}.skeleton-line{width:70%;height:20px;background:#eeefef;margin-bottom:24px}
 
@@ -81,10 +69,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .tri{display:inline-block;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:7px solid var(--dk-ink);margin-right:5px;vertical-align:2px}.tri--down{border-bottom:0;border-top:7px solid var(--dk-ink)}
 .panel-value{display:block;font-size:26px;font-weight:400;line-height:1.15;font-variant-numeric:tabular-nums;letter-spacing:-.3px;white-space:nowrap}
 .panel-sub{display:block;font-size:12px;color:var(--dk-muted);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.band{position:relative;padding-left:0}.band svg{display:block;width:100%;height:96px}
-.band-y{position:absolute;left:0;font-size:11px;color:var(--dk-muted);font-variant-numeric:tabular-nums;line-height:1}.band-y--top{top:0}.band-y--bottom{top:86px}.band-x{display:flex;justify-content:space-between;padding-left:34px;margin-top:4px;font-size:11px;color:var(--dk-muted);line-height:1}
-.band-fill{fill:var(--dk-link);fill-opacity:.22}.band-fill--earlier{fill:#dcdedf;fill-opacity:1}.band-edge{fill:none;stroke:var(--dk-link);stroke-width:1;vector-effect:non-scaling-stroke}.band-point{fill:var(--dk-link)}
-.band--empty{height:96px;display:grid;place-items:center;font-size:12px;color:var(--dk-muted);background:var(--dk-bg-hover)}
 .news-list--compact>li{padding:8px 0}.news-list--compact .news-head a{font-weight:600;font-size:14px}
 @media(max-width:640px){.panel{padding:12px}.panel-value{font-size:22px}}
 
@@ -108,7 +92,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
   .hero{flex-direction:column;gap:16px}
   .filters{grid-template-columns:1fr}.filters .product-select{grid-column:auto}
   .quote-heading{flex-direction:column;gap:12px}.chart-controls{align-items:flex-start}.quote-value{font-size:26px}
-  .chart-panel{padding:14px}.price-chart svg text{font-size:16px}
+  .chart-card{padding:14px}
   .dk-summary>div{grid-template-columns:1fr;gap:2px}
   .table-more{flex-wrap:wrap}.dk-nav-list{gap:20px}.dk-nav a{font-size:13px}
 }

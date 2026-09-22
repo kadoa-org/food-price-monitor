@@ -1,0 +1,94 @@
+/* Chart styles.
+
+   The charts draw on a canvas through Chart.js, so this file owns two things: the box the canvas sits in, and
+   the tokens the drawing code reads back with getComputedStyle. Keeping the palette here rather than in the
+   JavaScript means the chart, the page chrome and the tables cannot drift to different blues.
+
+   The detail chart and the panel sparklines are the same chart at two sizes: a panel only overrides the
+   tokens that have to change. */
+
+.chart {
+  /* Ink. The series carries the one saturated colour on the page; everything else recedes. */
+  --chart-series: var(--dk-link);
+  --chart-axis-ink: var(--dk-muted);
+  --chart-ink: var(--dk-ink);
+  --chart-rule: var(--dk-rule-soft);
+  --chart-baseline: var(--dk-faint);
+  --chart-void: #faf9f7;
+  --chart-paper: #fff;
+
+  --chart-line-width: 2px;
+  --chart-axis-size: 12px;
+  --chart-height: 340px;
+
+  position: relative;
+}
+
+/* A glance rather than a reading: thinner line, smaller type, no axis. */
+.chart--panel {
+  --chart-line-width: 1.5px;
+  --chart-axis-size: 11px;
+  --chart-height: var(--chart-panel-height, 120px);
+}
+
+/* Chart.js resizes the canvas to its parent, so the height has to sit on a wrapper. Setting it on the canvas
+   itself makes the two chase each other and the chart grows on every redraw. */
+.chart__canvas {
+  position: relative;
+  height: var(--chart-height);
+}
+.chart__canvas canvas {
+  display: block;
+}
+.chart canvas:focus-visible {
+  outline: 3px solid var(--dk-focus);
+  outline-offset: 3px;
+}
+
+/* A panel states its own scale in four numbers, which is what lets six differently priced commodities be
+   compared by shape without pretending they share an axis. */
+.chart__scale {
+  position: absolute;
+  left: 0;
+  font-size: var(--chart-axis-size);
+  color: var(--chart-axis-ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.chart__scale--high {
+  top: 0;
+}
+.chart__scale--low {
+  bottom: 22px;
+}
+.chart__period {
+  display: flex;
+  justify-content: space-between;
+  padding-left: 34px;
+  margin-top: 4px;
+  font-size: var(--chart-axis-size);
+  color: var(--chart-axis-ink);
+  line-height: 1;
+}
+
+/* Nothing to draw. Says which, rather than showing an empty frame. */
+.chart--empty {
+  padding: 64px 12px;
+  text-align: center;
+  color: var(--chart-axis-ink);
+  border: 1px dashed var(--dk-rule);
+}
+.chart--panel.chart--empty {
+  height: 96px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  border: 0;
+}
+
+@media (max-width: 640px) {
+  .chart {
+    --chart-height: 280px;
+  }
+}

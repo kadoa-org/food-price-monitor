@@ -1,5 +1,6 @@
+import { withGaps } from '../src/chartSetup.mjs';
 import { expect, test } from 'bun:test';
-import { autoFamily, chartSegments, shortMarket, dateLabel, familyFor, findingSentence, gapNote, groupSeries, markonTitle, newsFamilies, priorYears, slugify, titleCase, usdaNews, longestGap, nearest, pageKey, pctChange, pctLabel, pickBenchmark, quote, summarize, unitLabel, yearEarlier } from '../src/model.mjs';
+import { autoFamily, shortMarket, dateLabel, familyFor, findingSentence, gapNote, groupSeries, markonTitle, newsFamilies, slugify, titleCase, usdaNews, longestGap, nearest, pageKey, pctChange, pctLabel, pickBenchmark, quote, summarize, unitLabel, yearEarlier } from '../src/model.mjs';
 const row = { id: 'a', series_id: 'red-25lb', date: '2026-09-18', commodity: 'Onions, Dry', market: 'Market', market_stage: 'Shipping Point', package: '25 lb sacks', low: 9, high: 11, mostly_low: null, mostly_high: null, advertised_average: null, comment: null, dimensions: { organic: 'N', var: 'RED' } };
 test('formats dates and quotes in GOV.UK style without locale data', () => {
   expect(dateLabel('2026-09-18')).toBe('18 Sep 2026');
@@ -22,10 +23,13 @@ test('keeps distinct products separate and flags conflicting records for one dat
   expect(groupSeries([{ ...row, commodity: 'Lettuce, Iceberg', dimensions: { item_size: '24s' } }], 'Lettuce')[0].product).toBe('Iceberg, 24s');
   expect(groups.find((g) => g.id === 'yellow-50lb').observations[0].low).toBe(9);
 });
-test('breaks lines at missing quotes and at gaps longer than a reporting interval', () => {
-  const rows = [{ date: '2026-01-02', low: 2 }, { date: '2026-01-05', low: 3 }, { date: '2026-01-06', low: null }, { date: '2026-01-07', low: 4 }, { date: '2026-01-20', low: 5 }];
-  expect(chartSegments(rows, 'low').map((s) => s.map((p) => p.value))).toEqual([[2, 3], [4], [5]]);
-  expect(chartSegments([{ date: '2026-01-02', low: 2 }, { date: '2026-01-12', low: 3 }], 'low', 14)).toHaveLength(1);
+test('a gap longer than a reporting interval breaks the line instead of bridging it', () => {
+  const day = 86400000, d = (s) => Date.parse(s);
+  const points = [{ x: d('2026-01-02'), y: 2 }, { x: d('2026-01-05'), y: 3 }, { x: d('2026-01-20'), y: 5 }];
+  // A null between the two sides of the gap is what stops Chart.js drawing a line across it.
+  expect(withGaps(points, 7).map((p) => p.y)).toEqual([2, 3, null, 5]);
+  expect(withGaps(points, 21).map((p) => p.y)).toEqual([2, 3, 5]);
+  expect(withGaps(points, 7)[2].x).toBe(d('2026-01-05') + day);
 });
 test('percentage change uses the range midpoint and says nothing when a side is unquoted', () => {
   expect(pctChange({ ...row, low: 11, high: 13 }, row)).toBeCloseTo(20);
@@ -53,13 +57,6 @@ test('summaries use the nearest report within tolerance and the trailing year', 
 test('year-earlier overlay shifts by 52 weeks so weekdays align', () => {
   const shifted = yearEarlier([{ date: '2025-09-19', low: 1, high: 2 }, { date: '2024-09-20', low: 1, high: 2 }], '2026-09-01', '2026-09-30');
   expect(shifted.map((r) => r.date)).toEqual(['2026-09-18']);
-});
-test('previous-years band is the envelope of every prior year for the same weeks', () => {
-  const rows = [{ date: '2025-09-19', low: 5, high: 6, advertised_average: null }, { date: '2024-09-20', low: 2, high: 9, advertised_average: null }, { date: '2023-09-22', low: 4, high: 4, advertised_average: null }];
-  const band = priorYears(rows, '2026-09-01', '2026-09-30');
-  expect(band.years).toBe(3);
-  expect(band.rows).toEqual([{ date: '2026-09-18', low: 2, high: 9, advertised_average: null }]);
-  expect(priorYears([{ date: '2026-01-01', low: 1, high: 1, advertised_average: null }], '2026-09-01', '2026-09-30')).toEqual({ years: 0, rows: [] });
 });
 test('benchmark prefers a shipping-point product still quoted, with the most reports', () => {
   const make = (id, stage, dates) => ({ id, stage, retail: false, lastDate: dates.at(-1), latest: { low: 1, high: 2, advertised_average: null }, observations: dates.map((date) => ({ date, low: 1, high: 2, advertised_average: null })) });
