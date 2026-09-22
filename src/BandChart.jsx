@@ -1,5 +1,5 @@
 import React from 'react';
-import { DAY, chartSegments, dateLabel, money, priced } from './model.mjs';
+import { DAY, chartSegments, dateLabel, money, monthLabel, priced } from './model.mjs';
 
 // One year of quoted low to high prices as a band, last year's band in grey behind it, gaps washed grey. Two y labels
 // and two x labels are the whole axis: they state this panel's own scale, which is what makes six independently
@@ -31,5 +31,6 @@ export default function BandChart({ rows, earlier = [], startDate, endDate, name
       {single ? singleLine() : <>{band(list, 'band-fill')}{edges(list)}</>}
     </svg>
     <span className="band-y band-y--top">{money(max).replace(/\.00$/, '')}</span><span className="band-y band-y--bottom">{money(min).replace(/\.00$/, '')}</span>
+    <div className="band-x" aria-hidden="true"><span>{monthLabel(startDate)}</span><span>{monthLabel(endDate)}</span></div>
   </div>;
 }

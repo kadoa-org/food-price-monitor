@@ -184,8 +184,11 @@ function Commodities({ page }) {
   </>;
 }
 function Retail({ page }) {
-  const [region, setRegion] = useState(page.regions[0] ?? 'National');
+  const [region, setRegion] = useState(page.regions[0] ?? 'National'); const [sort, setSort] = useState({ key: 'yearChange', dir: 'desc' });
   const rows = page.rows.filter((r) => r.region === region);
+  // Items without a year-earlier price have no change and sort last whichever way the column is sorted.
+  const sortValue = (r, key) => (key === 'yearChange' ? (r.yearAgo === null ? null : r.yearChange) : key === 'product' ? (r.product === r.commodity ? r.commodity : r.product) : r[key]);
+  const sorted = [...rows].sort((a, b) => { const av = sortValue(a, sort.key), bv = sortValue(b, sort.key); if (av == null) return bv == null ? 0 : 1; if (bv == null) return -1; return (typeof av === 'number' ? av - bv : String(av).localeCompare(String(bv))) * (sort.dir === 'asc' ? 1 : -1); });
   const columns = [
     { key: 'family', header: 'Commodity', render: (r) => <a className="cell-link" href={url(r.slug)}>{r.family}</a> },
     { key: 'product', header: 'Item', render: (r) => (r.product === r.commodity ? r.commodity : r.product) },
@@ -200,7 +203,7 @@ function Retail({ page }) {
     <div className="hero"><div><h1>Retail prices</h1><p className="lede">Sale prices in US supermarket weekly ads, averaged across stores, from USDA's survey of the major grocery chains.</p>{page.week && <p className="dk-hint">Week ending {dateLabel(page.week)}.</p>}</div></div>
     <div className="filters filters--single"><label>Region<select value={region} onChange={(e) => setRegion(e.target.value)}>{page.regions.map((r) => <option key={r}>{r}</option>)}</select></label></div>
     <Section title={`${region}`} hint={`${number(rows.length)} items advertised this week.`}>
-      <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} empty="Nothing advertised in this region this week." />
+      <DataTable rows={sorted} columns={columns} rowKey={(r) => r.id} sort={sort} onSort={(key) => setSort((s) => ({ key, dir: s.key === key && s.dir === 'desc' ? 'asc' : 'desc' }))} empty="Nothing advertised in this region this week." />
     </Section>
   </>;
 }
