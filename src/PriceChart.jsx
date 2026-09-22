@@ -20,7 +20,7 @@ function xTicks(from, to) {
 export default function PriceChart({ rows, retail = false, compact = false, startDate, endDate, compare = [], compareLabel = '', yearAgo = null, maxGapDays = 7, unit = '' }) {
   const container = useRef(null);
   const [width, setWidth] = useState(compact ? 120 : 900);
-  const [hover, setHover] = useState(null);
+  const [hover, setHover] = useState(null); const [pinned, setPinned] = useState(false);
   useEffect(() => { const observer = new ResizeObserver(([entry]) => setWidth(Math.max(compact ? 80 : 280, Math.round(entry.contentRect.width)))); observer.observe(container.current); return () => observer.disconnect(); }, [compact]);
   const fields = retail ? FIELDS.retail : FIELDS.range;
   const valid = (r) => !r.ambiguous;
@@ -45,13 +45,26 @@ export default function PriceChart({ rows, retail = false, compact = false, star
   const last = pointRows.at(-1);
   const labelPositions = last ? fields.map((f) => ({ f, v: last[f] })).filter((d) => typeof d.v === 'number') : [];
   const collide = labelPositions.length === 2 && Math.abs(y(labelPositions[0].v) - y(labelPositions[1].v)) < 14;
-  function pointer(event) { const box = event.currentTarget.getBoundingClientRect(); const targetX = ((event.clientX - box.left) / box.width) * w; setHover(pointRows.reduce((best, r) => (Math.abs(x(r.date) - targetX) < Math.abs(x(best.date) - targetX) ? r : best), pointRows[0])); }
+  const nearest = (event) => { const box = event.currentTarget.getBoundingClientRect(); const targetX = ((event.clientX - box.left) / box.width) * w; return pointRows.reduce((best, r) => (Math.abs(x(r.date) - targetX) < Math.abs(x(best.date) - targetX) ? r : best), pointRows[0]); };
+  function pointer(event) { if (!pinned) setHover(nearest(event)); }
+  // A tap pins the tooltip on touch screens, where there is no hover; a second tap releases it.
+  function tap(event) { if (event.pointerType !== 'touch') return; const r = nearest(event); if (pinned && hover?.date === r.date) { setPinned(false); setHover(null); } else { setPinned(true); setHover(r); } }
+  const leave = () => { if (!pinned) setHover(null); };
   if (compact) return <div ref={container} className="spark" aria-hidden="true"><svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">{!retail && band(rows.filter(valid), 'chart-band')}{lines(rows.filter(valid), 'chart-line')}</svg></div>;
   // Stretches with no quote for longer than a reporting interval are washed light grey and labelled, as on the landing panels.
   const priced = rows.filter((r) => valid(r) && fields.some((f) => typeof r[f] === 'number'));
   const gaps = []; let prevDate = startDate ?? priced[0]?.date;
   for (const r of priced) { if (prevDate && Date.parse(r.date) - Date.parse(prevDate) > maxGapDays * DAY) gaps.push([prevDate, r.date]); prevDate = r.date; }
   if (endDate && prevDate && Date.parse(endDate) - Date.parse(prevDate) > maxGapDays * DAY) gaps.push([prevDate, endDate]);
+  // Alt text says what the chart shows: period, latest quote, the extremes, gaps and whether previous years are drawn.
+  const shown = pointRows.flatMap((r) => fields.map((f) => r[f])).filter((v) => typeof v === 'number');
+  const altText = [
+    `${retail ? 'Reported average price' : 'Quoted low and high prices'} from ${dateLabel(pointRows[0].date)} to ${dateLabel(last.date)}, ${unit}.`,
+    `Latest ${fields.map((f) => money(last[f])).join(' to ')}; lowest ${money(Math.min(...shown))}, highest ${money(Math.max(...shown))} in this period.`,
+    yearAgo ? `A year earlier: ${quote(yearAgo)}.` : '',
+    gaps.length ? `${gaps.length} ${gaps.length === 1 ? 'stretch' : 'stretches'} with no quote.` : '',
+    compare.length ? `The same weeks in ${compareLabel || 'previous years'} are shown as a grey band.` : '',
+  ].filter(Boolean).join(' ');
   const hoverCompare = hover && compareByDate.get(hover.date);
   // The year-earlier quote the headline change refers to, marked on the chart when it falls inside the window.
   const yearAgoMid = yearAgo && Date.parse(yearAgo.date) >= from && Date.parse(yearAgo.date) <= to ? midpoint(retail ? yearAgo : { ...yearAgo, advertised_average: null }) : null;
@@ -61,8 +74,8 @@ export default function PriceChart({ rows, retail = false, compact = false, star
   const bandLabel = lastCompare ? { x: Math.min(x(lastCompare.date), w - p.r) - 4, y: y(lastCompare.high) - 6, text: compareLabel } : null;
   const tooltipLeft = hover ? Math.min(Math.max(x(hover.date) / w * 100, 12), 88) : 0;
   return <div className="price-chart" ref={container}>
-    <svg viewBox={`0 0 ${w} ${h}`} role="img" tabIndex={0} aria-label={retail ? `Reported average price, ${dateLabel(rows[0].date)} to ${dateLabel(rows.at(-1).date)}` : `Quoted low and high prices, ${dateLabel(rows[0].date)} to ${dateLabel(rows.at(-1).date)}`} onFocus={() => setHover(last)} onBlur={() => setHover(null)} onPointerMove={pointer} onPointerLeave={() => setHover(null)} onKeyDown={(event) => { if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return; event.preventDefault(); const index = hover ? pointRows.findIndex((r) => r.date === hover.date) : pointRows.length - 1; setHover(pointRows[Math.max(0, Math.min(pointRows.length - 1, index + (event.key === 'ArrowLeft' ? -1 : 1)))]); }}>
-      <desc>{`Latest ${dateLabel(last.date)}: ${fields.map((f) => money(last[f])).join(' to ')} ${unit}. Values are also listed in the table below.`}</desc>
+    <svg viewBox={`0 0 ${w} ${h}`} role="img" tabIndex={0} aria-label={altText} onFocus={() => setHover(last)} onBlur={() => setHover(null)} onPointerMove={pointer} onPointerDown={tap} onPointerLeave={leave} onKeyDown={(event) => { if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return; event.preventDefault(); const index = hover ? pointRows.findIndex((r) => r.date === hover.date) : pointRows.length - 1; setHover(pointRows[Math.max(0, Math.min(pointRows.length - 1, index + (event.key === 'ArrowLeft' ? -1 : 1)))]); }}>
+      <desc>Values are listed in the table below.</desc>
       {gaps.map(([a, b]) => <g key={a}><rect className="chart-gap" x={x(a)} y={p.t} width={Math.max(1, x(b) - x(a))} height={h - p.t - p.b} />{x(b) - x(a) > 70 && <text className="chart-gap-label" x={(x(a) + x(b)) / 2} y={p.t + 16} textAnchor="middle">No quotes</text>}</g>)}
       {ticks.map((v) => <g key={v}><line x1={p.l} x2={w - p.r} y1={y(v)} y2={y(v)} className="chart-grid" /><text x={p.l - 8} y={y(v) + 4} textAnchor="end" className="chart-axis">{v >= 100 ? `$${Math.round(v)}` : `$${v.toFixed(v % 1 ? 2 : 0)}`}</text></g>)}
       {xTicks(from, to).map((tick) => <g key={tick.t}><line x1={x(new Date(tick.t).toISOString())} x2={x(new Date(tick.t).toISOString())} y1={h - p.b} y2={h - p.b + 5} className="chart-tick" /><text x={x(new Date(tick.t).toISOString())} y={h - 8} textAnchor="middle" className="chart-axis">{tick.label}</text></g>)}
