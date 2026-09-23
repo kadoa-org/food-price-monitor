@@ -28,6 +28,7 @@ export default function PriceChart({ rows, startDate, endDate, unit = '' }) {
   useEffect(() => {
     if (!points.length || !canvas.current) return undefined;
     const from = Date.parse(startDate ?? list[0].date), to = Date.parse(endDate ?? list.at(-1).date);
+    const last = points.at(-1).x;
     const span = Math.max(to - from, DAY);
     const narrow = canvas.current.clientWidth < 600;
     const y = scale(points.map((p) => p.y), narrow ? 5 : 6);
@@ -44,8 +45,8 @@ export default function PriceChart({ rows, startDate, endDate, unit = '' }) {
           parsing: false,
           borderColor: INK,
           borderWidth: 2,
-          stepped: 'before',
-          pointRadius: (c) => (c.dataIndex === c.dataset.data.length - 1 ? 3.5 : 0),
+          stepped: 'after',
+          pointRadius: (c) => (c.raw?.x === last ? 3.5 : 0),
           pointBackgroundColor: INK,
           pointBorderColor: PAPER,
           pointBorderWidth: 1.5,
