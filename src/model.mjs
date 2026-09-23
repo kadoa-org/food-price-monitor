@@ -67,7 +67,7 @@ export const reports = {
 export const RETAIL = 'Retail - Specialty Crops';
 export const RETAIL_STAGES = new Set(['Retail - Specialty Crops', 'Retail - Livestock/Poultry/Egg']);
 export const isRetail = (stage) => RETAIL_STAGES.has(stage);
-export const stageName = (s) => ({ 'Shipping Point': 'Shipping point', Terminal: 'Wholesale', 'Point of Sale - Eggs': 'Wholesale', 'Retail - Specialty Crops': 'Retail promotion', 'Retail - Livestock/Poultry/Egg': 'Retail promotion' }[s] ?? s);
+export const stageName = (s) => ({ 'Shipping Point': 'Shipping point', Terminal: 'Wholesale', 'Point of Sale - Eggs': 'Wholesale', 'Retail - Specialty Crops': 'Retail promotion', 'Retail - Livestock/Poultry/Egg': 'Retail promotion', 'Retail - Consumer': 'Store price' }[s] ?? s);
 // USDA writes 'N/A' and 'None' for attributes that do not apply; neither is a fact worth showing.
 // Short market caption for dense layouts: "New York wholesale", "Idaho Falls shipping point".
 export const shortMarket = (market, stage) => `${market.replace(/ FOB SC$/, '').replace(/ \(FR\)/, '').replace(/ Terminal Market$/, '')} ${stage.toLowerCase()}`;
@@ -142,6 +142,17 @@ export function pctChange(now, then) {
 }
 export const pctLabel = (p) => (p === null || p === undefined ? '' : p === 0 ? '0%' : `${p > 0 ? '+' : '-'}${Math.abs(p).toFixed(Math.abs(p) < 10 ? 1 : 0)}%`);
 // Longest stretch without a quote in the trailing year, so a sparkline gap can be named.
+// How often a series reports, as the median interval between its observations. A daily USDA quote comes back
+// around 1, a weekly ad report 7, a monthly BLS average about 30.
+export function cadenceDays(rows) {
+  const dates = rows.map((r) => Date.parse(r.date)).sort((a, b) => a - b);
+  if (dates.length < 3) return 1;
+  const steps = dates.slice(1).map((d, i) => (d - dates[i]) / DAY).filter((d) => d > 0).sort((a, b) => a - b);
+  if (!steps.length) return 1;
+  return steps[Math.floor(steps.length / 2)];
+}
+// A hole is a silence long enough to be unusual for this series, not a fixed number of days.
+export const gapThreshold = (rows) => Math.max(7, Math.round(cadenceDays(rows) * 2.5));
 export function longestGap(rows, minDays = 14) {
   let best = null; let previous = null;
   for (const r of rows) { if (previous && (Date.parse(r.date) - Date.parse(previous)) / DAY > minDays && (!best || Date.parse(r.date) - Date.parse(previous) > Date.parse(best.to) - Date.parse(best.from))) best = { from: previous, to: r.date }; previous = r.date; }
@@ -163,7 +174,7 @@ export function summarize(series) {
 // The benchmark for a commodity is the product USDA quoted most consistently over the past two years and still quotes.
 // A family can name the everyday commodity to prefer (iceberg over mesclun) so the headline row stays recognisable.
 export function pickBenchmark(groups, lastDate, prefer = [], preferSeries = () => false) {
-  const rank = { 'Shipping point': 0, Wholesale: 1, 'Retail promotion': 2 };
+  const rank = { 'Shipping point': 0, Wholesale: 1, 'Retail promotion': 2, 'Store price': 3 };
   const recent = groups.filter((s) => !s.retail && priced(s.latest) && s.lastDate >= addDays(lastDate, -7));
   const pool = recent.length ? recent : groups.filter((s) => priced(s.latest));
   const preference = (s) => { const i = prefer.indexOf(s.commodity); return i < 0 ? prefer.length : i; };
@@ -210,12 +221,16 @@ export function newsFamilies(article, list = families) {
 }
 export const directionWord = (d) => ({ rising: 'Prices rising', falling: 'Prices falling', stable: 'Prices stable', mixed: 'Prices mixed' }[d] ?? '');
 // Plain-language reason for a gap in a chart window.
-export function gapNote(rows, startDate, endDate, unit) {
+export function gapNote(rows, startDate, endDate, monthly = false) {
   const inWindow = rows.filter((r) => (!startDate || r.date >= startDate) && (!endDate || r.date <= endDate));
-  const gap = longestGap(inWindow.filter(priced));
+  const priceable = inWindow.filter(priced);
+  const gap = longestGap(priceable, gapThreshold(priceable));
   if (!gap) return null;
   const days = Math.round((Date.parse(gap.to) - Date.parse(gap.from)) / DAY);
-  return `No quotes from ${dateLabel(gap.from)} to ${dateLabel(gap.to)}, ${days} days. USDA quotes a product only while its growing region is shipping.`;
+  // Why a series goes quiet depends on who publishes it: USDA stops quoting a product when its growing region
+  // stops shipping, while a monthly average is simply not published for every item every month.
+  const reason = monthly ? 'Not published every month for every item.' : 'USDA quotes a product only while its growing region is shipping.';
+  return `No prices from ${dateLabel(gap.from)} to ${dateLabel(gap.to)}, ${days} days. ${reason}`;
 }
 
 // USDA report comments become news when they change. Rows are one district/market and commodity, ordered by date.

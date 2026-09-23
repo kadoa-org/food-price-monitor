@@ -91,6 +91,8 @@ function NewsSection({ items, common, slug }) {
   </Section>;
 }
 const RANGES = [['30', '30 days'], ['365', '1 year'], ['all', 'All']];
+// A monthly series has one point in 30 days, so it offers the windows that hold enough of them to read.
+const MONTHLY_RANGES = [['365', '1 year'], ['1825', '5 years'], ['all', 'All']];
 // GOV.UK treats a select as a last resort. One option is not a choice, so it is shown as a fact instead of a control.
 function Choice({ label, value, options, onChange, className = '' }) {
   if (options.length === 1) return <div className={`filter-fact ${className}`.trim()}><span className="filter-fact-label">{label}</span><span className="filter-fact-value">{options[0].label}</span></div>;
@@ -109,6 +111,7 @@ function Commodity({ page }) {
   useEffect(() => { if (history.id === selected.id) return; const controller = new AbortController(); fetch(seriesUrl(page.common, selected), { signal: controller.signal }).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then((file) => setHistory({ id: selected.id, rows: file.observations, dimensions: file.dimensions, reportTitle: file.report_title, error: false })).catch((error) => { if (error.name !== 'AbortError') setHistory({ id: selected.id, rows: [], dimensions: {}, reportTitle: null, error: true }); }); return () => controller.abort(); }, [selected.id, history.id]);
   const pending = history.id !== selected.id;
   // The national egg index reports one value per day rather than a low and a high; retail ads do too.
+  const monthly = selected.source_id.startsWith('bls-');
   const retail = selected.stage === 'Retail promotion' || (!pending && history.rows.length > 0 && history.rows.every((r) => r.low === null && r.high === null));
   const series = { ...selected, observations: history.rows };
   const summary = pending || !history.rows.length ? null : summarize(series);
@@ -137,11 +140,13 @@ function Commodity({ page }) {
     <section className="chart-card" aria-labelledby="chart-title">
       <div className="quote-heading">
         <div><h2 id="chart-title" className="quote-value">{quote(selected.latest)} <span>{unit}</span></h2><p className="product-caption">{selected.product}{selected.origin ? `, ${selected.origin}` : ''}. {selected.stage}, {selected.market}, {dateLabel(selected.lastDate)}{selected.lastDate !== page.common.lastDate ? ' (not in the newest report)' : ''}.</p></div>
-        <div className="chart-controls"><div className="range-control" role="group" aria-label="Period">{RANGES.map(([value, label]) => <button key={value} type="button" aria-pressed={range === value} onClick={() => { setRange(value); setVisible(25); }}>{label}</button>)}</div></div>
+        <div className="chart-controls"><div className="range-control" role="group" aria-label="Period">{(monthly ? MONTHLY_RANGES : RANGES).map(([value, label]) => <button key={value} type="button" aria-pressed={range === value} onClick={() => { setRange(value); setVisible(25); }}>{label}</button>)}</div></div>
       </div>
       {pending ? <div className="chart-loading" role="status">Loading price history…<div className="skeleton-chart" aria-hidden="true" /></div> : history.error ? <div role="alert" className="chart-empty">Price history could not be loaded. <button className="text-button" onClick={() => setHistory({ id: '', rows: [], dimensions: {}, error: false })}>Retry</button></div> : <PriceChart rows={filtered} startDate={startDate ?? filtered[0]?.date} endDate={endDate} unit={unit} />}
-      {!pending && gapNote(history.rows, startDate, endDate) && <p className="chart-gap-note">{gapNote(history.rows, startDate, endDate)}</p>}
-      <p className="chart-note">Source: <a href={`https://mymarketnews.ams.usda.gov/viewReport/${selected.source_id.replace('usda-', '')}`} target="_blank" rel="noreferrer">USDA Market News, {reports[selected.source_id]?.name ?? `report ${selected.source_id.replace('usda-', '')}`}</a>.</p>
+      {!pending && gapNote(history.rows, startDate, endDate, monthly) && <p className="chart-gap-note">{gapNote(history.rows, startDate, endDate, monthly)}</p>}
+      <p className="chart-note">Source: {selected.source_id.startsWith('usda-')
+        ? <a href={`https://mymarketnews.ams.usda.gov/viewReport/${selected.source_id.replace('usda-', '')}`} target="_blank" rel="noreferrer">USDA Market News, {reports[selected.source_id]?.name ?? selected.source_id}</a>
+        : <a href="https://www.bls.gov/cpi/factsheets/average-prices.htm" target="_blank" rel="noreferrer">US Bureau of Labor Statistics, average prices</a>}.</p>
     </section>
     {summary && <Section title="Compared with earlier reports" hint="Percentages compare the midpoint of the quoted range.">
       <dl className="dk-summary dk-summary--wide">

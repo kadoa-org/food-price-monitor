@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { AXIS_INK, BASELINE, Chart, DAY, INK, LABEL_INK, PAPER, RULE, dayLabel, money, monthTicks, tickLabel, withGaps } from './chartSetup.mjs';
-import { dateLabel, midpoint, priced, quote } from './model.mjs';
+import { dateLabel, gapThreshold, midpoint, priced, quote } from './model.mjs';
 
 // One line: the middle of the day's quoted range, which is the figure every change on the site is measured from.
 // A stretch with no quote is simply absent: the line stops and starts again. The note under the chart gives the
@@ -8,13 +8,12 @@ import { dateLabel, midpoint, priced, quote } from './model.mjs';
 // The low and the high are still in the data and appear on hover, but they are not drawn, because a band asks the
 // reader to compare two edges at once when the question is simply whether the price went up.
 // Prices hold between reports, so the line steps. Stretches with no quote are holes, never bridged.
-const GAP_DAYS = 7;
 
 // Round gridlines inside bounds that fit the data. Snapping the bounds themselves to round numbers is what
 // leaves an empty strip above and below the line.
 function scale(values, count) {
   const min = Math.min(...values), max = Math.max(...values);
-  const raw = Math.max(max - min, max * 0.15, 0.5) / count;
+  const raw = Math.max(max - min, max * 0.15) / count;
   const power = 10 ** Math.floor(Math.log10(raw));
   const step = [1, 2, 2.5, 5, 10].map((n) => n * power).find((n) => n >= raw);
   const pad = (max - min || step) * 0.1;
@@ -35,7 +34,7 @@ export default function PriceChart({ rows, startDate, endDate, unit = '' }) {
 
     // A stretch with no quote is crossed by a thin grey dotted segment, styled so it cannot be mistaken for the
     // series: no marks along it, a lighter colour and a hairline weight. It only shows where the line resumes.
-    const data = withGaps(points, GAP_DAYS);
+    const data = withGaps(points, gapThreshold(list));
 
     chart.current = new Chart(canvas.current, {
       type: 'line',

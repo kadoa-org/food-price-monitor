@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { BASELINE, Chart, DAY, INK, money, withGaps } from './chartSetup.mjs';
-import { dateLabel, midpoint, monthLabel, priced, weekly } from './model.mjs';
+import { dateLabel, gapThreshold, midpoint, monthLabel, priced, weekly } from './model.mjs';
 
 // The panel version of the same line: one step per week, no axis, no previous year. Two numbers state this
 // panel's own scale, which is what lets six differently priced commodities be compared by shape.
@@ -15,7 +15,7 @@ export default function BandChart({ rows, startDate, endDate, name, height = 120
     if (!points.length || !canvas.current) return undefined;
     const from = Date.parse(startDate), to = Date.parse(endDate);
     const pad = (max - min || 1) * 0.12;
-    const data = withGaps(points, 16);
+    const data = withGaps(points, Math.max(16, gapThreshold(list)));
 
     chart.current = new Chart(canvas.current, {
       type: 'line',
