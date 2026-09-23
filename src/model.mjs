@@ -165,8 +165,9 @@ export function summarize(series) {
   const monthAgo = nearest(rows, addDays(latest.date, -28), tol);
   const yearAgo = nearest(rows, addDays(latest.date, -364), series.retail ? 4 : 7);
   const yearRows = rows.filter((r) => priced(r) && r.date > addDays(latest.date, -365));
-  const field = series.retail ? 'advertised_average' : null;
-  const lowOf = (r) => (field ? r[field] : r.low ?? r.high); const highOf = (r) => (field ? r[field] : r.high ?? r.low);
+  // A series that publishes one figure a day rather than a range (the egg index, retail ads, BLS store prices)
+  // has its low and high in that figure; reading only low/high reported no range at all for them.
+  const lowOf = (r) => r.low ?? r.high ?? r.advertised_average; const highOf = (r) => r.high ?? r.low ?? r.advertised_average;
   const yearLow = yearRows.reduce((b, r) => (lowOf(r) !== null && (!b || lowOf(r) < lowOf(b)) ? r : b), null);
   const yearHigh = yearRows.reduce((b, r) => (highOf(r) !== null && (!b || highOf(r) > highOf(b)) ? r : b), null);
   return { latest, weekAgo, monthAgo, yearAgo, weekChange: pctChange(latest, weekAgo), monthChange: pctChange(latest, monthAgo), yearChange: pctChange(latest, yearAgo), gap: longestGap(yearRows), yearLow, yearHigh, yearReports: yearRows.length, sparkline: yearRows.map((r) => ({ date: r.date, low: r.low, high: r.high, advertised_average: r.advertised_average })) };

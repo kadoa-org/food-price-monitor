@@ -148,13 +148,13 @@ function Commodity({ page }) {
         ? <a href={`https://mymarketnews.ams.usda.gov/viewReport/${selected.source_id.replace('usda-', '')}`} target="_blank" rel="noreferrer">USDA Market News, {reports[selected.source_id]?.name ?? selected.source_id}</a>
         : <a href="https://www.bls.gov/cpi/factsheets/average-prices.htm" target="_blank" rel="noreferrer">US Bureau of Labor Statistics, average prices</a>}.</p>
     </section>
-    {summary && <Section title="Compared with earlier reports" hint="Percentages compare the midpoint of the quoted range.">
+    {summary && <Section title="Compared with earlier reports" hint={summary.latest.low === null && summary.latest.high === null ? 'Percentages compare the published average.' : 'Percentages compare the midpoint of the quoted range.'}>
       <dl className="dk-summary dk-summary--wide">
         <div><dt>Latest, {dateLabel(summary.latest.date)}</dt><dd>{quote(summary.latest)}</dd></div>
-        <div><dt>4 weeks earlier{summary.monthAgo ? `, ${dateLabel(summary.monthAgo.date)}` : ''}</dt><dd>{summary.monthAgo ? <>{quote(summary.monthAgo)} <Tag>{pctLabel(summary.monthChange)}</Tag></> : 'No quote within 4 days of that date'}</dd></div>
-        <div><dt>A year earlier{summary.yearAgo ? `, ${dateLabel(summary.yearAgo.date)}` : ''}</dt><dd>{summary.yearAgo ? <>{quote(summary.yearAgo)} <Tag>{pctLabel(summary.yearChange)}</Tag></> : 'No quote a year earlier in this dataset'}</dd></div>
-        <div><dt>Lowest quote, past year</dt><dd>{summary.yearLow ? `${money(summary.yearLow.low ?? summary.yearLow.high)} on ${dateLabel(summary.yearLow.date)}` : 'None'}</dd></div>
-        <div><dt>Highest quote, past year</dt><dd>{summary.yearHigh ? `${money(summary.yearHigh.high ?? summary.yearHigh.low)} on ${dateLabel(summary.yearHigh.date)}` : 'None'}</dd></div>
+        <div><dt>4 weeks earlier{summary.monthAgo ? `, ${dateLabel(summary.monthAgo.date)}` : ''}</dt><dd>{summary.monthAgo ? <>{quote(summary.monthAgo)} <Change value={summary.monthChange} /></> : 'No quote within 4 days of that date'}</dd></div>
+        <div><dt>A year earlier{summary.yearAgo ? `, ${dateLabel(summary.yearAgo.date)}` : ''}</dt><dd>{summary.yearAgo ? <>{quote(summary.yearAgo)} <Change value={summary.yearChange} /></> : 'No quote a year earlier in this dataset'}</dd></div>
+        <div><dt>Lowest quote, past year</dt><dd>{summary.yearLow ? `${money(summary.yearLow.low ?? summary.yearLow.high ?? summary.yearLow.advertised_average)} on ${dateLabel(summary.yearLow.date)}` : 'None'}</dd></div>
+        <div><dt>Highest quote, past year</dt><dd>{summary.yearHigh ? `${money(summary.yearHigh.high ?? summary.yearHigh.low ?? summary.yearHigh.advertised_average)} on ${dateLabel(summary.yearHigh.date)}` : 'None'}</dd></div>
       </dl>
     </Section>}
     <NewsSection items={page.news} common={page.common} slug={page.summary.slug} />
