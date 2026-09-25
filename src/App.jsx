@@ -7,7 +7,9 @@ import BandChart from './BandChart';
 import EvidenceDialog from './EvidenceDialog';
 
 const url = (slug) => `${BASE}/commodity/${slug}`;
-function Download({ slug, common, children = 'Download CSV' }) { return <a className="dk-btn" href={`${dataPath(common)}/downloads/${slug}.csv`} download>{children}</a>; }
+// The file is gzipped: a full history runs to tens of megabytes as plain CSV, and compressing it is what keeps a
+// daily publish to minutes rather than a gigabyte of upload. The label says so rather than surprising anyone.
+function Download({ slug, common, children = 'Download CSV (gzip)' }) { return <a className="dk-btn" href={`${dataPath(common)}/downloads/${slug}.csv.gz`} download>{children}</a>; }
 export function Shell({ page, children }) {
   const kind = page?.kind;
   const [search, setSearch] = useState(false);

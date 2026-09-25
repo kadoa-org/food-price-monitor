@@ -39,21 +39,26 @@ if (existsSync(join(root, 'public/og-image.png'))) spawnSync('cp', [join(root, '
 process.on('exit', () => rmSync(snapshot, { recursive: true, force: true }));
 const dataDir = join(snapshot, 'data');
 const home = JSON.parse(await readFile(join(dataDir, 'home.json'), 'utf8'));
-const runId = `${new Date().toISOString().slice(0, 19).replaceAll(':', '-')}-${home.common.sourceRun.slice(-8)}`.replace(/[^A-Za-z0-9._-]/g, '-');
+const runId = `${home.common.generatedAt.slice(0, 19).replaceAll(':', '-')}-${home.common.sourceRun.slice(-8)}`.replace(/[^A-Za-z0-9._-]/g, '-');
 const base = `${PREFIX}/data/${runId}`;
-const types = { '.json': 'application/json', '.csv': 'text/csv', '.png': 'image/png', '.svg': 'image/svg+xml' };
+const types = { '.json': 'application/json', '.csv': 'text/csv', '.gz': 'application/gzip', '.png': 'image/png', '.svg': 'image/svg+xml' };
 const storageUrl = (path) => `https://${HOST}/${ZONE}/${path}`;
 const headers = { AccessKey: KEY };
 const sha256 = (body) => createHash('sha256').update(body).digest('hex');
 const isShared = (rel) => rel.startsWith('series/');
 
 async function* walk(dir) { for (const entry of await readdir(dir, { withFileTypes: true })) { const p = join(dir, entry.name); if (entry.isDirectory()) yield* walk(p); else if (!entry.name.startsWith('.')) yield p; } }
+// The pointer and the manifest are written as strings, everything else as a buffer, so the size a timeout is
+// scaled from has to handle both. Reading byteLength off a string yields undefined, and a NaN timeout throws.
+const sizeOf = (body) => (typeof body === 'string' ? Buffer.byteLength(body) : (body?.byteLength ?? 0));
 // A PUT is retried on an HTTP failure and on a dropped connection alike; both are transient at this volume of requests.
 async function put(path, body, contentType, hash) {
   for (let attempt = 1; attempt <= 4; attempt++) {
     let reason;
     try {
-      const res = await fetch(storageUrl(path), { method: 'PUT', headers: { ...headers, 'Content-Type': contentType, Checksum: hash.toUpperCase() }, body });
+      // A flat timeout punishes the big files: a 6 MB download file needs far longer than a 2 KB series file
+      // on a slow link, and cutting it off turns a slow upload into a failed run.
+      const res = await fetch(storageUrl(path), { method: 'PUT', headers: { ...headers, 'Content-Type': contentType, Checksum: hash.toUpperCase() }, body, signal: AbortSignal.timeout(30_000 + sizeOf(body) / 50) });
       if (res.ok) return;
       reason = `HTTP ${res.status}`;
     } catch (error) { reason = error.code ?? error.name; }
@@ -61,7 +66,7 @@ async function put(path, body, contentType, hash) {
     await new Promise((r) => setTimeout(r, 500 * attempt));
   }
 }
-async function del(path) { const res = await fetch(storageUrl(path), { method: 'DELETE', headers }); return res.ok || res.status === 404; }
+async function del(path) { try { const res = await fetch(storageUrl(path), { method: 'DELETE', headers, signal: AbortSignal.timeout(30_000) }); return res.ok || res.status === 404; } catch { return false; } }
 
 // The manifest of the last publish says which shared files the storage already holds, by content hash. It is read
 // from storage, never from the edge, so it cannot be stale. Absent manifest means upload everything.
@@ -122,8 +127,16 @@ if (process.env.BUNNY_ACCOUNT_API_KEY) {
 
 // Shared files no longer built locally (a changed series got a new version, or a renormalisation changed identities) go
 // after the pointer moved, so a page built from the previous run keeps working until it is rebuilt.
+// Deleting one file per round trip left the run idle for half an hour on a day with ten thousand orphans,
+// long after the site was already serving the new data. Deletes use the same worker pool as uploads.
 let removed = 0;
-for (const rel of orphans) if (await del(`${SHARED}/${rel}`)) removed++;
+let orphanIndex = 0;
+await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
+  while (orphanIndex < orphans.length) {
+    const rel = orphans[orphanIndex++];
+    if (await del(`${SHARED}/${rel}`)) removed++;
+  }
+}));
 if (orphans.length) console.log(`Removed ${removed}/${orphans.length} orphaned shared files`);
 
 // Keep a week of runs so a build in flight never loses its folder; delete the rest.

@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
-import { createGunzip } from 'node:zlib';
+import { createGunzip, gzipSync } from 'node:zlib';
 import { BASE, addDays, curated, familyFor, marketKey, newsFamilies, groupSeries, markonNews, movers, nearest, pickBenchmark, priced, reports, summarize, usdaNews, isRetail } from '../src/model.mjs';
 import { existsSync } from 'node:fs';
 
@@ -97,7 +97,10 @@ for (const family of families) {
   await writeFile(join(data, 'commodity', `${family.slug}.json`), JSON.stringify({ kind: 'commodity', key: `commodity/${family.slug}`, title: family.auto ? `${family.name} prices` : `${family.singular} prices`, summary, markets: [...new Set(wholesale.map(marketKey))].sort(), series: wholesale.filter((x) => marketKey(x) === marketKey(benchmark)).map(meta), seriesTotal: wholesale.length, initialSeriesId: benchmark.id, initialDimensions: benchmark.dimensions, initialReportTitle: benchmark.latest.evidence?.report_title ?? null, initialObservations: compactAll(benchmark.observations), common }));
   // The full product list loads after first paint; potatoes alone has close to 4,000 products.
   await writeFile(join(data, 'commodity', `${family.slug}.series.json`), JSON.stringify(wholesale.map(meta)));
-  await writeFile(join(data, 'downloads', `${family.slug}.csv`), csv);
+  // Gzipped on disk rather than at upload time. These are the heaviest thing the site publishes, 758 MB of CSV
+  // across 332 commodities with potatoes alone at 81 MB, and they compress by 86 per cent. Sending them raw made
+  // a daily publish a gigabyte of upload, which is what kept failing on an ordinary connection.
+  await writeFile(join(data, 'downloads', `${family.slug}.csv.gz`), gzipSync(csv));
   // Retail promotions: one row per advertised item and region, with the same-week comparisons USDA readers expect.
   for (const s of groups.filter((g) => g.retail)) {
     const latest = s.latest;
