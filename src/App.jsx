@@ -66,8 +66,8 @@ function HomeHeadlines({ breadth }) {
   const mover = (m, label) => m && { label, value: <a href={`${BASE}/commodity/${m.slug}`}>{m.name}</a>, note: <ChangeTag value={m.change} size="small" /> };
   return <KeyFigures
     label="Headlines"
-    heading="Wholesale prices, past 4 weeks"
-    description="Each food's benchmark price against 4 weeks earlier, from USDA market reports."
+    heading="Wholesale prices"
+    description="Daily wholesale quotes, each food's benchmark against 4 weeks earlier, from USDA."
     date={`Up to and including ${dateLabel(asOf)}`}
     items={[
       direction && { label: 'Overall', value: direction, note: `${rose} foods up, ${fell} down` },
@@ -82,10 +82,12 @@ const stapleUnit = (unit) => (/doz/.test(unit) ? 'dozen' : /gal/.test(unit) ? 'g
 function Staples({ staples }) {
   if (!staples?.items?.length) return null;
   return <section className="staples">
-    <SectionHeading description="Average US store prices against the same month a year earlier, from BLS." date={`Up to and including ${monthLabel(staples.month)}`}>Grocery staples, past year</SectionHeading>
+    <SectionHeading description="Monthly average US store prices, each against the same month a year earlier, from BLS." date={`Up to and including ${monthLabel(staples.month)}`}>Grocery staples</SectionHeading>
     <ul className="staples__grid">
       {staples.items.map((r) => <li className="staples__item" key={r.slug}>
-        <a href={`${BASE}/commodity/${r.slug}`}>{r.name}</a>
+        {/* Opens the food's page on this exact store price series, not the page's default wholesale benchmark,
+            so the price and change a reader clicked are the ones the page shows. */}
+        <a href={r.seriesId ? `${url(r.slug)}?series=${r.seriesId}` : url(r.slug)}>{r.name}</a>
         <span className="staples__price">{money(r.price)} <span className="staples__unit">a {stapleUnit(r.unit)}</span></span>
         <ChangeTag value={r.change} size="small" />
       </li>)}
@@ -108,9 +110,11 @@ function Overview({ page }) {
     <div className="title-block"><h1>US food price monitor</h1><p className="lede">Daily US food prices, wholesale and retail, from USDA and BLS.</p></div>
     <HomeHeadlines breadth={page.breadth} />
     <Staples staples={page.breadth?.staples} />
-    <Section title="Benchmark prices" right={<a href={`${BASE}/commodities`}>All commodities</a>}>
+    <section className="benchmarks">
+      <SectionHeading description="Daily wholesale quotes for one benchmark product per food, each against a year earlier, from USDA." date={`Up to and including ${dateLabel(common.lastDate)}`}>Wholesale benchmarks</SectionHeading>
       <div className="board">{panels.map((f) => <Panel key={f.summary.slug} f={f} common={common} />)}</div>
-    </Section>
+      <p className="benchmarks__more"><a href={`${BASE}/commodities`}>All commodities</a></p>
+    </section>
     {page.movers && (page.movers.rising.length > 0 || page.movers.falling.length > 0) && <Section title="Biggest moves this week" hint="Wholesale benchmarks, compared with a week earlier.">
       <MoversTable movers={page.movers} />
     </Section>}
@@ -143,13 +147,22 @@ function Choice({ label, value, options, onChange, className = '' }) {
   return <label className={className || undefined}>{label}<select value={value} title={options.find((o) => o.value === value)?.label} onChange={(e) => onChange(e.target.value)}>{options.map((o) => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}</select></label>;
 }
 function Commodity({ page }) {
-  const initial = page.series.find((s) => s.id === page.initialSeriesId);
+  // A link can ask for a particular series with ?series=<id>, as the grocery staples do for their store prices.
+  const [requested] = useState(() => (typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('series')));
+  const initial = page.series.find((s) => s.id === requested) ?? page.series.find((s) => s.id === page.initialSeriesId);
   const [market, setMarket] = useState(marketKey(initial)); const [pack, setPack] = useState(initial.package); const [seriesId, setSeriesId] = useState(initial.id);
   const [range, setRange] = useState('365'); const [evidence, setEvidence] = useState(null); const [visible, setVisible] = useState(25); const [sort, setSort] = useState({ key: 'date', dir: 'desc' });
   const [history, setHistory] = useState({ id: initial.id, rows: page.initialObservations, dimensions: page.initialDimensions, reportTitle: page.initialReportTitle, error: false });
   // The page ships only the products of the initial market; the full list arrives after first paint.
   const [allSeries, setAllSeries] = useState(page.series);
   useEffect(() => { if (page.seriesTotal <= page.series.length) return; const controller = new AbortController(); fetch(`${dataPath(page.common)}/commodity/${page.summary.slug}.series.json`, { signal: controller.signal }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))).then(setAllSeries).catch(() => {}); return () => controller.abort(); }, [page]);
+  // The requested series may sit in a market the page did not ship up front; select it once the full list arrives.
+  useEffect(() => {
+    if (!requested || seriesId === requested) return;
+    const wanted = allSeries.find((s) => s.id === requested);
+    if (!wanted) return;
+    setMarket(marketKey(wanted)); setPack(wanted.package); setSeriesId(wanted.id);
+  }, [allSeries, requested]);
   const markets = page.markets ?? [...new Set(allSeries.map(marketKey))].sort();
   const marketSeries = allSeries.filter((s) => marketKey(s) === market); const packs = [...new Set(marketSeries.map((s) => s.package))].sort(); const options = marketSeries.filter((s) => s.package === pack); const selected = options.find((s) => s.id === seriesId) ?? options[0];
   useEffect(() => { if (history.id === selected.id) return; const controller = new AbortController(); fetch(seriesUrl(page.common, selected), { signal: controller.signal }).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then((file) => setHistory({ id: selected.id, rows: file.observations, dimensions: file.dimensions, reportTitle: file.report_title, error: false })).catch((error) => { if (error.name !== 'AbortError') setHistory({ id: selected.id, rows: [], dimensions: {}, reportTitle: null, error: true }); }); return () => controller.abort(); }, [selected.id, history.id]);

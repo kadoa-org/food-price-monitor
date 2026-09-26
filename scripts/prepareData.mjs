@@ -79,7 +79,10 @@ const basket = [];
 const breadthRows = [];
 // Ten everyday groceries, by BLS average price item code. These are the prices a shopper actually pays and the
 // ones news coverage quotes, so they answer "is my grocery bill going up" in a way wholesale cartons cannot.
-const STAPLES = { '708111': 'Eggs', '709112': 'Milk', '702111': 'Bread', '703112': 'Ground beef', '706111': 'Chicken', '717311': 'Coffee', '711211': 'Bananas', '712112': 'Potatoes', '712311': 'Tomatoes', '711311': 'Oranges' };
+// No staple is also a wholesale benchmark on the home page: a store price a year on year next to a single market's
+// wholesale quote for the same food reads as a contradiction (potatoes down 2.5 per cent in stores, up 95 per cent at
+// Idaho Falls), when the two are different prices on different clocks.
+const STAPLES = { '708111': 'Eggs', '709112': 'Milk', '702111': 'Bread', '703112': 'Ground beef', '706111': 'Chicken', '717311': 'Coffee', '711211': 'Bananas', '711311': 'Oranges', 'FS1101': 'Butter', '701312': 'Rice' };
 // A BLS series can appear under more than one commodity page, so each item code is counted once.
 const stapleRows = new Map();
 const summaries = [];
@@ -93,7 +96,7 @@ for (const family of families) {
   for (const group of groups.filter((g) => g.source_id === 'bls-ap' && STAPLES[g.dimensions?.item_code] && !stapleRows.has(g.dimensions.item_code))) {
     const latest = group.latest; const yearAgo = nearest(group.observations, addDays(latest.date, -365), 5);
     if (!yearAgo?.advertised_average) continue;
-    stapleRows.set(group.dimensions.item_code, { slug: family.slug, name: STAPLES[group.dimensions.item_code], date: latest.date, price: latest.advertised_average, yearAgo: yearAgo.advertised_average, change: (latest.advertised_average / yearAgo.advertised_average - 1) * 100, unit: unitLabel(group.package) });
+    stapleRows.set(group.dimensions.item_code, { slug: family.slug, seriesId: group.id, name: STAPLES[group.dimensions.item_code], date: latest.date, price: latest.advertised_average, yearAgo: yearAgo.advertised_average, change: (latest.advertised_average / yearAgo.advertised_average - 1) * 100, unit: unitLabel(group.package) });
   }
   const csv = toCsv(familyRows);
   // A commodity page charts wholesale series when there are any; retail-only commodities (meat) chart their weekly ad prices.
