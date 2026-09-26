@@ -20,10 +20,25 @@ function scale(values, count) {
   return { min: Math.max(0, min - pad), max: max + pad * 0.6, step };
 }
 
-export default function PriceChart({ rows, startDate, endDate, unit = '', yTitle = 'Price' }) {
+// In percent the scale always takes in zero, so the line is read against where the period began.
+function pctScale(values, count) {
+  const min = Math.min(0, ...values), max = Math.max(0, ...values);
+  const raw = Math.max(max - min, 2) / count;
+  const power = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 2.5, 5, 10].map((n) => n * power).find((n) => n >= raw);
+  const pad = (max - min) * 0.08;
+  return { min: min < 0 ? min - pad : 0, max: max > 0 ? max + pad : 0, step };
+}
+const signedPct = (v) => `${v > 0 ? '+' : ''}${Number(v.toFixed(Math.abs(v) < 10 ? 1 : 0))}%`;
+
+// `measure` is 'price' or 'change'. Change plots each quote against the first one in the period, so a year's
+// chart ends at the year change shown above it and every food reads on the same footing.
+export default function PriceChart({ rows, startDate, endDate, unit = '', yTitle = 'Price', measure = 'price' }) {
   const canvas = useRef(null), chart = useRef(null);
   const list = rows.filter((r) => !r.ambiguous && priced(r));
-  const points = list.map((r) => ({ x: Date.parse(r.date), y: midpoint(r), row: r })).filter((p) => typeof p.y === 'number');
+  const prices = list.map((r) => ({ x: Date.parse(r.date), y: midpoint(r), row: r })).filter((p) => typeof p.y === 'number');
+  const change = measure === 'change' && prices.length > 0 && prices[0].y > 0;
+  const points = change ? prices.map((p) => ({ ...p, y: Number(((p.y / prices[0].y - 1) * 100).toFixed(3)) })) : prices;
 
   useEffect(() => {
     if (!points.length || !canvas.current) return undefined;
@@ -31,7 +46,7 @@ export default function PriceChart({ rows, startDate, endDate, unit = '', yTitle
     const last = points.at(-1).x;
     const span = Math.max(to - from, DAY);
     const narrow = canvas.current.clientWidth < 600;
-    const y = scale(points.map((p) => p.y), narrow ? 5 : 6);
+    const y = (change ? pctScale : scale)(points.map((p) => p.y), narrow ? 5 : 6);
 
     // A stretch with no quote is crossed by a thin grey dotted segment, styled so it cannot be mistaken for the
     // series: no marks along it, a lighter colour and a hairline weight. It only shows where the line resumes.
@@ -83,7 +98,7 @@ export default function PriceChart({ rows, startDate, endDate, unit = '', yTitle
           y: {
             min: y.min, max: y.max,
             border: { display: false },
-            grid: { color: RULE, drawTicks: false },
+            grid: { color: (c) => (change && c.tick?.value === 0 ? BASELINE : RULE), drawTicks: false },
             // Chart.js starts its ticks at the axis floor, which here is a fitted value like 4.75. The gridlines
             // have to be the round numbers inside the bounds instead.
             afterBuildTicks: (axis) => {
@@ -91,8 +106,8 @@ export default function PriceChart({ rows, startDate, endDate, unit = '', yTitle
               for (let v = Math.ceil(y.min / y.step) * y.step; v <= y.max + 1e-9; v += y.step) ticks.push({ value: Number(v.toFixed(4)) });
               axis.ticks = ticks;
             },
-            title: { display: true, text: yTitle, color: AXIS_INK, font: { size: 14 } },
-            ticks: { padding: 8, color: AXIS_INK, callback: (v) => money(v) },
+            title: { display: true, text: change ? `Change since ${dayLabel(points[0].x)}` : yTitle, color: AXIS_INK, font: { size: 14 } },
+            ticks: { padding: 8, color: AXIS_INK, callback: (v) => (change ? signedPct(v) : money(v)) },
           },
         },
         plugins: {
@@ -106,8 +121,8 @@ export default function PriceChart({ rows, startDate, endDate, unit = '', yTitle
               // The line is the middle of the range; the range itself and the reporter's note belong in the readout.
               label: (item) => {
                 const row = item.raw?.row;
-                if (!row) return money(item.parsed.y);
-                const lines = [quote(row)];
+                if (!row) return change ? signedPct(item.parsed.y) : money(item.parsed.y);
+                const lines = change ? [`${signedPct(item.parsed.y)}, ${quote(row)}`] : [quote(row)];
                 if (row.comment) lines.push(row.comment);
                 return lines;
               },
@@ -120,8 +135,9 @@ export default function PriceChart({ rows, startDate, endDate, unit = '', yTitle
   });
 
   if (!points.length) return <div className="chart chart--empty">No quotes in this period. Choose a longer period or another product.</div>;
-  const shown = points.map((p) => p.y);
+  const shown = prices.map((p) => p.y);
   const label = [
+    ...(change ? [`Change since ${dateLabel(list[0].date)}, ${signedPct(points.at(-1).y)} at the latest quote.`] : []),
     `Price from ${dateLabel(list[0].date)} to ${dateLabel(list.at(-1).date)}, ${unit}.`,
     `Latest ${quote(list.at(-1))}; the middle of the quoted range ran from ${money(Math.min(...shown))} to ${money(Math.max(...shown))} over this period.`,
   ].join(' ');

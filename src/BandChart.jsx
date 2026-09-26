@@ -5,6 +5,9 @@ import { dateLabel, gapThreshold, midpoint, priced, weekly } from './model.mjs';
 // The panel version of the same line: one step per week, no axis, no previous year. Two numbers state this
 // panel's own scale, which is what lets six differently priced commodities be compared by shape.
 // `format` lets the same glance chart show an index level rather than a price; everything else is identical.
+// With `base`, the panel plots the percent change from that price instead of the price, and its scale always takes
+// in zero, drawn darker, so a reader sees how far a food has moved and in which direction without reading a price
+// axis that starts wherever the data happens to.
 const GRID = 'rgba(11, 12, 12, 0.06)';
 
 // Every month start inside the window, for the panel's gridlines.
@@ -16,12 +19,17 @@ function monthStarts(from, to) {
   return out;
 }
 
-export default function BandChart({ rows, startDate, endDate, name, height = 120, format = (v) => money(v).replace(/\.00$/, ''), noun = 'Price' }) {
+const signedPct = (v) => `${v > 0 ? '+' : ''}${Math.abs(v) < 10 && v !== 0 ? v.toFixed(1) : Math.round(v)}%`;
+
+export default function BandChart({ rows, startDate, endDate, name, height = 120, base = null, format: formatPrice = (v) => money(v).replace(/\.00$/, ''), noun = 'Price' }) {
   const canvas = useRef(null), chart = useRef(null);
   const list = weekly(rows.filter(priced)).filter(priced);
-  const points = list.map((r) => ({ x: Date.parse(r.date), y: midpoint(r) })).filter((p) => typeof p.y === 'number');
+  const relative = typeof base === 'number' && base > 0;
+  const format = relative ? signedPct : formatPrice;
+  const points = list.map((r) => ({ x: Date.parse(r.date), y: midpoint(r), price: midpoint(r) })).filter((p) => typeof p.y === 'number')
+    .map((p) => (relative ? { ...p, y: Number(((p.price / base - 1) * 100).toFixed(2)) } : p));
   const values = points.map((p) => p.y);
-  const min = values.length ? Math.min(...values) : 0, max = values.length ? Math.max(...values) : 0;
+  const min = values.length ? Math.min(...values, ...(relative ? [0] : [])) : 0, max = values.length ? Math.max(...values, ...(relative ? [0] : [])) : 0;
 
   useEffect(() => {
     if (!points.length || !canvas.current) return undefined;
@@ -75,7 +83,13 @@ export default function BandChart({ rows, startDate, endDate, name, height = 120
             },
           },
           // Horizontal grid only; the panel's own high and low labels carry the scale.
-          y: { min: min - pad, max: max + pad, border: { display: false }, grid: { color: GRID, drawTicks: false }, ticks: { display: false, maxTicksLimit: 4 } },
+          y: {
+            min: min - pad, max: max + pad, border: { display: false },
+            // In percent the zero line is the reference the whole panel is read against, so it is the one line drawn in the axis grey.
+            grid: { color: (c) => (relative && c.tick?.value === 0 ? BASELINE : GRID), drawTicks: false },
+            ...(relative ? { afterBuildTicks: (axis) => { axis.ticks = [{ value: 0 }]; } } : {}),
+            ticks: { display: false, maxTicksLimit: 4 },
+          },
         },
         plugins: {
           legend: { display: false },
@@ -83,7 +97,7 @@ export default function BandChart({ rows, startDate, endDate, name, height = 120
             backgroundColor: PAPER, titleColor: LABEL_INK, bodyColor: LABEL_INK, borderColor: RULE, borderWidth: 1,
             cornerRadius: 0, displayColors: false, padding: 8, titleFont: { size: 12, weight: '600' }, bodyFont: { size: 12 },
             // Points are weekly averages, so the title names the week rather than implying a single day's quote.
-            callbacks: { title: (items) => `Week of ${dayLabel(items[0].parsed.x)}`, label: (item) => format(item.parsed.y) },
+            callbacks: { title: (items) => `Week of ${dayLabel(items[0].parsed.x)}`, label: (item) => (relative ? `${signedPct(item.parsed.y)} (${formatPrice(item.raw.price)})` : format(item.parsed.y)) },
           },
         },
       },
@@ -92,7 +106,7 @@ export default function BandChart({ rows, startDate, endDate, name, height = 120
   });
 
   if (!points.length) return <div className="chart chart--panel chart--empty">No quotes in the past year</div>;
-  const label = `${noun} for ${name} from ${dateLabel(list[0].date)} to ${dateLabel(list.at(-1).date)}, ${format(min)} to ${format(max)} over the period.`;
+  const label = relative ? `Change in the price of ${name} from ${dateLabel(list[0].date)} to ${dateLabel(list.at(-1).date)}, between ${format(min)} and ${format(max)} over the period.` : `${noun} for ${name} from ${dateLabel(list[0].date)} to ${dateLabel(list.at(-1).date)}, ${format(min)} to ${format(max)} over the period.`;
   return <div className="chart chart--panel" style={{ '--chart-panel-height': `${height}px` }}>
     <div className="chart__canvas"><canvas ref={canvas} role="img" aria-label={label} /></div>
     <span className="chart__scale chart__scale--high">{format(max)}</span>

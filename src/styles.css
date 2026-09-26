@@ -149,7 +149,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .govuk-tabs__panel[hidden]{display:none}
 
 /* GOV.UK select */
-.filter-select{margin:0 0 20px}.govuk-label{display:block;font-size:19px;line-height:25px;margin:0 0 5px;color:var(--gov-text)}
+.chart-filters{display:flex;flex-wrap:wrap;gap:0 30px}.filter-select{margin:0 0 20px}.govuk-label{display:block;font-size:19px;line-height:25px;margin:0 0 5px;color:var(--gov-text)}
 .govuk-select{font:inherit;font-size:19px;line-height:25px;min-width:11.5em;max-width:100%;height:2.5rem;padding:5px;border:2px solid var(--gov-text);border-radius:0;background:#fff;color:var(--gov-text)}
 .govuk-select:focus{outline:3px solid var(--dk-focus,#fd0);outline-offset:0;box-shadow:inset 0 0 0 2px}
 
@@ -181,12 +181,14 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 
 .section-heading{margin:0 0 15px}.section-heading h2{font-size:24px;font-weight:700;line-height:1.25;margin:0 0 8px}.section-heading__desc{font-size:16px;font-style:italic;color:var(--gov-secondary);margin:0 0 8px}.section-heading__date{font-size:16px;color:var(--gov-secondary);margin:0}
 @media (max-width:640px){.section-heading h2{font-size:21px}}
-/* Grocery staples: ten small cells, name, store price and the year change. */
-.staples{margin:0 0 36px}
-.staples__grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;background:var(--gov-border);border:1px solid var(--gov-border)}
-.staples__item{background:#fff;padding:10px 12px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
-.staples__item a{font-weight:600}.staples__price{font-size:16px;font-variant-numeric:tabular-nums}.staples__unit{font-size:14px;color:var(--gov-secondary)}
-@media (max-width:640px){.staples__grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Grocery staples: small multiples of the change since 2019, name and change on one line, the price under it. */
+.staples__grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:24px 20px}
+.staples__item{display:flex;flex-direction:column;gap:2px;min-width:0}
+.staples__head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.staples__head a{font-weight:700}.staples__price{font-size:16px;font-variant-numeric:tabular-nums}.staples__unit{font-size:14px;color:var(--gov-secondary)}
+.staples__scale{font-size:13px;font-style:italic;color:var(--gov-secondary)}
+@media (max-width:900px){.staples__grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:640px){.staples__grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 14px}}
 
 .benchmarks{margin:0 0 36px}.benchmarks__more{margin:10px 0 0;font-size:16px}
 

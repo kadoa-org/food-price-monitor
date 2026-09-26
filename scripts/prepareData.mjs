@@ -77,12 +77,16 @@ const retailRows = [];
 // index tracks 291 foods rather than 69,000 packs of the same few.
 const basket = [];
 const breadthRows = [];
-// Ten everyday groceries, by BLS average price item code. These are the prices a shopper actually pays and the
-// ones news coverage quotes, so they answer "is my grocery bill going up" in a way wholesale cartons cannot.
-// No staple is also a wholesale benchmark on the home page: a store price a year on year next to a single market's
-// wholesale quote for the same food reads as a contradiction (potatoes down 2.5 per cent in stores, up 95 per cent at
-// Idaho Falls), when the two are different prices on different clocks.
-const STAPLES = { '708111': 'Eggs', '709112': 'Milk', '702111': 'Bread', '703112': 'Ground beef', '706111': 'Chicken', '717311': 'Coffee', '711211': 'Bananas', '711311': 'Oranges', 'FS1101': 'Butter', '701312': 'Rice' };
+// The ten foods with the largest weight in the CPI that BLS also prices on its own (relative importance, December
+// 2025), by BLS average price item code. These are the prices a shopper actually pays, so they answer "is my
+// grocery bill going up" in a way wholesale cartons cannot.
+// No staple is also a wholesale benchmark on the home page: a store price next to a single market's wholesale quote
+// for the same food reads as a contradiction when the two are different prices on different clocks.
+const STAPLES = { 'FN1101': 'Soft drinks', '706111': 'Chicken', '710212': 'Cheese', 'FC3101': 'Beef steaks', '703112': 'Ground beef', '717311': 'Coffee', '709112': 'Milk', '702111': 'Bread', '701312': 'Rice', '708111': 'Eggs' };
+// Staples are charted as the change since August 2019, the last months before the pandemic moved food prices, so the
+// chart shows how far each price has come rather than one year's move measured from wherever it happened to be.
+// A food BLS first priced later (coffee starts in October 2019) is measured from its first month.
+const STAPLES_FROM = '2019-08-01';
 // A BLS series can appear under more than one commodity page, so each item code is counted once.
 const stapleRows = new Map();
 const summaries = [];
@@ -96,7 +100,16 @@ for (const family of families) {
   for (const group of groups.filter((g) => g.source_id === 'bls-ap' && STAPLES[g.dimensions?.item_code] && !stapleRows.has(g.dimensions.item_code))) {
     const latest = group.latest; const yearAgo = nearest(group.observations, addDays(latest.date, -365), 5);
     if (!yearAgo?.advertised_average) continue;
-    stapleRows.set(group.dimensions.item_code, { slug: family.slug, seriesId: group.id, name: STAPLES[group.dimensions.item_code], date: latest.date, price: latest.advertised_average, yearAgo: yearAgo.advertised_average, change: (latest.advertised_average / yearAgo.advertised_average - 1) * 100, unit: unitLabel(group.package) });
+    const monthly = group.observations.filter((o) => o.date >= STAPLES_FROM && o.advertised_average > 0);
+    const base = monthly[0];
+    if (!base) continue;
+    const pct = (price) => Number(((price / base.advertised_average - 1) * 100).toFixed(2));
+    stapleRows.set(group.dimensions.item_code, {
+      slug: family.slug, seriesId: group.id, name: STAPLES[group.dimensions.item_code], date: latest.date, price: latest.advertised_average,
+      yearAgo: yearAgo.advertised_average, yearChange: (latest.advertised_average / yearAgo.advertised_average - 1) * 100,
+      baseDate: base.date, basePrice: base.advertised_average, change: pct(latest.advertised_average), unit: unitLabel(group.package),
+      points: monthly.map((o) => [o.date.slice(0, 7), pct(o.advertised_average), o.advertised_average]),
+    });
   }
   const csv = toCsv(familyRows);
   // A commodity page charts wholesale series when there are any; retail-only commodities (meat) chart their weekly ad prices.
@@ -155,11 +168,14 @@ const breadth = {
 const ranked = [...breadthRows].sort((a, b) => b.change - a.change);
 breadth.riser = ranked[0] && ranked[0].change > 0 ? ranked[0] : null;
 breadth.faller = ranked.at(-1) && ranked.at(-1).change < 0 ? ranked.at(-1) : null;
-// Store staples against a year earlier. Only the latest BLS month counts, so a staple BLS stopped publishing
+// Store staples against August 2019. Only the latest BLS month counts, so a staple BLS stopped publishing
 // cannot sit in the headline with a stale price.
 const staplesMonth = [...stapleRows.values()].map((r) => r.date).sort().at(-1) ?? null;
-const staples = [...stapleRows.values()].filter((r) => r.date === staplesMonth).sort((a, b) => b.change - a.change);
-breadth.staples = staples.length ? { month: staplesMonth, total: staples.length, higher: staples.filter((r) => r.change > 0).length, items: staples } : null;
+const staples = [...stapleRows.values()].filter((r) => r.date === staplesMonth);
+// In CPI weight order, heaviest first. Spelled out because an object puts numeric keys like '706111' first, in number order.
+const stapleOrder = ['Soft drinks', 'Chicken', 'Cheese', 'Beef steaks', 'Ground beef', 'Coffee', 'Milk', 'Bread', 'Rice', 'Eggs'];
+staples.sort((a, b) => stapleOrder.indexOf(a.name) - stapleOrder.indexOf(b.name));
+breadth.staples = staples.length ? { month: staplesMonth, from: STAPLES_FROM.slice(0, 7), total: staples.length, higher: staples.filter((r) => r.change > 0).length, items: staples } : null;
 if (staples.length !== Object.keys(STAPLES).length) console.error(JSON.stringify({ step: 'staples', status: 'partial', found: staples.map((r) => r.name) }));
 // Half a year of the weekly share rising is enough to see a turn without the chart becoming the page.
 breadth.trend = buildDiffusion(basket).slice(-26);

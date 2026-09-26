@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Button, DataTable, GitHubButton, LiveBadge, NavBar, SearchInput, Section, SiteFooter, SiteHeader, Tag } from './kit';
 import CommandPalette from './CommandPalette';
-import { BASE, HOME, addDays, dataPath, seriesUrl, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, quote, reports, shortMarket, summarize, unitLabel } from './model.mjs';
+import { BASE, HOME, addDays, midpoint, dataPath, seriesUrl, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, quote, reports, shortMarket, summarize, unitLabel } from './model.mjs';
 import PriceChart from './PriceChart';
 import { ChangeTag, ChartCard, FilterSelect, KeyFigures, SectionHeading } from './Figures';
 import BandChart from './BandChart';
+import { StapleChart, monthTime, stapleScales } from './StaplesChart';
 import EvidenceDialog from './EvidenceDialog';
 
 const url = (slug) => `${BASE}/commodity/${slug}`;
@@ -32,7 +33,8 @@ function Panel({ f, common }) {
       {b.yearAgo && <div className="panel-delta" title={`A year earlier: ${quote(b.yearAgo)}, ${dateLabel(b.yearAgo.date)}`}><ChangeTag value={b.yearChange} /><span className="panel-market">past year</span></div>}
     </div>
     <div className="panel-price"><span className="panel-value">{quote(b.latest)}</span><span className="panel-sub">{unitLabel(b.package)}</span></div>
-    <BandChart rows={b.sparkline} startDate={start} endDate={common.lastDate} name={f.summary.name.toLowerCase()} />
+    {/* Plotted as the change from the year-ago quote the tag above compares against, so the line ends where the tag says. */}
+    <BandChart rows={b.sparkline} startDate={start} endDate={common.lastDate} name={f.summary.name.toLowerCase()} base={b.yearAgo ? midpoint(b.yearAgo) : null} />
   </article>;
 }
 function Change({ value }) {
@@ -73,23 +75,46 @@ function HomeHeadlines({ breadth }) {
     ]}
   />;
 }
-// Grocery staples on their own, because they run on a different clock: BLS publishes store prices monthly, and a
-// shopper's question is the year-on-year one. Every staple is shown, so the count is never the only answer.
-const stapleUnit = (unit) => (/doz/.test(unit) ? 'dozen' : /gal/.test(unit) ? 'gallon' : 'lb');
+// Grocery staples on their own, because they run on a different clock: BLS publishes store prices monthly. They are
+// charted as the change since August 2019, before the pandemic moved food prices, because a year-on-year figure
+// measures each food from wherever it happened to be a year ago; readers of the first draft asked for exactly this.
+const stapleUnit = (unit) => (/doz/.test(unit) ? 'dozen' : /gal/.test(unit) ? 'gallon' : /2 lit/.test(unit) ? '2 liters' : 'lb');
 function Staples({ staples }) {
-  if (!staples?.items?.length) return null;
-  return <section className="staples">
-    <SectionHeading description="Monthly average US store prices, each against the same month a year earlier, from BLS." date={`Up to and including ${monthLabel(staples.month)}`}>Grocery staples</SectionHeading>
-    <ul className="staples__grid">
-      {staples.items.map((r) => <li className="staples__item" key={r.slug}>
-        {/* Opens the food's page on this exact store price series, not the page's default wholesale benchmark,
-            so the price and change a reader clicked are the ones the page shows. */}
-        <a href={r.seriesId ? `${url(r.slug)}?series=${r.seriesId}` : url(r.slug)}>{r.name}</a>
-        <span className="staples__price">{money(r.price)} <span className="staples__unit">a {stapleUnit(r.unit)}</span></span>
-        <ChangeTag value={r.change} size="small" />
-      </li>)}
-    </ul>
-  </section>;
+  if (!staples?.items?.length || !staples.items[0].points) return null;
+  const items = staples.items;
+  const scales = stapleScales(items);
+  const from = monthTime(staples.from), to = monthTime(staples.month);
+  const late = items.filter((r) => r.baseDate.slice(0, 7) !== staples.from);
+  const own = items.filter((r) => scales.get(r.name).own);
+  const columns = [
+    { key: 'name', header: 'Food', render: (r) => <a className="cell-link" href={r.seriesId ? `${url(r.slug)}?series=${r.seriesId}` : url(r.slug)}>{r.name}</a> },
+    { key: 'basePrice', header: monthLabel(staples.from), align: 'right', render: (r) => money(r.basePrice) },
+    { key: 'price', header: monthLabel(staples.month), align: 'right', render: (r) => money(r.price) },
+    { key: 'change', header: 'Change', align: 'right', render: (r) => <Change value={r.change} /> },
+    { key: 'yearChange', header: 'Past year', align: 'right', hideBelow: 'sm', render: (r) => <Change value={r.yearChange} /> },
+  ];
+  return <ChartCard
+    id="staples-title"
+    title={`Grocery prices since ${staples.from.slice(0, 4)}`}
+    description={`Percent change in average US store prices since ${monthLabel(staples.from)}, for the ${items.length} foods with the largest weight in the Consumer Price Index, from BLS.`}
+    date={`Up to and including ${monthLabel(staples.month)}`}
+    tabs={[
+      { label: 'Chart', content: <ul className="staples__grid">
+        {items.map((r) => <li className="staples__item" key={r.name}>
+          <div className="staples__head">
+            {/* Opens the food's page on this exact store price series, not the page's default wholesale benchmark. */}
+            <a href={r.seriesId ? `${url(r.slug)}?series=${r.seriesId}` : url(r.slug)}>{r.name}</a>
+            <ChangeTag value={r.change} size="small" />
+          </div>
+          <span className="staples__price">{money(r.price)} <span className="staples__unit">a {stapleUnit(r.unit)}, from {money(r.basePrice)} in {monthLabel(r.baseDate.slice(0, 7))}</span></span>
+          <StapleChart item={r} scale={scales.get(r.name)} from={from} to={to} />
+          {scales.get(r.name).own && <span className="staples__scale">Different scale</span>}
+        </li>)}
+      </ul> },
+      { label: 'Tabular data', short: 'Tabular', scroll: true, content: <DataTable rows={items} columns={columns} rowKey={(r) => r.name} /> },
+    ]}
+    footer={<p className="chart-note">Source: <a href="https://www.bls.gov/cpi/factsheets/average-prices.htm" target="_blank" rel="noreferrer">US Bureau of Labor Statistics, average prices</a>, U.S. city average. {late.map((r) => `${r.name} from ${monthLabel(r.baseDate.slice(0, 7))}, the first month BLS published it. `).join('')}Breaks in a line are months BLS did not publish. {own.length ? `${own.map((r) => r.name).join(' and ')} on a separate scale. ` : ''}Not adjusted for inflation.</p>}
+  />;
 }
 function Overview({ page }) {
   const { common, featured, retail } = page;
@@ -136,6 +161,9 @@ function NewsSection({ items, common, slug }) {
   </Section>;
 }
 const RANGES = [['30', '30 days'], ['365', '1 year'], ['all', 'All']];
+// Change since the start of the period is the default: it is the reading every change on the site uses, and it lets two
+// foods be compared at a glance. The price itself is one choice away and always in the readout and the table.
+const MEASURES = [['change', 'Percent change'], ['price', 'Price']];
 // A monthly series has one point in 30 days, so it offers the windows that hold enough of them to read.
 const MONTHLY_RANGES = [['365', '1 year'], ['1825', '5 years'], ['all', 'All']];
 // GOV.UK treats a select as a last resort. One option is not a choice, so it is shown as a fact instead of a control.
@@ -148,7 +176,7 @@ function Commodity({ page }) {
   const [requested] = useState(() => (typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('series')));
   const initial = page.series.find((s) => s.id === requested) ?? page.series.find((s) => s.id === page.initialSeriesId);
   const [market, setMarket] = useState(marketKey(initial)); const [pack, setPack] = useState(initial.package); const [seriesId, setSeriesId] = useState(initial.id);
-  const [range, setRange] = useState('365'); const [evidence, setEvidence] = useState(null); const [visible, setVisible] = useState(25); const [sort, setSort] = useState({ key: 'date', dir: 'desc' });
+  const [range, setRange] = useState('365'); const [measure, setMeasure] = useState('change'); const [evidence, setEvidence] = useState(null); const [visible, setVisible] = useState(25); const [sort, setSort] = useState({ key: 'date', dir: 'desc' });
   const [history, setHistory] = useState({ id: initial.id, rows: page.initialObservations, dimensions: page.initialDimensions, reportTitle: page.initialReportTitle, error: false });
   // The page ships only the products of the initial market; the full list arrives after first paint.
   const [allSeries, setAllSeries] = useState(page.series);
@@ -205,9 +233,12 @@ function Commodity({ page }) {
       date={`Up to and including ${dateLabel(selected.lastDate)}`}
       tabs={[
         { label: 'Chart', content: <>
-          <FilterSelect value={range} options={monthly ? MONTHLY_RANGES : RANGES} onChange={(v) => { setRange(v); setVisible(25); }} />
+          <div className="chart-filters">
+            <FilterSelect value={range} options={monthly ? MONTHLY_RANGES : RANGES} onChange={(v) => { setRange(v); setVisible(25); }} />
+            <FilterSelect label="Show as" value={measure} options={MEASURES} onChange={setMeasure} />
+          </div>
           <div className="chart-legend" aria-hidden="true"><span className="chart-legend__item"><span className="chart-legend__swatch" />Middle of the quoted range</span><span className="chart-legend__item"><span className="chart-legend__swatch chart-legend__swatch--gap" />No quotes</span></div>
-          {pending ? <div className="chart-loading" role="status">Loading price history…<div className="skeleton-chart" aria-hidden="true" /></div> : history.error ? <div role="alert" className="chart-empty">Price history could not be loaded. <button className="text-button" onClick={() => setHistory({ id: '', rows: [], dimensions: {}, error: false })}>Retry</button></div> : <PriceChart rows={filtered} startDate={startDate ?? filtered[0]?.date} endDate={endDate} unit={unit} yTitle={`Price, ${unit}`} />}
+          {pending ? <div className="chart-loading" role="status">Loading price history…<div className="skeleton-chart" aria-hidden="true" /></div> : history.error ? <div role="alert" className="chart-empty">Price history could not be loaded. <button className="text-button" onClick={() => setHistory({ id: '', rows: [], dimensions: {}, error: false })}>Retry</button></div> : <PriceChart rows={filtered} startDate={startDate ?? filtered[0]?.date} endDate={endDate} unit={unit} yTitle={`Price, ${unit}`} measure={measure} />}
           {!pending && gapNote(history.rows, startDate, endDate, monthly) && <p className="chart-gap-note">{gapNote(history.rows, startDate, endDate, monthly)}</p>}
         </> },
         { label: 'Tabular data', short: 'Tabular', scroll: true, content: <>
