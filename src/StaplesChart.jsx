@@ -41,7 +41,8 @@ export function StapleChart({ item, scale, from, to }) {
     const first = new Date(from).getUTCFullYear() + 1, every = canvas.current.parentElement.clientWidth < 220 ? 3 : 2;
     const chart = new Chart(canvas.current, {
       type: 'line',
-      data: { datasets: [{ data, parsing: false, borderColor: INK, borderWidth: 1.75, pointRadius: 0, pointHoverRadius: 3, pointHitRadius: 10, pointBackgroundColor: INK }] },
+      // Shaded between the line and 0%, so the area is the change itself, as in the shared image.
+      data: { datasets: [{ data, parsing: false, fill: { target: { value: 0 } }, backgroundColor: 'rgba(18, 67, 109, 0.08)', borderColor: INK, borderWidth: 1.75, pointRadius: 0, pointHoverRadius: 3, pointHitRadius: 10, pointBackgroundColor: INK }] },
       options: {
         interaction: { mode: 'nearest', axis: 'x', intersect: false },
         layout: { padding: { top: 4, right: 6 } },
