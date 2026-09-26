@@ -39,7 +39,11 @@ if (existsSync(join(root, 'public/og-image.png'))) spawnSync('cp', [join(root, '
 process.on('exit', () => rmSync(snapshot, { recursive: true, force: true }));
 const dataDir = join(snapshot, 'data');
 const home = JSON.parse(await readFile(join(dataDir, 'home.json'), 'utf8'));
-const runId = `${home.common.generatedAt.slice(0, 19).replaceAll(':', '-')}-${home.common.sourceRun.slice(-8)}`.replace(/[^A-Za-z0-9._-]/g, '-');
+// A run folder must never change once published: pages prerender from the CDN, which caches every file in it. The
+// id carries the source run, so a retry with the same data resumes into the same folder, and a hash of home.json,
+// so a rebuild that changes the pages (new fields, a fix) lands in a fresh folder instead of behind a stale cache.
+const homeHash = createHash('sha256').update(await readFile(join(dataDir, 'home.json'))).digest('hex').slice(0, 8);
+const runId = `${home.common.generatedAt.slice(0, 19).replaceAll(':', '-')}-${home.common.sourceRun.slice(-8)}-${homeHash}`.replace(/[^A-Za-z0-9._-]/g, '-');
 const base = `${PREFIX}/data/${runId}`;
 const types = { '.json': 'application/json', '.csv': 'text/csv', '.gz': 'application/gzip', '.png': 'image/png', '.svg': 'image/svg+xml' };
 const storageUrl = (path) => `https://${HOST}/${ZONE}/${path}`;
