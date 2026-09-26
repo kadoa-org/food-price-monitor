@@ -1,4 +1,4 @@
-import React, { useId, useRef, useState } from 'react';
+import React, { useId, useLayoutEffect, useRef, useState } from 'react';
 
 // Components reverse engineered from the UKHSA data dashboard (ukhsa-dashboard.data.gov.uk), which is built on the
 // GOV.UK Design System and is the best-regarded public statistics dashboard in that family. Measurements were read
@@ -57,7 +57,21 @@ export function SectionHeading({ children, description, date }) {
 export function Tabs({ tabs, initial = 0 }) {
   const [active, setActive] = useState(initial);
   const refs = useRef([]);
+  const panels = useRef([]);
   const id = useId();
+  // Every panel takes the height of the first one (the chart), measured on the page and again on resize, so switching
+  // tabs never moves the content below; a longer table scrolls inside that height, as on the UKHSA dashboard.
+  const [lockHeight, setLockHeight] = useState(null);
+  useLayoutEffect(() => {
+    const measure = () => {
+      const first = panels.current[initial];
+      if (!first || first.hidden) return;
+      setLockHeight(first.getBoundingClientRect().height);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [initial, active === initial]);
   const move = (to) => { const next = (to + tabs.length) % tabs.length; setActive(next); refs.current[next]?.focus(); };
   return <div className="govuk-tabs">
     <ul className="govuk-tabs__list" role="tablist">
@@ -76,7 +90,7 @@ export function Tabs({ tabs, initial = 0 }) {
         >{t.short ? <><span className="govuk-tabs__long">{t.label}</span><span className="govuk-tabs__short" aria-hidden="true">{t.short}</span></> : t.label}</button>
       </li>)}
     </ul>
-    {tabs.map((t, i) => <div key={t.label} className="govuk-tabs__panel" role="tabpanel" id={`${id}-panel-${i}`} aria-labelledby={`${id}-tab-${i}`} hidden={i !== active}>{t.content}</div>)}
+    {tabs.map((t, i) => <div key={t.label} ref={(el) => { panels.current[i] = el; }} style={lockHeight && i !== initial ? { minHeight: lockHeight, ...(t.scroll ? { maxHeight: lockHeight } : {}) } : undefined} className={`govuk-tabs__panel${t.scroll ? ' govuk-tabs__panel--scroll' : ''}`} role="tabpanel" id={`${id}-panel-${i}`} aria-labelledby={`${id}-tab-${i}`} hidden={i !== active}>{t.content}</div>)}
   </div>;
 }
 

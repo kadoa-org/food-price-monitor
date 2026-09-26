@@ -134,14 +134,18 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .chart-panel-card__date{font-size:16px;line-height:20px;color:var(--gov-secondary);margin:0 0 24px}
 
 /* GOV.UK tabs */
-.govuk-tabs{margin:0}.govuk-tabs__list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;align-items:flex-end}
-.govuk-tabs__list-item{margin:0 4px 0 0;position:relative}
-/* Inactive tabs are plain underlined links; the active one is a white tab raised 4px that overlaps the panel by 1px. */
-.govuk-tabs__tab{display:block;font:inherit;font-size:19px;line-height:25px;background:none;border:1px solid transparent;border-bottom:0;cursor:pointer;color:var(--gov-text);text-decoration:underline;text-underline-offset:.15em;padding:8px 12px}
+/* GOV.UK Design System tab geometry, so switching tabs never moves anything: inactive tabs are padded 20px each side
+   and the active one 19px plus a 1px border (same width); the active tab grows only upward (-5px) and 1px over the
+   panel border, so its text stays on the same line. */
+.govuk-tabs{margin:0}.govuk-tabs__list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;align-items:flex-start}
+.govuk-tabs__list-item{margin:0 5px 0 0;position:relative}
+.govuk-tabs__tab{display:block;font:inherit;font-size:19px;line-height:25px;background:none;border:0;cursor:pointer;color:var(--gov-text);text-decoration:underline;text-underline-offset:.15em;padding:10px 20px}
 .govuk-tabs__tab:hover{text-decoration-thickness:max(3px,.1875rem)}
-.govuk-tabs__list-item--selected .govuk-tabs__tab{background:#fff;border-color:var(--gov-border);text-decoration:none;padding:14px 19px 16px;margin:-4px 0 -1px;position:relative;z-index:1}
+.govuk-tabs__list-item--selected .govuk-tabs__tab{background:#fff;border:1px solid var(--gov-border);border-bottom:0;text-decoration:none;padding:14px 19px 16px;margin:-5px 0 -1px;position:relative;z-index:1}
 .govuk-tabs__tab:focus-visible{outline:3px solid transparent;background:var(--dk-focus,#fd0);box-shadow:0 -2px var(--dk-focus,#fd0),0 4px var(--gov-text);text-decoration:none}
-.govuk-tabs__panel{background:#fff;border:1px solid var(--gov-border);padding:24px 16px;min-width:0}.govuk-tabs__short{display:none}
+/* As the UKHSA chart cards: every panel keeps a minimum height and a long table scrolls inside a fixed height, so a
+   switch from chart to table does not move what is below. */
+.govuk-tabs__panel{background:#fff;border:1px solid var(--gov-border);padding:24px 16px;min-width:0;min-height:560px;box-sizing:border-box}.govuk-tabs__panel--scroll{max-height:720px;overflow-y:auto}.govuk-tabs__short{display:none}
 .govuk-tabs__panel[hidden]{display:none}
 
 /* GOV.UK select */
@@ -154,7 +158,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .chart-legend__item{display:inline-flex;align-items:center;gap:8px}.chart-legend__swatch{display:inline-block;width:28px;height:3px;background:#12436d}
 .chart-legend__swatch--gap{height:0;border-top:2px dotted var(--gov-border);background:none}
 
-@media (max-width:640px){.chart-panel-card{padding:15px}.govuk-tabs__tab{font-size:16px;padding:8px}.govuk-tabs__list-item--selected .govuk-tabs__tab{padding:14px 7px 16px}.govuk-tabs__panel{padding:12px}.govuk-tabs__long{display:none}.govuk-tabs__short{display:inline}}
+@media (max-width:640px){.chart-panel-card{padding:15px}.govuk-tabs__tab{font-size:16px;padding:10px 8px}.govuk-tabs__list-item--selected .govuk-tabs__tab{padding:14px 7px 16px}.govuk-tabs__panel{padding:12px;min-height:400px}.govuk-tabs__long{display:none}.govuk-tabs__short{display:inline}}
 .table-intro{margin:0 0 15px}.download-intro{margin:0 0 20px;font-size:19px;line-height:25px}
 
 /* Key figures on a detail page: one grey row, a figure per cell, divided by thin rules. */

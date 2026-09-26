@@ -210,7 +210,7 @@ function Commodity({ page }) {
           {pending ? <div className="chart-loading" role="status">Loading price history…<div className="skeleton-chart" aria-hidden="true" /></div> : history.error ? <div role="alert" className="chart-empty">Price history could not be loaded. <button className="text-button" onClick={() => setHistory({ id: '', rows: [], dimensions: {}, error: false })}>Retry</button></div> : <PriceChart rows={filtered} startDate={startDate ?? filtered[0]?.date} endDate={endDate} unit={unit} yTitle={`Price, ${unit}`} />}
           {!pending && gapNote(history.rows, startDate, endDate, monthly) && <p className="chart-gap-note">{gapNote(history.rows, startDate, endDate, monthly)}</p>}
         </> },
-        { label: 'Tabular data', short: 'Tabular', content: <>
+        { label: 'Tabular data', short: 'Tabular', scroll: true, content: <>
           <p className="dk-hint table-intro">{pending ? 'Loading' : `${number(filtered.length)} reports in this period, ${unit}.`}</p>
           <DataTable rows={sorted.slice(0, visible)} columns={columns} rowKey={(r) => r.date} sort={sort} onSort={(key) => { setSort((s) => ({ key, dir: s.key === key && s.dir === 'desc' ? 'asc' : 'desc' })); setVisible(25); }} empty={pending ? 'Loading…' : history.error ? 'History could not be loaded.' : 'No reports in this period.'} />
           {sorted.length > visible && <div className="table-more"><Button onClick={() => setVisible((n) => n + 50)}>Show more</Button><span className="dk-hint">Showing {visible} of {number(sorted.length)}</span></div>}
