@@ -63,16 +63,13 @@ function HomeHeadlines({ breadth }) {
   const share = moved ? rose / moved : null;
   // Within five points of even is called mixed: a 52 to 48 split is not a direction.
   const direction = share === null ? null : share >= 0.55 ? 'Mostly rising' : share <= 0.45 ? 'Mostly falling' : 'Mixed';
-  const mover = (m, label) => m && { label, value: <a href={`${BASE}/commodity/${m.slug}`}>{m.name}</a>, note: <ChangeTag value={m.change} size="small" /> };
+  const mover = (m, label) => m && { label, title: `USDA wholesale, 4 weeks to ${dateLabel(asOf)}`, value: <a href={`${BASE}/commodity/${m.slug}`}>{m.name}</a>, note: <ChangeTag value={m.change} size="small" /> };
   return <KeyFigures
     label="Headlines"
-    heading="Wholesale prices"
-    description="Daily wholesale quotes, each food's benchmark against 4 weeks earlier, from USDA."
-    date={`Up to and including ${dateLabel(asOf)}`}
     items={[
-      direction && { label: 'Overall', value: direction, note: `${rose} foods up, ${fell} down` },
-      mover(riser, 'Largest rise'),
-      mover(faller, 'Largest fall'),
+      direction && { label: 'Wholesale, past 4 weeks', title: `USDA wholesale quotes, each food's benchmark against 4 weeks earlier, to ${dateLabel(asOf)}`, value: direction, note: `${rose} foods up, ${fell} down` },
+      mover(riser, 'Largest rise, 4 weeks'),
+      mover(faller, 'Largest fall, 4 weeks'),
     ]}
   />;
 }
