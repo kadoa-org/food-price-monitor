@@ -85,7 +85,6 @@ function Staples({ staples }) {
   const scales = stapleScales(items);
   const from = monthTime(staples.from), to = monthTime(staples.month);
   const late = items.filter((r) => r.baseDate.slice(0, 7) !== staples.from);
-  const own = items.filter((r) => scales.get(r.name).own);
   const columns = [
     { key: 'name', header: 'Food', render: (r) => <a className="cell-link" href={r.seriesId ? `${url(r.slug)}?series=${r.seriesId}` : url(r.slug)}>{r.name}</a> },
     { key: 'basePrice', header: monthLabel(staples.from), align: 'right', render: (r) => money(r.basePrice) },
@@ -112,7 +111,7 @@ function Staples({ staples }) {
       </ul> },
       { label: 'Tabular data', short: 'Tabular', scroll: true, content: <DataTable rows={items} columns={columns} rowKey={(r) => r.name} /> },
     ]}
-    footer={<p className="chart-note">Source: <a href="https://www.bls.gov/cpi/factsheets/average-prices.htm" target="_blank" rel="noreferrer">US Bureau of Labor Statistics, average prices</a>, U.S. city average. {late.map((r) => `${r.name} from ${monthLabel(r.baseDate.slice(0, 7))}, the first month BLS published it. `).join('')}Lines join across months BLS did not publish, such as October 2025 in the federal shutdown. {own.length ? `${own.map((r) => r.name).join(' and ')} on a separate scale. ` : ''}Not adjusted for inflation.</p>}
+    footer={<p className="chart-note">Source: <a href="https://www.bls.gov/cpi/factsheets/average-prices.htm" target="_blank" rel="noreferrer">BLS average prices</a>, US city average. {late.map((r) => `${r.name} from ${monthLabel(r.baseDate.slice(0, 7))}. `).join('')}Not adjusted for inflation.</p>}
   />;
 }
 function Overview({ page }) {
