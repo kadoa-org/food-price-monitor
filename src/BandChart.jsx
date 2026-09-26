@@ -1,10 +1,21 @@
 import React, { useEffect, useRef } from 'react';
-import { BASELINE, Chart, DAY, INK, LABEL_INK, PAPER, RULE, dayLabel, money, withGaps } from './chartSetup.mjs';
-import { dateLabel, gapThreshold, midpoint, monthLabel, priced, weekly } from './model.mjs';
+import { AXIS_INK, BASELINE, Chart, DAY, INK, LABEL_INK, MONTHS, PAPER, RULE, dayLabel, money, withGaps } from './chartSetup.mjs';
+import { dateLabel, gapThreshold, midpoint, priced, weekly } from './model.mjs';
 
 // The panel version of the same line: one step per week, no axis, no previous year. Two numbers state this
 // panel's own scale, which is what lets six differently priced commodities be compared by shape.
 // `format` lets the same glance chart show an index level rather than a price; everything else is identical.
+const GRID = 'rgba(11, 12, 12, 0.06)';
+
+// Every month start inside the window, for the panel's gridlines.
+function monthStarts(from, to) {
+  const d = new Date(from); d.setUTCDate(1); d.setUTCHours(0, 0, 0, 0);
+  if (d.getTime() < from) d.setUTCMonth(d.getUTCMonth() + 1);
+  const out = [];
+  for (; d.getTime() <= to; d.setUTCMonth(d.getUTCMonth() + 1)) out.push(d.getTime());
+  return out;
+}
+
 export default function BandChart({ rows, startDate, endDate, name, height = 120, format = (v) => money(v).replace(/\.00$/, ''), noun = 'Price' }) {
   const canvas = useRef(null), chart = useRef(null);
   const list = weekly(rows.filter(priced)).filter(priced);
@@ -48,8 +59,23 @@ export default function BandChart({ rows, startDate, endDate, name, height = 120
         interaction: { mode: 'nearest', axis: 'x', intersect: false },
         layout: { padding: { top: 4, bottom: 4, right: 4 } },
         scales: {
-          x: { type: 'linear', min: from, max: to, display: false },
-          y: { min: min - pad, max: max + pad, display: false },
+          // A gridline at every month start, as on the detail chart, so a reader can see at a glance when a price
+          // moved (a summer spike, a winter low). Only quarter starts are labelled, which is what fits a panel;
+          // January carries the year so the two years in the window can be told apart.
+          x: {
+            type: 'linear', min: from, max: to,
+            // The UKHSA dashboard's small charts: a very faint grid in both directions (about 5 per cent opacity,
+            // every line the same weight), month ticks under a baseline, and a few labelled months.
+            border: { display: true, color: BASELINE },
+            grid: { color: GRID, lineWidth: 1, drawTicks: true, tickLength: 4, tickColor: BASELINE },
+            afterBuildTicks: (axis) => { axis.ticks = monthStarts(from, to).map((value) => ({ value })); },
+            ticks: {
+              autoSkip: false, maxRotation: 0, padding: 2, color: AXIS_INK, font: { size: 11 },
+              callback: (value) => { const d = new Date(value); const m = d.getUTCMonth(); return m % 3 ? '' : m === 0 ? String(d.getUTCFullYear()) : MONTHS[m]; },
+            },
+          },
+          // Horizontal grid only; the panel's own high and low labels carry the scale.
+          y: { min: min - pad, max: max + pad, border: { display: false }, grid: { color: GRID, drawTicks: false }, ticks: { display: false, maxTicksLimit: 4 } },
         },
         plugins: {
           legend: { display: false },
@@ -71,6 +97,5 @@ export default function BandChart({ rows, startDate, endDate, name, height = 120
     <div className="chart__canvas"><canvas ref={canvas} role="img" aria-label={label} /></div>
     <span className="chart__scale chart__scale--high">{format(max)}</span>
     <span className="chart__scale chart__scale--low">{format(min)}</span>
-    <div className="chart__period" aria-hidden="true"><span>{monthLabel(startDate)}</span><span>{monthLabel(endDate)}</span></div>
   </div>;
 }

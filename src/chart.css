@@ -66,15 +66,6 @@
 .chart__scale--low {
   bottom: 22px;
 }
-.chart__period {
-  display: flex;
-  justify-content: space-between;
-  padding-left: 34px;
-  margin-top: 4px;
-  font-size: var(--chart-axis-size);
-  color: var(--chart-axis-ink);
-  line-height: 1;
-}
 
 /* Nothing to draw. Says which, rather than showing an empty frame. */
 .chart--empty {
