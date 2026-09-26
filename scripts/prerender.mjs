@@ -36,7 +36,7 @@ const quoteText = (r) => r.advertised_average != null ? `$${r.advertised_average
 function seo(page, path) {
   const c = page.common; const updated = c.generatedAt.slice(0, 10);
   const canonical = `${SITE}${path}`;
-  const crumbs = [{ name: 'US food price monitor', url: `${SITE}/food-prices` }];
+  const crumbs = [{ name: 'US Food Price Monitor', url: `${SITE}/food-prices` }];
   let title, description, ld;
   if (page.kind === 'home') {
     title = 'Food Prices Today: US Produce Price Charts from USDA Data';

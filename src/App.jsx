@@ -104,7 +104,7 @@ function Overview({ page }) {
     { key: 'stores', header: 'Stores', align: 'right', hideBelow: 'sm', render: (r) => (r.stores === null ? '' : number(r.stores)) },
   ];
   return <>
-    <div className="title-block"><h1>US food price monitor</h1><p className="lede">Daily US food prices, wholesale and retail, from USDA and BLS.</p></div>
+    <div className="title-block"><h1 className="dk-h1">US Food Price Monitor</h1><p className="lede">Daily US food prices, wholesale and retail, from USDA and BLS.</p></div>
     <HomeHeadlines breadth={page.breadth} />
     <Staples staples={page.breadth?.staples} />
     <section className="benchmarks">
@@ -185,7 +185,7 @@ function Commodity({ page }) {
   ];
   const unit = unitLabel(selected.package);
   return <>
-    <div className="hero detail-hero"><div><h1>{page.title}</h1><p className="lede">{page.summary.description}</p><p className="dk-hint">{number(page.summary.seriesCount)} {page.summary.seriesCount === 1 ? 'product' : 'products'} in {page.summary.markets} {page.summary.markets === 1 ? 'market' : 'markets'}, {dateLabel(page.summary.firstDate)} to {dateLabel(page.summary.lastDate)}.</p></div><Download slug={page.summary.slug} common={page.common} /></div>
+    <div className="hero detail-hero"><div><h1 className="dk-h1">{page.title}</h1><p className="lede">{page.summary.description}</p><p className="dk-hint">{number(page.summary.seriesCount)} {page.summary.seriesCount === 1 ? 'product' : 'products'} in {page.summary.markets} {page.summary.markets === 1 ? 'market' : 'markets'}, {dateLabel(page.summary.firstDate)} to {dateLabel(page.summary.lastDate)}.</p></div><Download slug={page.summary.slug} common={page.common} /></div>
     <div className="filters">
       <Choice label="Market" value={market} options={markets.map((m) => ({ value: m, label: m, disabled: allSeries.length < page.seriesTotal && !allSeries.some((s) => marketKey(s) === m) }))} onChange={changeMarket} />
       <Choice label="Package" value={pack} options={packs.map((p) => ({ value: p, label: p }))} onChange={changePack} />
@@ -243,7 +243,7 @@ function Commodities({ page }) {
     { key: 'lastDate', header: 'Latest report', sortable: true, hideBelow: 'sm', render: (c) => dateLabel(c.lastDate) },
   ];
   return <>
-    <div className="hero"><div><h1>Commodities</h1><p className="lede">{number(page.items.length)} commodities, each with its own page of markets, products and history.</p></div></div>
+    <div className="hero"><div><h1 className="dk-h1">Commodities</h1><p className="lede">{number(page.items.length)} commodities, each with its own page of markets, products and history.</p></div></div>
     <div className="dk-toolbar"><SearchInput value={query} onChange={setQuery} placeholder="Search commodities" width={280} /><label className="toolbar-select">Price type <select value={stage} onChange={(e) => setStage(e.target.value)}><option value="all">All</option><option value="Shipping point">Shipping point</option><option value="Wholesale">Wholesale</option></select></label><span className="dk-hint">{number(sorted.length)} of {number(page.items.length)}</span></div>
     <DataTable rows={sorted} columns={columns} rowKey={(c) => c.slug} sort={sort} onSort={(key) => setSort((s) => ({ key, dir: s.key === key && s.dir === 'asc' ? 'desc' : 'asc' }))} empty="No commodity matches that search." />
     <p className="dk-hint" style={{ marginTop: 10 }}>The quote shown is the product USDA has quoted most consistently for that commodity over the past two years. Change compares range midpoints with the nearest report 52 weeks earlier.</p>
@@ -266,7 +266,7 @@ function Retail({ page }) {
     { key: 'stores', header: 'Stores', align: 'right', hideBelow: 'sm', render: (r) => (r.stores === null ? '' : number(r.stores)) },
   ];
   return <>
-    <div className="hero"><div><h1>Retail prices</h1><p className="lede">Sale prices in US supermarket weekly ads, averaged across stores, from USDA's survey of the major grocery chains.</p>{page.week && <p className="dk-hint">Week ending {dateLabel(page.week)}.</p>}</div></div>
+    <div className="hero"><div><h1 className="dk-h1">Retail prices</h1><p className="lede">Sale prices in US supermarket weekly ads, averaged across stores, from USDA's survey of the major grocery chains.</p>{page.week && <p className="dk-hint">Week ending {dateLabel(page.week)}.</p>}</div></div>
     <div className="filters filters--single"><label>Region<select value={region} onChange={(e) => setRegion(e.target.value)}>{page.regions.map((r) => <option key={r}>{r}</option>)}</select></label></div>
     <Section title={`${region}`} hint={`${number(rows.length)} items advertised this week.`}>
       <DataTable rows={sorted} columns={columns} rowKey={(r) => r.id} sort={sort} onSort={(key) => setSort((s) => ({ key, dir: s.key === key && s.dir === 'desc' ? 'asc' : 'desc' }))} empty="Nothing advertised in this region this week." />
@@ -275,7 +275,7 @@ function Retail({ page }) {
 }
 function About({ page }) {
   return <article className="prose">
-    <h1>About the data</h1>
+    <h1 className="dk-h1">About the data</h1>
     <p className="lede">Every business day the US Department of Agriculture (USDA) publishes food price data for about {number(page.commodityCount)} commodities:</p>
     <ul>
       <li>what growers were paid at shipping point</li>
