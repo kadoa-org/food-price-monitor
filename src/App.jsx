@@ -108,12 +108,11 @@ function Staples({ staples }) {
           </div>
           <span className="staples__price">{money(r.price)} <span className="staples__unit">a {stapleUnit(r.unit)}, from {money(r.basePrice)} in {monthLabel(r.baseDate.slice(0, 7))}</span></span>
           <StapleChart item={r} scale={scales.get(r.name)} from={from} to={to} />
-          {scales.get(r.name).own && <span className="staples__scale">Different scale</span>}
         </li>)}
       </ul> },
       { label: 'Tabular data', short: 'Tabular', scroll: true, content: <DataTable rows={items} columns={columns} rowKey={(r) => r.name} /> },
     ]}
-    footer={<p className="chart-note">Source: <a href="https://www.bls.gov/cpi/factsheets/average-prices.htm" target="_blank" rel="noreferrer">US Bureau of Labor Statistics, average prices</a>, U.S. city average. {late.map((r) => `${r.name} from ${monthLabel(r.baseDate.slice(0, 7))}, the first month BLS published it. `).join('')}Breaks in a line are months BLS did not publish. {own.length ? `${own.map((r) => r.name).join(' and ')} on a separate scale. ` : ''}Not adjusted for inflation.</p>}
+    footer={<p className="chart-note">Source: <a href="https://www.bls.gov/cpi/factsheets/average-prices.htm" target="_blank" rel="noreferrer">US Bureau of Labor Statistics, average prices</a>, U.S. city average. {late.map((r) => `${r.name} from ${monthLabel(r.baseDate.slice(0, 7))}, the first month BLS published it. `).join('')}Lines join across months BLS did not publish, such as October 2025 in the federal shutdown. {own.length ? `${own.map((r) => r.name).join(' and ')} on a separate scale. ` : ''}Not adjusted for inflation.</p>}
   />;
 }
 function Overview({ page }) {

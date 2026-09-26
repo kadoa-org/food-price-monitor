@@ -186,7 +186,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .staples__item{display:flex;flex-direction:column;gap:2px;min-width:0}
 .staples__head{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .staples__head a{font-weight:700}.staples__price{font-size:16px;font-variant-numeric:tabular-nums}.staples__unit{font-size:14px;color:var(--gov-secondary)}
-.staples__scale{font-size:13px;font-style:italic;color:var(--gov-secondary)}
 @media (max-width:900px){.staples__grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:640px){.staples__grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 14px}}
 

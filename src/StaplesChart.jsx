@@ -4,7 +4,7 @@ import { AXIS_INK, BASELINE, Chart, INK, LABEL_INK, MONTHS, PAPER, RULE, withGap
 // Grocery staples as small multiples of percent change since a common month, the form readers of the first draft
 // asked for: every line starts at zero, so ten foods at prices from $1 to $13 read on one footing. They share one
 // scale, so a steeper line is a bigger rise. A food whose peak would flatten the other nine gets a scale of its own,
-// and the panel says so.
+// and the note under the chart says so.
 const GRID = 'rgba(11, 12, 12, 0.06)';
 const signedPct = (v) => `${v > 0 ? '+' : ''}${Math.round(v)}%`;
 const monthTime = (ym) => Date.UTC(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)) - 1, 1);
@@ -34,8 +34,9 @@ export function StapleChart({ item, scale, from, to }) {
   useEffect(() => {
     if (!canvas.current) return undefined;
     const points = item.points.map(([ym, y, price]) => ({ x: monthTime(ym), y, price }));
-    // BLS skips months now and then (October 2025 for every item, in the federal shutdown); the line breaks there.
-    const data = withGaps(points, 45);
+    // BLS skips a month now and then (October 2025 for every item, in the federal shutdown). A single missing month is
+    // joined straight across, as the note under the chart says; a longer stretch still breaks the line.
+    const data = withGaps(points, 75);
     // Every other year fits a desktop panel; a phone's two-column grid fits every third.
     const first = new Date(from).getUTCFullYear() + 1, every = canvas.current.parentElement.clientWidth < 220 ? 3 : 2;
     const chart = new Chart(canvas.current, {
