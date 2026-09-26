@@ -127,19 +127,21 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .change-tag .change-tag__main+*{font-weight:400}
 
 /* Chart card: grey container, title, italic description, date, tabs */
-.chart-panel-card{background:var(--gov-grey-bg);padding:20px 25px 25px;margin:0 0 40px;min-width:0}
-.chart-panel-card__title{font-size:24px;line-height:30px;font-weight:700;margin:0 0 15px}
-.chart-panel-card__desc{font-size:16px;line-height:20px;font-style:italic;color:var(--gov-secondary);margin:0 0 15px}
-.chart-panel-card__date{font-size:16px;line-height:20px;color:var(--gov-secondary);margin:0 0 30px}
+/* Measured from the UKHSA chart card: 20px padding, header and tabs 24px apart. */
+.chart-panel-card{background:var(--gov-grey-bg);padding:20px;margin:0 0 40px;min-width:0}
+.chart-panel-card__title{font-size:24px;line-height:30px;font-weight:700;margin:0 0 8px}
+.chart-panel-card__desc{font-size:16px;line-height:20px;font-style:italic;color:var(--gov-secondary);margin:0 0 10px}
+.chart-panel-card__date{font-size:16px;line-height:20px;color:var(--gov-secondary);margin:0 0 24px}
 
 /* GOV.UK tabs */
-.govuk-tabs{margin:0}.govuk-tabs__list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap}
-.govuk-tabs__list-item{margin:0 0 -1px;position:relative}
-.govuk-tabs__tab{font:inherit;font-size:19px;line-height:25px;background:none;border:0;cursor:pointer;color:var(--gov-text);text-decoration:underline;text-underline-offset:.15em;padding:14px 19px 16px 0;margin-right:5px}
+.govuk-tabs{margin:0}.govuk-tabs__list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;align-items:flex-end}
+.govuk-tabs__list-item{margin:0 4px 0 0;position:relative}
+/* Inactive tabs are plain underlined links; the active one is a white tab raised 4px that overlaps the panel by 1px. */
+.govuk-tabs__tab{display:block;font:inherit;font-size:19px;line-height:25px;background:none;border:1px solid transparent;border-bottom:0;cursor:pointer;color:var(--gov-text);text-decoration:underline;text-underline-offset:.15em;padding:8px 12px}
 .govuk-tabs__tab:hover{text-decoration-thickness:max(3px,.1875rem)}
-.govuk-tabs__list-item--selected .govuk-tabs__tab{background:#fff;border:1px solid var(--gov-border);border-bottom:0;text-decoration:none;padding:14px 19px 16px}
+.govuk-tabs__list-item--selected .govuk-tabs__tab{background:#fff;border-color:var(--gov-border);text-decoration:none;padding:14px 19px 16px;margin:-4px 0 -1px;position:relative;z-index:1}
 .govuk-tabs__tab:focus-visible{outline:3px solid transparent;background:var(--dk-focus,#fd0);box-shadow:0 -2px var(--dk-focus,#fd0),0 4px var(--gov-text);text-decoration:none}
-.govuk-tabs__panel{background:#fff;border:1px solid var(--gov-border);padding:30px 20px 25px;min-width:0}
+.govuk-tabs__panel{background:#fff;border:1px solid var(--gov-border);padding:24px 16px;min-width:0}.govuk-tabs__short{display:none}
 .govuk-tabs__panel[hidden]{display:none}
 
 /* GOV.UK select */
@@ -152,11 +154,11 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .chart-legend__item{display:inline-flex;align-items:center;gap:8px}.chart-legend__swatch{display:inline-block;width:28px;height:3px;background:#12436d}
 .chart-legend__swatch--gap{height:0;border-top:2px dotted var(--gov-border);background:none}
 
-@media (max-width:640px){.chart-panel-card{padding:15px}.govuk-tabs__tab{font-size:16px;padding:10px 12px 12px 0}.govuk-tabs__list-item--selected .govuk-tabs__tab{padding:10px 12px 12px}.govuk-tabs__panel{padding:20px 12px}}
+@media (max-width:640px){.chart-panel-card{padding:15px}.govuk-tabs__tab{font-size:16px;padding:8px}.govuk-tabs__list-item--selected .govuk-tabs__tab{padding:14px 7px 16px}.govuk-tabs__panel{padding:12px}.govuk-tabs__long{display:none}.govuk-tabs__short{display:inline}}
 .table-intro{margin:0 0 15px}.download-intro{margin:0 0 20px;font-size:19px;line-height:25px}
 
 /* Key figures on a detail page: one grey row, a figure per cell, divided by thin rules. */
-.key-figures{margin:0 0 30px}
+.key-figures{margin:0 0 30px}.key-figures__context{font-size:16px;margin:15px 0 0;max-width:80ch}
 .key-figures__row{display:grid;grid-template-columns:repeat(var(--key-columns),minmax(0,1fr));margin:0;background:var(--gov-grey-bg)}
 .key-figures__item{padding:15px 20px;min-width:0}
 .key-figures__item+.key-figures__item{border-left:1px solid var(--gov-border)}

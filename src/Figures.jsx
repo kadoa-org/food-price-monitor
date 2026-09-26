@@ -24,11 +24,13 @@ export function ChangeTag({ value, children, unit = '%', size }) {
 // A single row of key figures for a detail page: a label, one value and a short note per cell. It is the UKHSA
 // headline panel with the per-figure metric and date lines folded into one note, because a page about one product
 // needs the answer at a glance, not a second table above the chart.
-export function KeyFigures({ label = 'Key figures', heading, description, date, items }) {
+// Opens with a "Headlines" heading, as every UKHSA topic page does; `context` is the short summary printed under
+// the panel.
+export function KeyFigures({ heading = 'Headlines', description, date, context, items }) {
   const shown = items.filter(Boolean);
   if (!shown.length) return null;
-  return <section className="key-figures" aria-label={heading ? undefined : label}>
-    {heading && <SectionHeading description={description} date={date}>{heading}</SectionHeading>}
+  return <section className="key-figures">
+    <SectionHeading description={description} date={date}>{heading}</SectionHeading>
     <dl className={`key-figures__row${shown.length % 2 ? ' key-figures__row--odd' : ''}`} style={{ '--key-columns': shown.length }}>
       {shown.map((f) => <div className="key-figures__item" key={f.label} title={f.title}>
         <dt className="key-figures__label">{f.label}</dt>
@@ -36,6 +38,7 @@ export function KeyFigures({ label = 'Key figures', heading, description, date, 
         {f.note && <dd className="key-figures__note">{f.note}</dd>}
       </div>)}
     </dl>
+    {context && <p className="key-figures__context">{context}</p>}
   </section>;
 }
 
@@ -70,7 +73,7 @@ export function Tabs({ tabs, initial = 0 }) {
           className="govuk-tabs__tab"
           onClick={() => setActive(i)}
           onKeyDown={(e) => { if (e.key === 'ArrowRight') { e.preventDefault(); move(i + 1); } else if (e.key === 'ArrowLeft') { e.preventDefault(); move(i - 1); } }}
-        >{t.label}</button>
+        >{t.short ? <><span className="govuk-tabs__long">{t.label}</span><span className="govuk-tabs__short" aria-hidden="true">{t.short}</span></> : t.label}</button>
       </li>)}
     </ul>
     {tabs.map((t, i) => <div key={t.label} className="govuk-tabs__panel" role="tabpanel" id={`${id}-panel-${i}`} aria-labelledby={`${id}-tab-${i}`} hidden={i !== active}>{t.content}</div>)}
