@@ -191,3 +191,20 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 
 .benchmarks{margin:0 0 36px}.benchmarks__more{margin:10px 0 0;font-size:16px}
 
+/* Staples ranking (StaplesChart.jsx): one row per food, a bar on a shared scale, the change, and a dashed line at
+   overall inflation. */
+.ranking__list{list-style:none;margin:0;padding:0}
+.ranking__row{display:grid;grid-template-columns:140px minmax(0,1fr) 56px;align-items:center;gap:12px;padding:3px 0}
+/* The line label stays in view while the 40 rows scroll inside the panel. */
+.ranking__row--label{padding:4px 0 8px;position:sticky;top:-24px;background:#fff;box-shadow:0 2px 0 #fff;z-index:1}
+.ranking__intro{margin:0 0 16px;font-size:16px}
+.ranking__name{font-weight:400;font-size:16px}
+.ranking__row--staple .ranking__name,.ranking__row--staple .ranking__value{font-weight:700}
+.ranking__track{position:relative;height:16px}
+.ranking__row--label .ranking__track{height:20px}
+.ranking__bar{position:absolute;top:0;bottom:0;background:#12436d}
+.ranking__cpi{position:absolute;top:-4px;bottom:-4px;border-left:2px dashed #0b0c0c}
+.ranking__cpi-label{position:absolute;bottom:0;transform:translateX(-50%);white-space:nowrap;font-size:14px;font-weight:700}
+.ranking__value{font-variant-numeric:tabular-nums;text-align:right;font-size:16px}
+.ranking__key{margin:14px 0 0;font-size:14px;color:var(--gov-secondary)}
+@media (max-width:640px){.ranking__row{grid-template-columns:112px minmax(0,1fr) 48px;gap:8px}}

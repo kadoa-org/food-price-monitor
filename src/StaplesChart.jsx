@@ -89,3 +89,52 @@ export function StapleChart({ item, scale, from, to }) {
 }
 
 export { monthTime };
+
+// Every food BLS has priced each month since the common month, ranked by its change, as bars on one scale. Readers of
+// the small multiples said the shapes looked alike and the end figure was what mattered, and a ranking has room for
+// four times the foods. A dashed line marks overall inflation over the same months, labelled on the chart, so a bar
+// that ends right of it is a food that rose faster than prices in general. The ten charted foods are in bold.
+export function StapleRanking({ ranking, cpi, href }) {
+  const values = [...ranking.map((r) => r.change), cpi?.change ?? 0, 0];
+  const min = Math.min(...values), max = Math.max(...values);
+  const span = max - min || 1;
+  const at = (v) => `${((v - min) / span) * 100}%`;
+  const faster = cpi ? ranking.filter((r) => r.change > cpi.change).length : null;
+  return (
+    <div className="ranking">
+      <p className="ranking__intro">
+        All {ranking.length} foods BLS has priced every month since {'August 2019'}, highest rise first. The 10 in the chart are in bold.
+        {cpi && ` ${faster} of ${ranking.length} rose faster than overall inflation.`}
+      </p>
+      {cpi && (
+        <div className="ranking__row ranking__row--label" aria-hidden="true">
+          <span />
+          <span className="ranking__track">
+            <span className="ranking__cpi-label" style={{ left: at(cpi.change) }}>Overall inflation {signedPct(cpi.change)}</span>
+          </span>
+          <span />
+        </div>
+      )}
+      <ol className="ranking__list">
+        {ranking.map((r) => (
+          <li className={`ranking__row${r.staple ? ' ranking__row--staple' : ''}`} key={r.name}>
+            <a className="ranking__name" href={href(r)}>{r.name}</a>
+            <span className="ranking__track">
+              <span className="ranking__bar" style={{ left: at(Math.min(0, r.change)), width: `${(Math.abs(r.change) / span) * 100}%` }} />
+              {cpi && <span className="ranking__cpi" style={{ left: at(cpi.change) }} aria-hidden="true" />}
+            </span>
+            <span className="ranking__value">
+              {signedPct(r.change)}
+              {cpi && <span className="govuk-visually-hidden">{r.change > cpi.change ? ', faster than overall inflation' : ', slower than overall inflation'}</span>}
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className="ranking__key">
+        {cpi
+          ? `Overall inflation is the rise in all consumer prices (CPI-U, all items) from ${'August 2019'} to the latest month.`
+          : 'Overall inflation could not be loaded, so its line is not shown.'}
+      </p>
+    </div>
+  );
+}

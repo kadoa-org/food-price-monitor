@@ -100,7 +100,7 @@ export function ChartCard({ title, description, date, tabs, footer, id }) {
     <h2 className="chart-panel-card__title" id={id}>{title}</h2>
     {description && <p className="chart-panel-card__desc">{description}</p>}
     {date && <p className="chart-panel-card__date">{date}</p>}
-    <Tabs tabs={tabs} />
+    <Tabs tabs={tabs.filter(Boolean)} />
     {footer}
   </section>;
 }

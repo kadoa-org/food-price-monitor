@@ -87,8 +87,27 @@ const STAPLES = { 'FN1101': 'Soft drinks', '706111': 'Chicken', '710212': 'Chees
 // chart shows how far each price has come rather than one year's move measured from wherever it happened to be.
 // A food BLS first priced later (coffee starts in October 2019) is measured from its first month.
 const STAPLES_FROM = '2019-08-01';
+// Every BLS average-price food with a price for each month since August 2019, for the staples ranking, which has
+// room for far more rows than the ten small charts. Short names, because BLS names are specifications ("Steak,
+// sirloin, USDA Choice, boneless"). Aggregates that repeat a listed item are left out (all uncooked ground beef,
+// all ham, milk low-fat next to whole milk, soft drinks by the can next to the 2-liter bottle), so no food counts
+// twice; the staples keep their chart names.
+const RANKING = {
+  ...STAPLES,
+  // Beside American cheese, chicken breast and yogurt, three staple names need their specification to stay distinct.
+  '710212': 'Cheddar cheese', '706111': 'Whole chicken', '709112': 'Whole milk',
+  '703213': 'Chuck roast', '703613': 'Sirloin steak', '703511': 'Round steak', '703311': 'Round roast', '703111': 'Ground chuck',
+  '703432': 'Beef for stew', '715211': 'Sugar', '718311': 'Potato chips', '712211': 'Iceberg lettuce', 'FL2101': 'Romaine lettuce',
+  '702421': 'Cookies', 'FF1101': 'Chicken breast', 'FJ4101': 'Yogurt', '711415': 'Strawberries', '710411': 'Ice cream',
+  '712112': 'Potatoes', '714233': 'Dried beans', '710211': 'American cheese', '701111': 'Flour', '704312': 'Boneless ham',
+  '704212': 'Pork chops', '711411': 'Grapefruit', '711311': 'Oranges', '704111': 'Bacon', '706212': 'Chicken legs',
+  '701322': 'Pasta', '711211': 'Bananas', '712311': 'Tomatoes', '711412': 'Lemons', 'FS1101': 'Butter',
+};
+// A food whose first price since the common month came more than two months later is not comparable over the period.
+const RANKING_LATEST_BASE = '2019-10-31';
 // A BLS series can appear under more than one commodity page, so each item code is counted once.
 const stapleRows = new Map();
+const rankingRows = new Map();
 const summaries = [];
 const byFamily = Map.groupBy(rows, (r) => wanted.get(r.commodity));
 for (const family of families) {
@@ -97,6 +116,15 @@ for (const family of families) {
   const groups = groupSeries(familyRows, family.matches[0]);
   feed.push(...usdaNews(familyRows, family, newsCutoff, sourceUrl));
   for (const group of groups) { const body = seriesFile(group); group.v = version(body); await writeFile(join(data, 'series', `${group.id}.${group.v}.json`), body); }
+  for (const group of groups.filter((g) => g.source_id === 'bls-ap' && RANKING[g.dimensions?.item_code] && !rankingRows.has(g.dimensions.item_code))) {
+    const code = group.dimensions.item_code;
+    const base = group.observations.find((o) => o.date >= STAPLES_FROM && o.advertised_average > 0);
+    if (!base || base.date > RANKING_LATEST_BASE || !(group.latest.advertised_average > 0)) continue;
+    rankingRows.set(code, {
+      name: RANKING[code], slug: family.slug, seriesId: group.id, staple: Boolean(STAPLES[code]), date: group.latest.date,
+      change: Number(((group.latest.advertised_average / base.advertised_average - 1) * 100).toFixed(2)),
+    });
+  }
   for (const group of groups.filter((g) => g.source_id === 'bls-ap' && STAPLES[g.dimensions?.item_code] && !stapleRows.has(g.dimensions.item_code))) {
     const latest = group.latest; const yearAgo = nearest(group.observations, addDays(latest.date, -365), 5);
     if (!yearAgo?.advertised_average) continue;
@@ -175,7 +203,41 @@ const staples = [...stapleRows.values()].filter((r) => r.date === staplesMonth);
 // In CPI weight order, heaviest first. Spelled out because an object puts numeric keys like '706111' first, in number order.
 const stapleOrder = ['Soft drinks', 'Chicken', 'Cheese', 'Beef steaks', 'Ground beef', 'Coffee', 'Milk', 'Bread', 'Rice', 'Eggs'];
 staples.sort((a, b) => stapleOrder.indexOf(a.name) - stapleOrder.indexOf(b.name));
-breadth.staples = staples.length ? { month: staplesMonth, from: STAPLES_FROM.slice(0, 7), total: staples.length, higher: staples.filter((r) => r.change > 0).length, items: staples } : null;
+// Overall inflation over the same months, for the reference line in the staples ranking: CPI-U, all items, U.S. city
+// average, not seasonally adjusted (CUUR0000SA0), from the BLS flat files the dataset's average prices come from.
+// It is context, not a price, so a failure is a named degraded state: logged, and the ranking shows no line and says
+// so, rather than failing the daily publish.
+async function overallInflation(fromYm, toYm) {
+  const response = await fetch('https://download.bls.gov/pub/time.series/cu/cu.data.1.AllItems', {
+    // No Accept header: BLS answers 406 to text/plain for this file.
+    headers: { 'User-Agent': 'kadoa-food-price-monitor/1.0 (adrian@kadoa.com)' },
+    signal: AbortSignal.timeout(120_000),
+  });
+  if (!response.ok) throw new Error(`BLS HTTP ${response.status}`);
+  const values = new Map();
+  for (const line of (await response.text()).split('\n')) {
+    const [id, year, period, value] = line.split('\t').map((f) => f.trim());
+    if (id !== 'CUUR0000SA0' || !/^M(0[1-9]|1[0-2])$/.test(period ?? '')) continue;
+    const v = Number(value);
+    if (Number.isFinite(v)) values.set(`${year}-${period.slice(1)}`, v);
+  }
+  const from = values.get(fromYm), to = values.get(toYm);
+  if (!from || !to) throw new Error(`CPI missing for ${!from ? fromYm : toYm}`);
+  return { series: 'CUUR0000SA0', from: fromYm, to: toYm, change: Number(((to / from - 1) * 100).toFixed(2)) };
+}
+let cpi = null;
+if (staplesMonth) {
+  try {
+    cpi = await overallInflation(STAPLES_FROM.slice(0, 7), staplesMonth.slice(0, 7));
+    console.error(JSON.stringify({ step: 'cpi', status: 'ok', ...cpi }));
+  } catch (error) {
+    console.error(JSON.stringify({ step: 'cpi', status: 'unavailable', error: error.message }));
+  }
+}
+// Only foods priced in the latest month are ranked, like the staples, so nothing sits in the ranking with a stale price.
+const ranking = [...rankingRows.values()].filter((r) => r.date === staplesMonth).map(({ date, ...r }) => r).sort((a, b) => b.change - a.change);
+console.error(JSON.stringify({ step: 'ranking', foods: ranking.length, listed: Object.keys(RANKING).length }));
+breadth.staples = staples.length ? { month: staplesMonth, from: STAPLES_FROM.slice(0, 7), cpi, ranking, total: staples.length, higher: staples.filter((r) => r.change > 0).length, items: staples } : null;
 if (staples.length !== Object.keys(STAPLES).length) console.error(JSON.stringify({ step: 'staples', status: 'partial', found: staples.map((r) => r.name) }));
 // Half a year of the weekly share rising is enough to see a turn without the chart becoming the page.
 breadth.trend = buildDiffusion(basket).slice(-26);

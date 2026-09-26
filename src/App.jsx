@@ -5,7 +5,7 @@ import { BASE, HOME, addDays, midpoint, dataPath, seriesUrl, dateLabel, families
 import PriceChart from './PriceChart';
 import { ChangeTag, ChartCard, FilterSelect, KeyFigures, SectionHeading } from './Figures';
 import BandChart from './BandChart';
-import { StapleChart, monthTime, stapleScales } from './StaplesChart';
+import { StapleChart, StapleRanking, monthTime, stapleScales } from './StaplesChart';
 import EvidenceDialog from './EvidenceDialog';
 
 const url = (slug) => `${BASE}/commodity/${slug}`;
@@ -109,6 +109,7 @@ function Staples({ staples }) {
           <StapleChart item={r} scale={scales.get(r.name)} from={from} to={to} />
         </li>)}
       </ul> },
+      staples.ranking?.length > 0 && { label: 'Ranking', scroll: true, content: <StapleRanking ranking={staples.ranking} cpi={staples.cpi} href={(r) => (r.seriesId ? `${url(r.slug)}?series=${r.seriesId}` : url(r.slug))} /> },
       { label: 'Tabular data', short: 'Tabular', scroll: true, content: <DataTable rows={items} columns={columns} rowKey={(r) => r.name} /> },
     ]}
     footer={<p className="chart-note">Source: <a href="https://www.bls.gov/cpi/factsheets/average-prices.htm" target="_blank" rel="noreferrer">BLS average prices</a>, US city average. {late.map((r) => `${r.name} from ${monthLabel(r.baseDate.slice(0, 7))}. `).join('')}Not adjusted for inflation.</p>}
