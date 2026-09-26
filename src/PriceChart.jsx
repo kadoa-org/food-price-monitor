@@ -20,7 +20,7 @@ function scale(values, count) {
   return { min: Math.max(0, min - pad), max: max + pad * 0.6, step };
 }
 
-export default function PriceChart({ rows, startDate, endDate, unit = '' }) {
+export default function PriceChart({ rows, startDate, endDate, unit = '', yTitle = 'Price' }) {
   const canvas = useRef(null), chart = useRef(null);
   const list = rows.filter((r) => !r.ambiguous && priced(r));
   const points = list.map((r) => ({ x: Date.parse(r.date), y: midpoint(r), row: r })).filter((p) => typeof p.y === 'number');
@@ -70,9 +70,11 @@ export default function PriceChart({ rows, startDate, endDate, unit = '' }) {
           x: {
             type: 'linear', min: from, max: to,
             border: { color: BASELINE },
-            grid: { display: false },
+            // Gridlines on both axes, as UKHSA draws them, so a reader can run a finger from a month to the line.
+            grid: { color: RULE, drawTicks: false },
+            title: { display: true, text: 'Report date', color: AXIS_INK, font: { size: 14 }, padding: { top: 10 } },
             ticks: {
-              autoSkip: false, maxRotation: 0, padding: 6,
+              autoSkip: false, maxRotation: 0, padding: 8,
               color: AXIS_INK,
               callback: (v) => tickLabel(v, span),
             },
@@ -89,6 +91,7 @@ export default function PriceChart({ rows, startDate, endDate, unit = '' }) {
               for (let v = Math.ceil(y.min / y.step) * y.step; v <= y.max + 1e-9; v += y.step) ticks.push({ value: Number(v.toFixed(4)) });
               axis.ticks = ticks;
             },
+            title: { display: true, text: yTitle, color: AXIS_INK, font: { size: 14 } },
             ticks: { padding: 8, color: AXIS_INK, callback: (v) => money(v) },
           },
         },

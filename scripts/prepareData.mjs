@@ -4,7 +4,9 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { createGunzip, gzipSync } from 'node:zlib';
-import { BASE, addDays, curated, familyFor, marketKey, newsFamilies, groupSeries, markonNews, movers, nearest, pickBenchmark, priced, reports, summarize, usdaNews, isRetail } from '../src/model.mjs';
+import { buildDiffusion, buildIndex, indexSummary } from '../src/index-calc.mjs';
+import { WEIGHTS, WEIGHTS_SOURCE, stratumOf } from '../src/cpi-weights.mjs';
+import { BASE, addDays, curated, familyFor, marketKey, newsFamilies, groupSeries, markonNews, movers, nearest, pickBenchmark, priced, reports, summarize, usdaNews, isRetail, quote, unitLabel, quoteShort } from '../src/model.mjs';
 import { existsSync } from 'node:fs';
 
 const root = resolve(import.meta.dirname, '..');
@@ -71,6 +73,15 @@ const featured = [];
 const moverCandidates = [];
 const index = [];
 const retailRows = [];
+// One benchmark per commodity is the basket: the product USDA quotes most consistently for that food, so the
+// index tracks 291 foods rather than 69,000 packs of the same few.
+const basket = [];
+const breadthRows = [];
+// Ten everyday groceries, by BLS average price item code. These are the prices a shopper actually pays and the
+// ones news coverage quotes, so they answer "is my grocery bill going up" in a way wholesale cartons cannot.
+const STAPLES = { '708111': 'Eggs', '709112': 'Milk', '702111': 'Bread', '703112': 'Ground beef', '706111': 'Chicken', '717311': 'Coffee', '711211': 'Bananas', '712112': 'Potatoes', '712311': 'Tomatoes', '711311': 'Oranges' };
+// A BLS series can appear under more than one commodity page, so each item code is counted once.
+const stapleRows = new Map();
 const summaries = [];
 const byFamily = Map.groupBy(rows, (r) => wanted.get(r.commodity));
 for (const family of families) {
@@ -79,6 +90,11 @@ for (const family of families) {
   const groups = groupSeries(familyRows, family.matches[0]);
   feed.push(...usdaNews(familyRows, family, newsCutoff, sourceUrl));
   for (const group of groups) { const body = seriesFile(group); group.v = version(body); await writeFile(join(data, 'series', `${group.id}.${group.v}.json`), body); }
+  for (const group of groups.filter((g) => g.source_id === 'bls-ap' && STAPLES[g.dimensions?.item_code] && !stapleRows.has(g.dimensions.item_code))) {
+    const latest = group.latest; const yearAgo = nearest(group.observations, addDays(latest.date, -365), 5);
+    if (!yearAgo?.advertised_average) continue;
+    stapleRows.set(group.dimensions.item_code, { slug: family.slug, name: STAPLES[group.dimensions.item_code], date: latest.date, price: latest.advertised_average, yearAgo: yearAgo.advertised_average, change: (latest.advertised_average / yearAgo.advertised_average - 1) * 100, unit: unitLabel(group.package) });
+  }
   const csv = toCsv(familyRows);
   // A commodity page charts wholesale series when there are any; retail-only commodities (meat) chart their weekly ad prices.
   let wholesale = groups.filter((s) => !s.retail);
@@ -92,6 +108,8 @@ for (const family of families) {
   const bench = summarize(benchmark);
   const entry = { summary, benchmark: { ...meta(benchmark), retail: benchmark.retail, ...bench, latest: compact(bench.latest), monthAgo: bench.monthAgo && compact(bench.monthAgo), yearAgo: bench.yearAgo && compact(bench.yearAgo), yearLow: bench.yearLow && compact(bench.yearLow), yearHigh: bench.yearHigh && compact(bench.yearHigh) } };
   if (!family.auto && family.featured !== false) featured.push(entry);
+  basket.push({ ...benchmark, family: family.name });
+  if (bench.monthChange !== null && bench.monthChange !== undefined) breadthRows.push({ slug: family.slug, name: family.name, change: bench.monthChange, market: benchmark.market, stage: benchmark.stage, price: quoteShort(bench.latest), unit: unitLabel(benchmark.package) });
   moverCandidates.push({ slug: family.slug, name: family.name, product: benchmark.product, origin: benchmark.origin, market: benchmark.market, stage: benchmark.stage, package: benchmark.package, retail: benchmark.retail, latest: compact(bench.latest), weekAgo: bench.weekAgo && compact(bench.weekAgo), weekChange: bench.weekChange, recent: benchmark.observations.filter((r) => priced(r) && r.date > addDays(lastDate, -30)).length });
   index.push({ slug: family.slug, name: family.name, curated: !family.auto, stages: summary.stages, markets: summary.markets, seriesCount: summary.seriesCount, firstDate: summary.firstDate, lastDate: summary.lastDate, product: benchmark.product, market: benchmark.market, stage: benchmark.stage, package: benchmark.package, latest: compact(bench.latest), yearAgo: bench.yearAgo && compact(bench.yearAgo), yearChange: bench.yearChange, matches: family.matches });
   await writeFile(join(data, 'commodity', `${family.slug}.json`), JSON.stringify({ kind: 'commodity', key: `commodity/${family.slug}`, title: family.auto ? `${family.name} prices` : `${family.singular} prices`, summary, markets: [...new Set(wholesale.map(marketKey))].sort(), series: wholesale.filter((x) => marketKey(x) === marketKey(benchmark)).map(meta), seriesTotal: wholesale.length, initialSeriesId: benchmark.id, initialDimensions: benchmark.dimensions, initialReportTitle: benchmark.latest.evidence?.report_title ?? null, initialObservations: compactAll(benchmark.observations), common }));
@@ -120,7 +138,35 @@ for (const family of families) {
 const retailWeek = retailRows.map((r) => r.date).sort().at(-1) ?? null;
 const currentRetail = retailRows.filter((r) => r.date === retailWeek).sort((a, b) => a.family.localeCompare(b.family) || (b.stores ?? 0) - (a.stores ?? 0) || a.product.localeCompare(b.product));
 const regions = [...new Set(currentRetail.map((r) => r.region))].sort((a, b) => (a === 'National' ? -1 : b === 'National' ? 1 : a.localeCompare(b)));
-await writeFile(join(data, 'home.json'), JSON.stringify({ kind: 'home', key: 'home', title: 'US food price monitor', common, featured, movers: movers(moverCandidates, lastDate), retail: { week: retailWeek, rows: currentRetail.filter((r) => r.region === 'National') }, news: sortFeed([...sortFeed(feed.filter((i) => i.source === 'Markon')).slice(0, 3), ...sortFeed(feed.filter((i) => i.source === 'USDA')).slice(0, 3)]).map(({ notes, ...i }) => i) }));
+// The headline counts foods rather than averaging them. A count of how many rose and fell cannot be wrong in the
+// way an unweighted average can: every figure in it is a comparison a reader can check on that commodity's page.
+const breadth = {
+  window: '4 weeks',
+  asOf: lastDate,
+  total: breadthRows.length,
+  rose: breadthRows.filter((r) => r.change > 0).length,
+  fell: breadthRows.filter((r) => r.change < 0).length,
+  unchanged: breadthRows.filter((r) => r.change === 0).length,
+};
+// The single biggest move each way, with where it was quoted, so the headline names a food rather than a statistic.
+const ranked = [...breadthRows].sort((a, b) => b.change - a.change);
+breadth.riser = ranked[0] && ranked[0].change > 0 ? ranked[0] : null;
+breadth.faller = ranked.at(-1) && ranked.at(-1).change < 0 ? ranked.at(-1) : null;
+// Store staples against a year earlier. Only the latest BLS month counts, so a staple BLS stopped publishing
+// cannot sit in the headline with a stale price.
+const staplesMonth = [...stapleRows.values()].map((r) => r.date).sort().at(-1) ?? null;
+const staples = [...stapleRows.values()].filter((r) => r.date === staplesMonth).sort((a, b) => b.change - a.change);
+breadth.staples = staples.length ? { month: staplesMonth, total: staples.length, higher: staples.filter((r) => r.change > 0).length, items: staples } : null;
+if (staples.length !== Object.keys(STAPLES).length) console.error(JSON.stringify({ step: 'staples', status: 'partial', found: staples.map((r) => r.name) }));
+// Half a year of the weekly share rising is enough to see a turn without the chart becoming the page.
+breadth.trend = buildDiffusion(basket).slice(-26);
+// Weighted by CPI category, the way BLS combines its basic indexes. Not shown on the site yet: it is kept in the
+// data so it can be checked against the official figures before it earns a place on the page.
+const { base: indexBase, points: indexPoints } = buildIndex(basket, { weights: WEIGHTS, stratumOf: (s) => stratumOf(s.family) });
+const unweightedPoints = buildIndex(basket).points;
+const priceIndex = { base: indexBase, weights: WEIGHTS_SOURCE, summary: indexSummary(indexPoints), points: indexPoints.slice(-105), unweighted: unweightedPoints.slice(-105) };
+console.error(JSON.stringify({ step: 'index', base: indexBase, weeks: indexPoints.length, latest: priceIndex.summary }));
+await writeFile(join(data, 'home.json'), JSON.stringify({ kind: 'home', key: 'home', title: 'US food price monitor', common, breadth, index: priceIndex, featured, movers: movers(moverCandidates, lastDate), retail: { week: retailWeek, rows: currentRetail.filter((r) => r.region === 'National') }, news: sortFeed([...sortFeed(feed.filter((i) => i.source === 'Markon')).slice(0, 3), ...sortFeed(feed.filter((i) => i.source === 'USDA')).slice(0, 3)]).map(({ notes, ...i }) => i) }));
 await writeFile(join(data, 'retail.json'), JSON.stringify({ kind: 'retail', key: 'retail', title: 'Retail prices', common, week: retailWeek, regions, rows: currentRetail }));
 const sources = manifest.sources.map((s) => ({ ...s, ...(reports[s.source_id] ?? { name: s.source_id, stage: 'Unknown', cadence: 'Unknown' }), reportId: s.source_id.replace('usda-', ''), commodities: s.commodities.length }));
 await writeFile(join(data, 'about.json'), JSON.stringify({ kind: 'about', key: 'about', title: 'About the data', common, sources, commodityCount: families.length, commodities: summaries.filter((c) => c.curated) }));

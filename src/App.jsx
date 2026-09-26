@@ -3,6 +3,7 @@ import { Button, DataTable, GitHubButton, LiveBadge, NavBar, SearchInput, Sectio
 import CommandPalette from './CommandPalette';
 import { BASE, HOME, addDays, dataPath, seriesUrl, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, quote, reports, shortMarket, summarize, unitLabel } from './model.mjs';
 import PriceChart from './PriceChart';
+import { ChangeTag, ChartCard, FilterSelect, KeyFigures, SectionHeading } from './Figures';
 import BandChart from './BandChart';
 import EvidenceDialog from './EvidenceDialog';
 
@@ -25,11 +26,10 @@ export function Loading({ error = false }) {
 }
 function Panel({ f, common }) {
   const b = f.benchmark; const start = addDays(common.lastDate, -365);
-  const dir = b.yearChange > 0 ? 'up' : b.yearChange < 0 ? 'down' : '';
   return <article className="panel">
     <div className="panel-head">
       <div><a href={url(f.summary.slug)}>{f.summary.name}</a><span className="panel-market">{shortMarket(b.market, b.stage)}</span></div>
-      {b.yearAgo && <div className={`panel-delta panel-delta--${dir}`} title={`A year earlier: ${quote(b.yearAgo)}, ${dateLabel(b.yearAgo.date)}`}><span><span className={`tri ${dir === 'down' ? 'tri--down' : ''}`} aria-hidden="true" />{pctLabel(b.yearChange)}</span><span className="panel-market">past year</span></div>}
+      {b.yearAgo && <div className="panel-delta" title={`A year earlier: ${quote(b.yearAgo)}, ${dateLabel(b.yearAgo.date)}`}><ChangeTag value={b.yearChange} /><span className="panel-market">past year</span></div>}
     </div>
     <div className="panel-price"><span className="panel-value">{quote(b.latest)}</span><span className="panel-sub">{unitLabel(b.package)}</span></div>
     <BandChart rows={b.sparkline} startDate={start} endDate={common.lastDate} name={f.summary.name.toLowerCase()} />
@@ -52,6 +52,46 @@ function MoversTable({ movers }) {
   ];
   return <DataTable rows={rows} columns={columns} rowKey={(r) => r.slug} empty="No benchmark moved this week." />;
 }
+// The home page headlines, chosen from reader interviews: which way wholesale prices are heading and the two foods
+// moving most, all over the same four weeks so one line of context covers the row. Foods lead and percentages
+// follow, because a reader remembers "sweet corn doubled" and not "100 per cent". The price index is deliberately
+// absent: it did not track the official figures closely enough to headline.
+function HomeHeadlines({ breadth }) {
+  if (!breadth?.total) return null;
+  const { rose, fell, riser, faller, asOf } = breadth;
+  const moved = rose + fell;
+  const share = moved ? rose / moved : null;
+  // Within five points of even is called mixed: a 52 to 48 split is not a direction.
+  const direction = share === null ? null : share >= 0.55 ? 'Mostly rising' : share <= 0.45 ? 'Mostly falling' : 'Mixed';
+  const mover = (m, label) => m && { label, value: <a href={`${BASE}/commodity/${m.slug}`}>{m.name}</a>, note: <ChangeTag value={m.change} size="small" /> };
+  return <KeyFigures
+    label="Headlines"
+    heading="Wholesale prices, past 4 weeks"
+    description="Each food's benchmark price against 4 weeks earlier, from USDA market reports."
+    date={`Up to and including ${dateLabel(asOf)}`}
+    items={[
+      direction && { label: 'Overall', value: direction, note: `${rose} foods up, ${fell} down` },
+      mover(riser, 'Largest rise'),
+      mover(faller, 'Largest fall'),
+    ]}
+  />;
+}
+// Grocery staples on their own, because they run on a different clock: BLS publishes store prices monthly, and a
+// shopper's question is the year-on-year one. Every staple is shown, so the count is never the only answer.
+const stapleUnit = (unit) => (/doz/.test(unit) ? 'dozen' : /gal/.test(unit) ? 'gallon' : 'lb');
+function Staples({ staples }) {
+  if (!staples?.items?.length) return null;
+  return <section className="staples">
+    <SectionHeading description="Average US store prices against the same month a year earlier, from BLS." date={`Up to and including ${monthLabel(staples.month)}`}>Grocery staples, past year</SectionHeading>
+    <ul className="staples__grid">
+      {staples.items.map((r) => <li className="staples__item" key={r.slug}>
+        <a href={`${BASE}/commodity/${r.slug}`}>{r.name}</a>
+        <span className="staples__price">{money(r.price)} <span className="staples__unit">a {stapleUnit(r.unit)}</span></span>
+        <ChangeTag value={r.change} size="small" />
+      </li>)}
+    </ul>
+  </section>;
+}
 function Overview({ page }) {
   const { common, featured, retail } = page;
   const panels = [...featured].sort((a, b) => (b.benchmark.yearChange ?? -Infinity) - (a.benchmark.yearChange ?? -Infinity));
@@ -65,7 +105,9 @@ function Overview({ page }) {
     { key: 'stores', header: 'Stores', align: 'right', hideBelow: 'sm', render: (r) => (r.stores === null ? '' : number(r.stores)) },
   ];
   return <>
-    <div className="title-block"><h1>US food price monitor</h1><p className="lede">Daily US food prices, wholesale and retail, from USDA.</p></div>
+    <div className="title-block"><h1>US food price monitor</h1><p className="lede">Daily US food prices, wholesale and retail, from USDA and BLS.</p></div>
+    <HomeHeadlines breadth={page.breadth} />
+    <Staples staples={page.breadth?.staples} />
     <Section title="Benchmark prices" right={<a href={`${BASE}/commodities`}>All commodities</a>}>
       <div className="board">{panels.map((f) => <Panel key={f.summary.slug} f={f} common={common} />)}</div>
     </Section>
@@ -98,7 +140,7 @@ const MONTHLY_RANGES = [['365', '1 year'], ['1825', '5 years'], ['all', 'All']];
 // GOV.UK treats a select as a last resort. One option is not a choice, so it is shown as a fact instead of a control.
 function Choice({ label, value, options, onChange, className = '' }) {
   if (options.length === 1) return <div className={`filter-fact ${className}`.trim()}><span className="filter-fact-label">{label}</span><span className="filter-fact-value">{options[0].label}</span></div>;
-  return <label className={className || undefined}>{label}<select value={value} onChange={(e) => onChange(e.target.value)}>{options.map((o) => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}</select></label>;
+  return <label className={className || undefined}>{label}<select value={value} title={options.find((o) => o.value === value)?.label} onChange={(e) => onChange(e.target.value)}>{options.map((o) => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}</select></label>;
 }
 function Commodity({ page }) {
   const initial = page.series.find((s) => s.id === page.initialSeriesId);
@@ -137,33 +179,42 @@ function Commodity({ page }) {
     <div className="filters">
       <Choice label="Market" value={market} options={markets.map((m) => ({ value: m, label: m, disabled: allSeries.length < page.seriesTotal && !allSeries.some((s) => marketKey(s) === m) }))} onChange={changeMarket} />
       <Choice label="Package" value={pack} options={packs.map((p) => ({ value: p, label: p }))} onChange={changePack} />
-      <Choice className="product-select" label="Product" value={selected.id} options={options.map((s) => ({ value: s.id, label: `${s.product}${s.origin ? `, ${s.origin}` : ''} (latest ${dateLabel(s.lastDate)})` }))} onChange={(v) => { setSeriesId(v); setVisible(25); }} />
+      <Choice className="product-select" label="Product" value={selected.id} options={options.map((s) => ({ value: s.id, label: `${s.product}${s.origin ? `, ${s.origin}` : ''}${s.lastDate !== page.common.lastDate ? ` (last quoted ${dateLabel(s.lastDate)})` : ''}` }))} onChange={(v) => { setSeriesId(v); setVisible(25); }} />
     </div>
-    <section className="chart-card" aria-labelledby="chart-title">
-      <div className="quote-heading">
-        <div><h2 id="chart-title" className="quote-value">{quote(selected.latest)} <span>{unit}</span></h2><p className="product-caption">{selected.product}{selected.origin ? `, ${selected.origin}` : ''}. {selected.stage}, {selected.market}, {dateLabel(selected.lastDate)}{selected.lastDate !== page.common.lastDate ? ' (not in the newest report)' : ''}.</p></div>
-        <div className="chart-controls"><div className="range-control" role="group" aria-label="Period">{(monthly ? MONTHLY_RANGES : RANGES).map(([value, label]) => <button key={value} type="button" aria-pressed={range === value} onClick={() => { setRange(value); setVisible(25); }}>{label}</button>)}</div></div>
-      </div>
-      {pending ? <div className="chart-loading" role="status">Loading price history…<div className="skeleton-chart" aria-hidden="true" /></div> : history.error ? <div role="alert" className="chart-empty">Price history could not be loaded. <button className="text-button" onClick={() => setHistory({ id: '', rows: [], dimensions: {}, error: false })}>Retry</button></div> : <PriceChart rows={filtered} startDate={startDate ?? filtered[0]?.date} endDate={endDate} unit={unit} />}
-      {!pending && gapNote(history.rows, startDate, endDate, monthly) && <p className="chart-gap-note">{gapNote(history.rows, startDate, endDate, monthly)}</p>}
-      <p className="chart-note">Source: {selected.source_id.startsWith('usda-')
+    {/* One row of figures above the chart card: where the price is, how it moved, and its range over the year. */}
+    {summary && <KeyFigures items={[
+      { label: 'Latest', value: quote(summary.latest), note: `${dateLabel(summary.latest.date)}, ${unit}` },
+      { label: '4-week change', value: summary.monthAgo ? <ChangeTag value={summary.monthChange} /> : '–', note: summary.monthAgo ? `From ${quote(summary.monthAgo)}` : 'No quote to compare' },
+      { label: 'Year change', value: summary.yearAgo ? <ChangeTag value={summary.yearChange} /> : '–', note: summary.yearAgo ? `From ${quote(summary.yearAgo)}` : 'No quote to compare' },
+      summary.yearLow && summary.yearHigh && { label: '12-month range', value: `${money(summary.yearLow.low ?? summary.yearLow.high ?? summary.yearLow.advertised_average)} to ${money(summary.yearHigh.high ?? summary.yearHigh.low ?? summary.yearHigh.advertised_average)}`, note: 'Lowest and highest quote' },
+    ]} />}
+    <ChartCard
+      id="chart-title"
+      title="Price history"
+      description={`${shortMarket(selected.market, selected.stage)}, ${unit}.${selected.lastDate !== page.common.lastDate ? ' Not in the newest report.' : ''}`}
+      date={`Up to and including ${dateLabel(selected.lastDate)}`}
+      tabs={[
+        { label: 'Chart', content: <>
+          <FilterSelect value={range} options={monthly ? MONTHLY_RANGES : RANGES} onChange={(v) => { setRange(v); setVisible(25); }} />
+          <div className="chart-legend" aria-hidden="true"><span className="chart-legend__item"><span className="chart-legend__swatch" />Middle of the quoted range</span><span className="chart-legend__item"><span className="chart-legend__swatch chart-legend__swatch--gap" />No quotes</span></div>
+          {pending ? <div className="chart-loading" role="status">Loading price history…<div className="skeleton-chart" aria-hidden="true" /></div> : history.error ? <div role="alert" className="chart-empty">Price history could not be loaded. <button className="text-button" onClick={() => setHistory({ id: '', rows: [], dimensions: {}, error: false })}>Retry</button></div> : <PriceChart rows={filtered} startDate={startDate ?? filtered[0]?.date} endDate={endDate} unit={unit} yTitle={`Price, ${unit}`} />}
+          {!pending && gapNote(history.rows, startDate, endDate, monthly) && <p className="chart-gap-note">{gapNote(history.rows, startDate, endDate, monthly)}</p>}
+        </> },
+        { label: 'Tabular data', content: <>
+          <p className="dk-hint table-intro">{pending ? 'Loading' : `${number(filtered.length)} reports in this period, ${unit}.`}</p>
+          <DataTable rows={sorted.slice(0, visible)} columns={columns} rowKey={(r) => r.date} sort={sort} onSort={(key) => { setSort((s) => ({ key, dir: s.key === key && s.dir === 'desc' ? 'asc' : 'desc' })); setVisible(25); }} empty={pending ? 'Loading…' : history.error ? 'History could not be loaded.' : 'No reports in this period.'} />
+          {sorted.length > visible && <div className="table-more"><Button onClick={() => setVisible((n) => n + 50)}>Show more</Button><span className="dk-hint">Showing {visible} of {number(sorted.length)}</span></div>}
+        </> },
+        { label: 'Download', content: <>
+          <p className="download-intro">Every report for {page.summary.name.toLowerCase()} in this dataset, all markets and products, as a gzipped CSV.</p>
+          <Download slug={page.summary.slug} common={page.common} />
+        </> },
+      ]}
+      footer={<p className="chart-note">Source: {selected.source_id.startsWith('usda-')
         ? <a href={`https://mymarketnews.ams.usda.gov/viewReport/${selected.source_id.replace('usda-', '')}`} target="_blank" rel="noreferrer">USDA Market News, {reports[selected.source_id]?.name ?? selected.source_id}</a>
-        : <a href="https://www.bls.gov/cpi/factsheets/average-prices.htm" target="_blank" rel="noreferrer">US Bureau of Labor Statistics, average prices</a>}.</p>
-    </section>
-    {summary && <Section title="Compared with earlier reports" hint={summary.latest.low === null && summary.latest.high === null ? 'Percentages compare the published average.' : 'Percentages compare the midpoint of the quoted range.'}>
-      <dl className="dk-summary dk-summary--wide">
-        <div><dt>Latest, {dateLabel(summary.latest.date)}</dt><dd>{quote(summary.latest)}</dd></div>
-        <div><dt>4 weeks earlier{summary.monthAgo ? `, ${dateLabel(summary.monthAgo.date)}` : ''}</dt><dd>{summary.monthAgo ? <>{quote(summary.monthAgo)} <Change value={summary.monthChange} /></> : 'No quote within 4 days of that date'}</dd></div>
-        <div><dt>A year earlier{summary.yearAgo ? `, ${dateLabel(summary.yearAgo.date)}` : ''}</dt><dd>{summary.yearAgo ? <>{quote(summary.yearAgo)} <Change value={summary.yearChange} /></> : 'No quote a year earlier in this dataset'}</dd></div>
-        <div><dt>Lowest quote, past year</dt><dd>{summary.yearLow ? `${money(summary.yearLow.low ?? summary.yearLow.high ?? summary.yearLow.advertised_average)} on ${dateLabel(summary.yearLow.date)}` : 'None'}</dd></div>
-        <div><dt>Highest quote, past year</dt><dd>{summary.yearHigh ? `${money(summary.yearHigh.high ?? summary.yearHigh.low ?? summary.yearHigh.advertised_average)} on ${dateLabel(summary.yearHigh.date)}` : 'None'}</dd></div>
-      </dl>
-    </Section>}
+        : <a href="https://www.bls.gov/cpi/factsheets/average-prices.htm" target="_blank" rel="noreferrer">US Bureau of Labor Statistics, average prices</a>}.</p>}
+    />
     <NewsSection items={page.news} common={page.common} slug={page.summary.slug} />
-    <Section title="Daily prices" hint={pending ? 'Loading' : `${number(filtered.length)} USDA reports in this period, ${unit}.`}>
-      <DataTable rows={sorted.slice(0, visible)} columns={columns} rowKey={(r) => r.date} sort={sort} onSort={(key) => { setSort((s) => ({ key, dir: s.key === key && s.dir === 'desc' ? 'asc' : 'desc' })); setVisible(25); }} empty={pending ? 'Loading…' : history.error ? 'History could not be loaded.' : 'No reports in this period.'} />
-      {sorted.length > visible && <div className="table-more"><Button onClick={() => setVisible((n) => n + 50)}>Show more</Button><span className="dk-hint">Showing {visible} of {number(sorted.length)}</span></div>}
-    </Section>
     {evidence && <EvidenceDialog row={evidence} series={{ ...selected, commodity: selected.commodity ?? page.summary.name, dimensions: history.dimensions ?? {}, reportTitle: history.reportTitle }} onClose={() => setEvidence(null)} />}
   </>;
 }

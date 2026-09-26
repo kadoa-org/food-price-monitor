@@ -1,3 +1,8 @@
+:root {
+  /* Read by chartSetup.mjs: the canvas cannot see custom properties, so the series colour lives at the root. */
+  --chart-series-ink: #12436d;
+}
+
 /* Chart styles.
 
    The charts draw on a canvas through Chart.js, so this file owns two things: the box the canvas sits in, and
@@ -9,7 +14,7 @@
 
 .chart {
   /* Ink. The series carries the one saturated colour on the page; everything else recedes. */
-  --chart-series: var(--dk-link);
+  --chart-series: var(--chart-series-ink);
   --chart-axis-ink: var(--dk-muted);
   --chart-ink: var(--dk-ink);
   --chart-rule: var(--dk-rule-soft);
@@ -87,8 +92,10 @@
   border: 0;
 }
 
+/* Only the detail chart shrinks on a phone. As a bare `.chart` this rule came later than `.chart--panel` and won,
+   so every panel and the headline trend rendered 280px tall on mobile. */
 @media (max-width: 640px) {
-  .chart {
+  .chart:not(.chart--panel) {
     --chart-height: 280px;
   }
 }

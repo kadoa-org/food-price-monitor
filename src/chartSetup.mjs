@@ -9,13 +9,15 @@ export const DAY = 86400000;
 // The palette lives in chart.css so the chart, the chrome and the tables share one set of values. Canvas
 // cannot read a custom property, so it is resolved once here, with the stylesheet's values as fallbacks for
 // prerendering, where there is no document to ask.
-const FALLBACK = { series: '#1d70b8', axis: '#505a5f', ink: '#0b0c0c', rule: '#e5e6e7', void: '#faf9f7', paper: '#fff' };
+const FALLBACK = { series: '#12436d', axis: '#505a5f', ink: '#0b0c0c', rule: '#e5e6e7', void: '#faf9f7', paper: '#fff' };
 function token(name, fallback) {
   if (typeof document === 'undefined') return fallback;
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return value || fallback;
 }
-export const INK = token('--dk-link', FALLBACK.series);
+// The Analysis Function dark blue the UKHSA dashboard charts in, rather than the link blue, which on a chart line
+// reads as something to click.
+export const INK = token('--chart-series-ink', FALLBACK.series);
 export const AXIS_INK = token('--dk-muted', FALLBACK.axis);
 export const LABEL_INK = token('--dk-ink', FALLBACK.ink);
 export const RULE = token('--dk-rule-soft', FALLBACK.rule);
@@ -52,11 +54,13 @@ export function monthTicks(from, to, max = 6) {
   for (; d.getTime() <= to; d.setUTCMonth(d.getUTCMonth() + stepMonths)) if (d.getTime() >= from) ticks.push(d.getTime());
   return ticks;
 }
+// Month labels stack the month over the year, as UKHSA does, so twelve of them fit a phone-width axis without
+// rotating. Chart.js draws an array as separate lines.
 export const tickLabel = (t, span) => {
   const d = new Date(t);
   if (span > 3 * 365 * DAY) return String(d.getUTCFullYear());
-  if (span > 45 * DAY) return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
-  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+  if (span > 45 * DAY) return [MONTHS[d.getUTCMonth()], String(d.getUTCFullYear())];
+  return [String(d.getUTCDate()), MONTHS[d.getUTCMonth()]];
 };
 
 // Stretches with no quote are holes, not flat prices: a null between two reports breaks the line there.

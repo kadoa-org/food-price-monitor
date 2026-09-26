@@ -23,9 +23,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .text-button{background:none;border:0;color:var(--dk-link);text-decoration:underline;text-underline-offset:3px;padding:0;font-size:14px}
 
 /* Filters: one row above everything they scope. GOV.UK select: square, dark 1px border. */
-.filters{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px 16px;margin-bottom:20px}
+.filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px;margin-bottom:24px}.filters>*{flex:0 1 auto;width:240px;max-width:100%}.filters .product-select{width:360px}
 .filters label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;min-width:0}
-.filters .product-select{grid-column:1/-1}.filter-fact{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;min-width:0}.filter-fact-value{display:flex;align-items:center;min-height:40px;padding-bottom:6px;border-bottom:1px solid var(--dk-rule-soft);font-size:16px;font-weight:400;overflow-wrap:anywhere}.filters--single{grid-template-columns:minmax(0,320px)}
+.filter-fact{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;min-width:0}.filter-fact-value{display:flex;align-items:center;min-height:40px;padding-bottom:6px;border-bottom:1px solid var(--dk-rule-soft);font-size:16px;font-weight:400;overflow-wrap:anywhere}.filters--single>*{width:320px}
 .filters select{min-width:0;width:100%;height:40px;padding:0 36px 0 10px;border:1px solid var(--dk-ink);border-radius:0;color:var(--dk-ink);background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%230b0c0c' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 12px center;appearance:none;font-size:14px;font-weight:400;text-overflow:ellipsis}
 
 /* Chart panel */
@@ -60,13 +60,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 /* Landing page: title block, one finding, a 3x2 grid of aligned panels, then full-width tables */
 .title-block{margin-bottom:20px}.title-block .lede{margin-bottom:6px}.title-block .dk-hint{margin:0}
 .board{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
-.panel{border:1px solid var(--dk-rule);background:#fff;padding:14px;display:grid;grid-template-rows:40px 56px auto;row-gap:8px;min-width:0}
+.panel{background:var(--gov-grey-bg);padding:20px 25px 20px;display:grid;grid-template-rows:auto auto auto;row-gap:10px;min-width:0}
 .panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;min-width:0}.panel-head>div{min-width:0}
-.panel-head a{font-size:17px;font-weight:700;color:var(--dk-ink);text-decoration:none;display:block;line-height:1.2}.panel-head a:hover{text-decoration:underline}
+.panel-head a{font-size:19px;font-weight:700;color:var(--dk-ink);text-decoration:none;display:block;line-height:1.2}.panel-head a:hover{text-decoration:underline}
 .panel-market{display:block;font-size:12px;color:var(--dk-muted);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.panel-delta{text-align:right;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2;flex-shrink:0}.panel-delta>span:first-child{display:block}
+.panel-delta{text-align:right;line-height:1.2;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
 .change{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}.change--up{color:var(--dk-red)}.change--down{color:var(--dk-green)}.change--up .tri{border-bottom-color:var(--dk-red)}.change--down .tri{border-top-color:var(--dk-green)}
-.panel-delta--up{color:var(--dk-red)}.panel-delta--down{color:var(--dk-green)}.panel-delta--up .tri{border-bottom-color:var(--dk-red)}.panel-delta--down .tri{border-top-color:var(--dk-green)}
 .tri{display:inline-block;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:7px solid var(--dk-ink);margin-right:5px;vertical-align:2px}.tri--down{border-bottom:0;border-top:7px solid var(--dk-ink)}
 .panel-value{display:block;font-size:26px;font-weight:400;line-height:1.15;font-variant-numeric:tabular-nums;letter-spacing:-.3px;white-space:nowrap}
 .panel-sub{display:block;font-size:12px;color:var(--dk-muted);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -91,7 +90,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 @media(max-width:700px){
   h1{font-size:26px}.main{padding-top:22px}.header-date{display:none}
   .hero{flex-direction:column;gap:16px}
-  .filters{grid-template-columns:1fr}.filters .product-select{grid-column:auto}
+  .filters>*,.filters .product-select{width:100%}
   .quote-heading{flex-direction:column;gap:12px}.chart-controls{align-items:flex-start}.quote-value{font-size:26px}
   .chart-card{padding:14px}
   .dk-summary>div{grid-template-columns:1fr;gap:2px}
@@ -114,3 +113,71 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .cmdk-empty{padding:24px 12px;text-align:center;color:var(--dk-muted)}
 .cmdk-foot{display:flex;align-items:center;gap:6px;padding:0 12px;height:32px;border-top:1px solid var(--dk-rule);font-size:13px;color:var(--dk-muted)}
 @media(max-width:640px){.header-right .dk-btn-label,.header-kbd{display:none}}
+
+/* Reverse engineered from the UKHSA data dashboard, which is built on the GOV.UK Design System. Values are the ones
+   read off the live page, not approximations. */
+:root{--gov-grey-bg:#f3f2f1;--gov-border:#b1b4b6;--gov-secondary:#505a5f;--gov-text:#0b0c0c;--gov-tag-red-bg:#f4cdc6;--gov-tag-red:#2a0b06;--gov-tag-green-bg:#cce2d8;--gov-tag-green:#005a30}
+.govuk-visually-hidden{position:absolute!important;width:1px!important;height:1px!important;margin:0!important;padding:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;border:0!important;white-space:nowrap!important}
+
+
+/* GOV.UK tag used for change */
+.change-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px 4px;font-size:16px;line-height:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.change-tag--up{background:var(--gov-tag-red-bg);color:var(--gov-tag-red)}.change-tag--down{background:var(--gov-tag-green-bg);color:var(--gov-tag-green)}.change-tag--flat{background:#e8f1f8;color:#0c2d4a}
+.change-tag__arrow{font-weight:700;font-size:18px;line-height:1}.change-tag--up .change-tag__arrow{color:#942514}.change-tag--down .change-tag__arrow{color:#005a30}
+.change-tag .change-tag__main+*{font-weight:400}
+
+/* Chart card: grey container, title, italic description, date, tabs */
+.chart-panel-card{background:var(--gov-grey-bg);padding:20px 25px 25px;margin:0 0 40px;min-width:0}
+.chart-panel-card__title{font-size:24px;line-height:30px;font-weight:700;margin:0 0 15px}
+.chart-panel-card__desc{font-size:16px;line-height:20px;font-style:italic;color:var(--gov-secondary);margin:0 0 15px}
+.chart-panel-card__date{font-size:16px;line-height:20px;color:var(--gov-secondary);margin:0 0 30px}
+
+/* GOV.UK tabs */
+.govuk-tabs{margin:0}.govuk-tabs__list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap}
+.govuk-tabs__list-item{margin:0 0 -1px;position:relative}
+.govuk-tabs__tab{font:inherit;font-size:19px;line-height:25px;background:none;border:0;cursor:pointer;color:var(--gov-text);text-decoration:underline;text-underline-offset:.15em;padding:14px 19px 16px 0;margin-right:5px}
+.govuk-tabs__tab:hover{text-decoration-thickness:max(3px,.1875rem)}
+.govuk-tabs__list-item--selected .govuk-tabs__tab{background:#fff;border:1px solid var(--gov-border);border-bottom:0;text-decoration:none;padding:14px 19px 16px}
+.govuk-tabs__tab:focus-visible{outline:3px solid transparent;background:var(--dk-focus,#fd0);box-shadow:0 -2px var(--dk-focus,#fd0),0 4px var(--gov-text);text-decoration:none}
+.govuk-tabs__panel{background:#fff;border:1px solid var(--gov-border);padding:30px 20px 25px;min-width:0}
+.govuk-tabs__panel[hidden]{display:none}
+
+/* GOV.UK select */
+.filter-select{margin:0 0 20px}.govuk-label{display:block;font-size:19px;line-height:25px;margin:0 0 5px;color:var(--gov-text)}
+.govuk-select{font:inherit;font-size:19px;line-height:25px;min-width:11.5em;max-width:100%;height:2.5rem;padding:5px;border:2px solid var(--gov-text);border-radius:0;background:#fff;color:var(--gov-text)}
+.govuk-select:focus{outline:3px solid var(--dk-focus,#fd0);outline-offset:0;box-shadow:inset 0 0 0 2px}
+
+/* Chart legend above the plot */
+.chart-legend{display:flex;justify-content:center;flex-wrap:wrap;gap:20px;margin:0 0 8px;font-size:14px;color:var(--gov-secondary)}
+.chart-legend__item{display:inline-flex;align-items:center;gap:8px}.chart-legend__swatch{display:inline-block;width:28px;height:3px;background:#12436d}
+.chart-legend__swatch--gap{height:0;border-top:2px dotted var(--gov-border);background:none}
+
+@media (max-width:640px){.chart-panel-card{padding:15px}.govuk-tabs__tab{font-size:16px;padding:10px 12px 12px 0}.govuk-tabs__list-item--selected .govuk-tabs__tab{padding:10px 12px 12px}.govuk-tabs__panel{padding:20px 12px}}
+.table-intro{margin:0 0 15px}.download-intro{margin:0 0 20px;font-size:19px;line-height:25px}
+
+/* Key figures on a detail page: one grey row, a figure per cell, divided by thin rules. */
+.key-figures{margin:0 0 30px}
+.key-figures__row{display:grid;grid-template-columns:repeat(var(--key-columns),minmax(0,1fr));margin:0;background:var(--gov-grey-bg)}
+.key-figures__item{padding:15px 20px;min-width:0}
+.key-figures__item+.key-figures__item{border-left:1px solid var(--gov-border)}
+.key-figures__label{margin:0 0 6px;font-size:14px;color:var(--gov-secondary)}
+.key-figures__value{margin:0;font-size:22px;line-height:1.25;font-variant-numeric:tabular-nums}
+.key-figures__value .change-tag{font-size:17px}
+.key-figures__value a{color:var(--gov-link,#1d70b8);text-underline-offset:3px}
+.change-tag--small{padding:1px 5px 2px;font-size:13px;line-height:17px;gap:2px}.change-tag--small .change-tag__arrow{font-size:14px}
+.key-figures__note{margin:4px 0 0;font-size:14px;color:var(--gov-secondary)}
+@media (max-width:640px){
+  .key-figures__row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .key-figures__item:nth-child(odd){border-left:0}
+  .key-figures__item:nth-child(n+3){border-top:1px solid var(--gov-border)}
+  .key-figures__row--odd{grid-template-columns:1fr}.key-figures__row--odd .key-figures__item{border-left:0}.key-figures__row--odd .key-figures__item+.key-figures__item{border-top:1px solid var(--gov-border)}
+}
+
+.section-heading{margin:0 0 15px}.section-heading h2{font-size:24px;font-weight:700;line-height:1.25;margin:0 0 8px}.section-heading__desc{font-size:16px;font-style:italic;color:var(--gov-secondary);margin:0 0 8px}.section-heading__date{font-size:16px;color:var(--gov-secondary);margin:0}
+@media (max-width:640px){.section-heading h2{font-size:21px}}
+/* Grocery staples: ten small cells, name, store price and the year change. */
+.staples{margin:0 0 36px}
+.staples__grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;background:var(--gov-border);border:1px solid var(--gov-border)}
+.staples__item{background:#fff;padding:10px 12px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
+.staples__item a{font-weight:600}.staples__price{font-size:16px;font-variant-numeric:tabular-nums}.staples__unit{font-size:14px;color:var(--gov-secondary)}
+@media (max-width:640px){.staples__grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
