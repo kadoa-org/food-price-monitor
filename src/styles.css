@@ -145,7 +145,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .govuk-tabs__tab:focus-visible{outline:3px solid transparent;background:var(--dk-focus,#fd0);box-shadow:0 -2px var(--dk-focus,#fd0),0 4px var(--gov-text);text-decoration:none}
 /* As the UKHSA chart cards: every panel keeps a minimum height and a long table scrolls inside a fixed height, so a
    switch from chart to table does not move what is below. */
-.govuk-tabs__panel{background:#fff;border:1px solid var(--gov-border);padding:24px 16px;min-width:0;min-height:560px;box-sizing:border-box}.govuk-tabs__panel--scroll{max-height:720px;overflow-y:auto}.govuk-tabs__short{display:none}
+.govuk-tabs__panel{background:#fff;border:1px solid var(--gov-border);padding:24px 16px;min-width:0;min-height:560px;box-sizing:border-box}.govuk-tabs__short{display:none}
 .govuk-tabs__panel[hidden]{display:none}
 
 /* GOV.UK select */

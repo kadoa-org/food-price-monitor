@@ -3,7 +3,7 @@ import { Button, DataTable, GitHubButton, LiveBadge, NavBar, SearchInput, Sectio
 import CommandPalette from './CommandPalette';
 import { BASE, HOME, addDays, midpoint, dataPath, seriesUrl, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, quote, reports, shortMarket, summarize, unitLabel } from './model.mjs';
 import PriceChart from './PriceChart';
-import { ChangeTag, ChartCard, FilterSelect, KeyFigures, SectionHeading } from './Figures';
+import { ChangeTag, ChartCard, FilterSelect, KeyFigures, SectionHeading, ShowMore } from './Figures';
 import BandChart from './BandChart';
 import { StapleChart, StapleRanking, monthTime, stapleScales } from './StaplesChart';
 import EvidenceDialog from './EvidenceDialog';
@@ -109,8 +109,8 @@ function Staples({ staples }) {
           <StapleChart item={r} scale={scales.get(r.name)} from={from} to={to} />
         </li>)}
       </ul> },
-      staples.ranking?.length > 0 && { label: 'Ranking', scroll: true, content: <StapleRanking ranking={staples.ranking} cpi={staples.cpi} href={(r) => (r.seriesId ? `${url(r.slug)}?series=${r.seriesId}` : url(r.slug))} /> },
-      { label: 'Tabular data', short: 'Tabular', scroll: true, content: <DataTable rows={items} columns={columns} rowKey={(r) => r.name} /> },
+      staples.ranking?.length > 0 && { label: 'Ranking', content: <ShowMore total={staples.ranking.length} initial={15} noun="foods">{(n) => <StapleRanking ranking={staples.ranking} limit={n} cpi={staples.cpi} href={(r) => (r.seriesId ? `${url(r.slug)}?series=${r.seriesId}` : url(r.slug))} />}</ShowMore> },
+      { label: 'Tabular data', short: 'Tabular', content: <ShowMore total={items.length} initial={15} noun="foods">{(n) => <DataTable rows={items.slice(0, n)} columns={columns} rowKey={(r) => r.name} />}</ShowMore> },
     ]}
     footer={<p className="chart-note">Source: <a href="https://www.bls.gov/cpi/factsheets/average-prices.htm" target="_blank" rel="noreferrer">BLS average prices</a>, US city average. {late.map((r) => `${r.name} from ${monthLabel(r.baseDate.slice(0, 7))}. `).join('')}Not adjusted for inflation.</p>}
   />;
@@ -240,7 +240,7 @@ function Commodity({ page }) {
           {pending ? <div className="chart-loading" role="status">Loading price history…<div className="skeleton-chart" aria-hidden="true" /></div> : history.error ? <div role="alert" className="chart-empty">Price history could not be loaded. <button className="text-button" onClick={() => setHistory({ id: '', rows: [], dimensions: {}, error: false })}>Retry</button></div> : <PriceChart rows={filtered} startDate={startDate ?? filtered[0]?.date} endDate={endDate} unit={unit} yTitle={`Price, ${unit}`} measure={measure} />}
           {!pending && gapNote(history.rows, startDate, endDate, monthly) && <p className="chart-gap-note">{gapNote(history.rows, startDate, endDate, monthly)}</p>}
         </> },
-        { label: 'Tabular data', short: 'Tabular', scroll: true, content: <>
+        { label: 'Tabular data', short: 'Tabular', content: <>
           <p className="dk-hint table-intro">{pending ? 'Loading' : `${number(filtered.length)} reports in this period, ${unit}.`}</p>
           <DataTable rows={sorted.slice(0, visible)} columns={columns} rowKey={(r) => r.date} sort={sort} onSort={(key) => { setSort((s) => ({ key, dir: s.key === key && s.dir === 'desc' ? 'asc' : 'desc' })); setVisible(25); }} empty={pending ? 'Loading…' : history.error ? 'History could not be loaded.' : 'No reports in this period.'} />
           {sorted.length > visible && <div className="table-more"><Button onClick={() => setVisible((n) => n + 50)}>Show more</Button><span className="dk-hint">Showing {visible} of {number(sorted.length)}</span></div>}

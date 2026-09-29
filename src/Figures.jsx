@@ -1,4 +1,5 @@
 import React, { useId, useLayoutEffect, useRef, useState } from 'react';
+import { Button } from './kit';
 
 // Components reverse engineered from the UKHSA data dashboard (ukhsa-dashboard.data.gov.uk), which is built on the
 // GOV.UK Design System and is the best-regarded public statistics dashboard in that family. Measurements were read
@@ -60,7 +61,8 @@ export function Tabs({ tabs, initial = 0 }) {
   const panels = useRef([]);
   const id = useId();
   // Every panel takes the height of the first one (the chart), measured on the page and again on resize, so switching
-  // tabs never moves the content below; a longer table scrolls inside that height, as on the UKHSA dashboard.
+  // tabs never pulls the content below upward. A longer panel grows instead of scrolling: GOV.UK advises against
+  // scroll areas inside the page, and long lists use ShowMore to stay short.
   const [lockHeight, setLockHeight] = useState(null);
   useLayoutEffect(() => {
     const measure = () => {
@@ -90,7 +92,7 @@ export function Tabs({ tabs, initial = 0 }) {
         >{t.short ? <><span className="govuk-tabs__long">{t.label}</span><span className="govuk-tabs__short" aria-hidden="true">{t.short}</span></> : t.label}</button>
       </li>)}
     </ul>
-    {tabs.map((t, i) => <div key={t.label} ref={(el) => { panels.current[i] = el; }} style={lockHeight && i !== initial ? { minHeight: lockHeight, ...(t.scroll ? { maxHeight: lockHeight } : {}) } : undefined} className={`govuk-tabs__panel${t.scroll ? ' govuk-tabs__panel--scroll' : ''}`} role="tabpanel" id={`${id}-panel-${i}`} aria-labelledby={`${id}-tab-${i}`} hidden={i !== active}>{t.content}</div>)}
+    {tabs.map((t, i) => <div key={t.label} ref={(el) => { panels.current[i] = el; }} style={lockHeight && i !== initial ? { minHeight: lockHeight } : undefined} className="govuk-tabs__panel" role="tabpanel" id={`${id}-panel-${i}`} aria-labelledby={`${id}-tab-${i}`} hidden={i !== active}>{t.content}</div>)}
   </div>;
 }
 
@@ -114,4 +116,20 @@ export function FilterSelect({ label = 'Filter data by', value, options, onChang
       {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
     </select>
   </div>;
+}
+
+// A long list shows its first rows and a button for the rest, the pattern the price tables already use, so no list
+// ever scrolls inside the page. `children(count)` renders the first `count` items.
+export function ShowMore({ total, initial, step, noun, children }) {
+  const [count, setCount] = useState(initial);
+  const shown = Math.min(count, total);
+  return <>
+    {children(shown)}
+    {total > initial && <div className="table-more">
+      {shown < total
+        ? <Button onClick={() => setCount(step ? shown + step : total)}>{step ? 'Show more' : `Show all ${total} ${noun}`}</Button>
+        : <Button onClick={() => setCount(initial)}>Show fewer</Button>}
+      <span className="dk-hint">Showing {shown} of {total}</span>
+    </div>}
+  </>;
 }

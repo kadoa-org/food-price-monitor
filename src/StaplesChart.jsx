@@ -94,7 +94,8 @@ export { monthTime };
 // the small multiples said the shapes looked alike and the end figure was what mattered, and a ranking has room for
 // four times the foods. A dashed line marks overall inflation over the same months, labelled on the chart, so a bar
 // that ends right of it is a food that rose faster than prices in general. The ten charted foods are in bold.
-export function StapleRanking({ ranking, cpi, href }) {
+// `limit` renders only the first rows; the scale and the counts still come from the whole ranking.
+export function StapleRanking({ ranking, cpi, href, limit }) {
   const values = [...ranking.map((r) => r.change), cpi?.change ?? 0, 0];
   const min = Math.min(...values), max = Math.max(...values);
   const span = max - min || 1;
@@ -116,7 +117,7 @@ export function StapleRanking({ ranking, cpi, href }) {
         </div>
       )}
       <ol className="ranking__list">
-        {ranking.map((r) => (
+        {(limit ? ranking.slice(0, limit) : ranking).map((r) => (
           <li className={`ranking__row${r.staple ? ' ranking__row--staple' : ''}`} key={r.name}>
             <a className="ranking__name" href={href(r)}>{r.name}</a>
             <span className="ranking__track">
