@@ -216,7 +216,8 @@ function Commodity({ page }) {
   ];
   const unit = unitLabel(selected.package);
   const inflation = (() => {
-    if (!monthly || !cpi) return null;
+    // Over a year inflation barely moves the line, so it is drawn only on the five-year and full views.
+    if (!monthly || !cpi || range === '365') return null;
     const rows = filtered.filter((r) => typeof midpoint(r) === 'number');
     const months = [...cpi.keys()].sort();
     const at = (d) => { const m = d.slice(0, 7); return cpi.get(m) ?? cpi.get(months.filter((x) => x < m).at(-1)); };
