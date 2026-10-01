@@ -223,6 +223,8 @@ async function overallInflation(fromYm, toYm) {
   }
   const from = values.get(fromYm), to = values.get(toYm);
   if (!from || !to) throw new Error(`CPI missing for ${!from ? fromYm : toYm}`);
+  // The monthly index ships as its own file for the dashed inflation line on the store price charts.
+  await writeFile(join(data, 'cpi.json'), JSON.stringify({ series: 'CUUR0000SA0', months: [...values].filter(([ym]) => ym >= '2019-01').sort(([a], [b]) => a.localeCompare(b)) }));
   return { series: 'CUUR0000SA0', from: fromYm, to: toYm, change: Number(((to / from - 1) * 100).toFixed(2)) };
 }
 let cpi = null;

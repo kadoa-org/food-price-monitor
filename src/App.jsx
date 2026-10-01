@@ -193,6 +193,10 @@ function Commodity({ page }) {
   const pending = history.id !== selected.id;
   // The national egg index reports one value per day rather than a low and a high; retail ads do too.
   const monthly = selected.source_id.startsWith('bls-');
+  // Store prices (BLS, monthly) get a dashed comparison: the first price on the chart grown with all consumer prices,
+  // so it moves with the period chosen. A month without a CPI figure (BLS skipped October 2025) takes the month before.
+  const [cpi, setCpi] = useState(null);
+  useEffect(() => { if (!monthly || cpi) return undefined; const controller = new AbortController(); fetch(`${dataPath(page.common)}/cpi.json`, { signal: controller.signal }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))).then((f) => setCpi(new Map(f.months))).catch(() => {}); return () => controller.abort(); }, [monthly, cpi]);
   const retail = selected.stage === 'Retail promotion' || (!pending && history.rows.length > 0 && history.rows.every((r) => r.low === null && r.high === null));
   const series = { ...selected, observations: history.rows };
   const summary = pending || !history.rows.length ? null : summarize(series);
@@ -211,6 +215,15 @@ function Commodity({ page }) {
     { key: 'source', header: 'Source', render: (r) => <button className="text-button" onClick={() => setEvidence(r)} aria-label={`View USDA record for ${dateLabel(r.date)}`}>View</button> },
   ];
   const unit = unitLabel(selected.package);
+  const inflation = (() => {
+    if (!monthly || !cpi) return null;
+    const rows = filtered.filter((r) => typeof midpoint(r) === 'number');
+    const months = [...cpi.keys()].sort();
+    const at = (d) => { const m = d.slice(0, 7); return cpi.get(m) ?? cpi.get(months.filter((x) => x < m).at(-1)); };
+    if (rows.length < 2 || !at(rows[0].date)) return null;
+    const base = midpoint(rows[0]), c0 = at(rows[0].date);
+    return rows.map((r) => [r.date, Number(((base * at(r.date)) / c0).toFixed(3))]);
+  })();
   return <>
     <div className="hero detail-hero"><div><h1 className="dk-h1">{page.title}</h1><p className="lede">{page.summary.description}</p><p className="dk-hint">{number(page.summary.seriesCount)} {page.summary.seriesCount === 1 ? 'product' : 'products'} in {page.summary.markets} {page.summary.markets === 1 ? 'market' : 'markets'}, {dateLabel(page.summary.firstDate)} to {dateLabel(page.summary.lastDate)}.</p></div><Download slug={page.summary.slug} common={page.common} /></div>
     <div className="filters">
@@ -236,8 +249,8 @@ function Commodity({ page }) {
             <FilterSelect value={range} options={monthly ? MONTHLY_RANGES : RANGES} onChange={(v) => { setRange(v); setVisible(25); }} />
             <FilterSelect label="Show as" value={measure} options={MEASURES} onChange={setMeasure} />
           </div>
-          <div className="chart-legend" aria-hidden="true"><span className="chart-legend__item"><span className="chart-legend__swatch" />Middle of the quoted range</span><span className="chart-legend__item"><span className="chart-legend__swatch chart-legend__swatch--gap" />No quotes</span></div>
-          {pending ? <div className="chart-loading" role="status">Loading price history…<div className="skeleton-chart" aria-hidden="true" /></div> : history.error ? <div role="alert" className="chart-empty">Price history could not be loaded. <button className="text-button" onClick={() => setHistory({ id: '', rows: [], dimensions: {}, error: false })}>Retry</button></div> : <PriceChart rows={filtered} startDate={startDate ?? filtered[0]?.date} endDate={endDate} unit={unit} yTitle={`Price, ${unit}`} measure={measure} />}
+          <div className="chart-legend" aria-hidden="true"><span className="chart-legend__item"><span className="chart-legend__swatch" />Middle of the quoted range</span><span className="chart-legend__item"><span className="chart-legend__swatch chart-legend__swatch--gap" />No quotes</span>{inflation && <span className="chart-legend__item"><span className="chart-legend__swatch chart-legend__swatch--inflation" />With inflation</span>}</div>
+          {pending ? <div className="chart-loading" role="status">Loading price history…<div className="skeleton-chart" aria-hidden="true" /></div> : history.error ? <div role="alert" className="chart-empty">Price history could not be loaded. <button className="text-button" onClick={() => setHistory({ id: '', rows: [], dimensions: {}, error: false })}>Retry</button></div> : <PriceChart rows={filtered} startDate={startDate ?? filtered[0]?.date} endDate={endDate} unit={unit} yTitle={`Price, ${unit}`} measure={measure} inflation={inflation} />}
           {!pending && gapNote(history.rows, startDate, endDate, monthly) && <p className="chart-gap-note">{gapNote(history.rows, startDate, endDate, monthly)}</p>}
         </> },
         { label: 'Tabular data', short: 'Tabular', content: <>
