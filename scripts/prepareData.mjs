@@ -207,59 +207,37 @@ staples.sort((a, b) => stapleOrder.indexOf(a.name) - stapleOrder.indexOf(b.name)
 // average, not seasonally adjusted (CUUR0000SA0), from the BLS flat files the dataset's average prices come from.
 // It is context, not a price, so a failure is a named degraded state: logged, and the ranking shows no line and says
 // so, rather than failing the daily publish.
-// Reference lines for the staples: all consumer prices (CPI-U, all items, not seasonally adjusted) and wages (BLS
-// average hourly earnings of production and nonsupervisory employees, seasonally adjusted, the pair BLS's Real
-// Earnings release uses), each as percent change from the staples' common month.
-async function blsMonthly(file, seriesId) {
-  const response = await fetch(`https://download.bls.gov/pub/time.series/${file}`, {
+async function overallInflation(fromYm, toYm) {
+  const response = await fetch('https://download.bls.gov/pub/time.series/cu/cu.data.1.AllItems', {
     // No Accept header: BLS answers 406 to text/plain for this file.
     headers: { 'User-Agent': 'kadoa-food-price-monitor/1.0 (adrian@kadoa.com)' },
     signal: AbortSignal.timeout(120_000),
   });
-  if (!response.ok) throw new Error(`BLS HTTP ${response.status} for ${file}`);
+  if (!response.ok) throw new Error(`BLS HTTP ${response.status}`);
   const values = new Map();
   for (const line of (await response.text()).split('\n')) {
     const [id, year, period, value] = line.split('\t').map((f) => f.trim());
-    if (id !== seriesId || !/^M(0[1-9]|1[0-2])$/.test(period ?? '')) continue;
+    if (id !== 'CUUR0000SA0' || !/^M(0[1-9]|1[0-2])$/.test(period ?? '')) continue;
     const v = Number(value);
     if (Number.isFinite(v)) values.set(`${year}-${period.slice(1)}`, v);
   }
-  return values;
+  const from = values.get(fromYm), to = values.get(toYm);
+  if (!from || !to) throw new Error(`CPI missing for ${!from ? fromYm : toYm}`);
+  return { series: 'CUUR0000SA0', from: fromYm, to: toYm, change: Number(((to / from - 1) * 100).toFixed(2)) };
 }
-const changeLine = (values, fromYm, toYm, name) => {
-  const base = values.get(fromYm);
-  if (!base || !values.get(toYm)) throw new Error(`${name} missing for ${!base ? fromYm : toYm}`);
-  return [...values].filter(([ym]) => ym >= fromYm && ym <= toYm).sort(([a], [b]) => a.localeCompare(b)).map(([ym, v]) => [ym, Number(((v / base - 1) * 100).toFixed(2))]);
-};
-async function overallInflation(fromYm, toYm) {
-  const points = changeLine(await blsMonthly('cu/cu.data.1.AllItems', 'CUUR0000SA0'), fromYm, toYm, 'CPI');
-  return { series: 'CUUR0000SA0', from: fromYm, to: toYm, change: points.at(-1)[1], points };
-}
-async function wageGrowth(fromYm, toYm) {
-  const points = changeLine(await blsMonthly('ce/ce.data.05c.TotalPrivate.ProductionEmployeeHoursAndEarnings', 'CES0500000008'), fromYm, toYm, 'Wages');
-  return { series: 'CES0500000008', from: fromYm, to: toYm, change: points.at(-1)[1], points };
-}
-let cpi = null, wages = null;
+let cpi = null;
 if (staplesMonth) {
   try {
     cpi = await overallInflation(STAPLES_FROM.slice(0, 7), staplesMonth.slice(0, 7));
-    console.error(JSON.stringify({ step: 'cpi', status: 'ok', change: cpi.change }));
+    console.error(JSON.stringify({ step: 'cpi', status: 'ok', ...cpi }));
   } catch (error) {
     console.error(JSON.stringify({ step: 'cpi', status: 'unavailable', error: error.message }));
   }
-  try {
-    wages = await wageGrowth(STAPLES_FROM.slice(0, 7), staplesMonth.slice(0, 7));
-    console.error(JSON.stringify({ step: 'wages', status: 'ok', change: wages.change }));
-  } catch (error) {
-    console.error(JSON.stringify({ step: 'wages', status: 'unavailable', error: error.message }));
-  }
 }
-// Both lines or neither: the key above the chart names the pair.
-const reference = cpi && wages ? { cpi: cpi.points, wages: wages.points, cpiChange: cpi.change, wagesChange: wages.change } : null;
 // Only foods priced in the latest month are ranked, like the staples, so nothing sits in the ranking with a stale price.
 const ranking = [...rankingRows.values()].filter((r) => r.date === staplesMonth).map(({ date, ...r }) => r).sort((a, b) => b.change - a.change);
 console.error(JSON.stringify({ step: 'ranking', foods: ranking.length, listed: Object.keys(RANKING).length }));
-breadth.staples = staples.length ? { month: staplesMonth, from: STAPLES_FROM.slice(0, 7), cpi: cpi && { series: cpi.series, from: cpi.from, to: cpi.to, change: cpi.change }, reference, ranking, total: staples.length, higher: staples.filter((r) => r.change > 0).length, items: staples } : null;
+breadth.staples = staples.length ? { month: staplesMonth, from: STAPLES_FROM.slice(0, 7), cpi, ranking, total: staples.length, higher: staples.filter((r) => r.change > 0).length, items: staples } : null;
 if (staples.length !== Object.keys(STAPLES).length) console.error(JSON.stringify({ step: 'staples', status: 'partial', found: staples.map((r) => r.name) }));
 // Half a year of the weekly share rising is enough to see a turn without the chart becoming the page.
 breadth.trend = buildDiffusion(basket).slice(-26);
