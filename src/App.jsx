@@ -5,7 +5,7 @@ import { BASE, HOME, addDays, midpoint, dataPath, seriesUrl, dateLabel, families
 import PriceChart from './PriceChart';
 import { ChangeTag, ChartCard, FilterSelect, KeyFigures, SectionHeading, ShowMore } from './Figures';
 import BandChart from './BandChart';
-import { StapleChart, StapleRanking, monthTime, stapleScales } from './StaplesChart';
+import { ReferenceKey, StapleChart, StapleRanking, monthTime, stapleScales } from './StaplesChart';
 import EvidenceDialog from './EvidenceDialog';
 
 const url = (slug) => `${BASE}/commodity/${slug}`;
@@ -82,7 +82,7 @@ const stapleUnit = (unit) => (/doz/.test(unit) ? 'dozen' : /gal/.test(unit) ? 'g
 function Staples({ staples }) {
   if (!staples?.items?.length || !staples.items[0].points) return null;
   const items = staples.items;
-  const scales = stapleScales(items);
+  const scales = stapleScales(items, staples.reference);
   const from = monthTime(staples.from), to = monthTime(staples.month);
   const late = items.filter((r) => r.baseDate.slice(0, 7) !== staples.from);
   const columns = [
@@ -98,7 +98,7 @@ function Staples({ staples }) {
     description={`Percent change in average US store prices since ${monthLabel(staples.from)}, for the ${items.length} foods with the largest weight in the Consumer Price Index, from BLS.`}
     date={`Up to and including ${monthLabel(staples.month)}`}
     tabs={[
-      { label: 'Chart', content: <ul className="staples__grid">
+      { label: 'Chart', content: <><ReferenceKey reference={staples.reference} /><ul className="staples__grid">
         {items.map((r) => <li className="staples__item" key={r.name}>
           <div className="staples__head">
             {/* Opens the food's page on this exact store price series, not the page's default wholesale benchmark. */}
@@ -106,13 +106,13 @@ function Staples({ staples }) {
             <ChangeTag value={r.change} size="small" />
           </div>
           <span className="staples__price">{money(r.price)} <span className="staples__unit">a {stapleUnit(r.unit)}, from {money(r.basePrice)} in {monthLabel(r.baseDate.slice(0, 7))}</span></span>
-          <StapleChart item={r} scale={scales.get(r.name)} from={from} to={to} />
+          <StapleChart item={r} scale={scales.get(r.name)} from={from} to={to} reference={staples.reference} />
         </li>)}
-      </ul> },
-      staples.ranking?.length > 0 && { label: 'Ranking', content: <ShowMore total={staples.ranking.length} initial={15} noun="foods">{(n) => <StapleRanking ranking={staples.ranking} limit={n} cpi={staples.cpi} href={(r) => (r.seriesId ? `${url(r.slug)}?series=${r.seriesId}` : url(r.slug))} />}</ShowMore> },
+      </ul></> },
+      staples.ranking?.length > 0 && { label: 'Ranking', content: <ShowMore total={staples.ranking.length} initial={15} noun="foods">{(n) => <StapleRanking ranking={staples.ranking} limit={n} cpi={staples.cpi} wages={staples.reference?.wagesChange} href={(r) => (r.seriesId ? `${url(r.slug)}?series=${r.seriesId}` : url(r.slug))} />}</ShowMore> },
       { label: 'Tabular data', short: 'Tabular', content: <ShowMore total={items.length} initial={15} noun="foods">{(n) => <DataTable rows={items.slice(0, n)} columns={columns} rowKey={(r) => r.name} />}</ShowMore> },
     ]}
-    footer={<p className="chart-note">Source: <a href="https://www.bls.gov/cpi/factsheets/average-prices.htm" target="_blank" rel="noreferrer">BLS average prices</a>, US city average. {late.map((r) => `${r.name} from ${monthLabel(r.baseDate.slice(0, 7))}. `).join('')}Not adjusted for inflation.</p>}
+    footer={<p className="chart-note">Source: <a href="https://www.bls.gov/cpi/factsheets/average-prices.htm" target="_blank" rel="noreferrer">BLS average prices</a>, US city average; <a href="https://www.bls.gov/cpi/" target="_blank" rel="noreferrer">CPI</a> and <a href="https://www.bls.gov/ces/" target="_blank" rel="noreferrer">average hourly earnings</a>. {late.map((r) => `${r.name} from ${monthLabel(r.baseDate.slice(0, 7))}. `).join('')}Not adjusted for inflation.</p>}
   />;
 }
 function Overview({ page }) {
