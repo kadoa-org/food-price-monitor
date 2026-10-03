@@ -19,7 +19,7 @@ export function Shell({ page, children }) {
   return <><a className="skip-link" href="#main-content">Skip to content</a>
     <SiteHeader brand="🥕 US Food Price Monitor" brandHref={HOME} brandSuffix={<a href="https://www.kadoa.com" target="_blank" rel="noreferrer" className="dk-header-link">by Kadoa</a>} right={<span className="header-right"><LiveBadge>Updated daily</LiveBadge><GitHubButton repo="kadoa-org/food-price-monitor" /><Button inverse onClick={() => setSearch(true)} aria-label="Search (Cmd+K)">Search <kbd className="header-kbd">⌘K</kbd></Button></span>} />
     <CommandPalette open={search} onClose={() => setSearch(false)} dataPath={dataPath(page?.common)} />
-    <NavBar collapse items={[{ href: HOME, label: 'Overview', active: kind === 'home' }, { href: `${BASE}/commodities`, label: 'Commodities', active: kind === 'commodity' || kind === 'commodities' }, { href: `${BASE}/retail`, label: 'Retail prices', active: kind === 'retail' }, { href: `${BASE}/about`, label: 'About the data', active: kind === 'about' }]} />
+    <NavBar collapse items={[{ href: HOME, label: 'Overview', active: kind === 'home' }, { href: `${BASE}/commodities`, label: 'Commodities', active: kind === 'commodity' || kind === 'commodities' }, { href: `${BASE}/retail`, label: 'Retail prices', active: kind === 'retail' }, { href: `${BASE}/about`, label: 'About the data', end: true, active: kind === 'about' }]} />
     <main id="main-content" className="dk-container main">{children}</main><SiteFooter current="food-prices" /></>;
 }
 export function Loading({ error = false }) {
