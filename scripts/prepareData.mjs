@@ -72,7 +72,16 @@ const common = { generatedAt: manifest.generatedAt, sourceRun: manifest.runId, l
 const featured = [];
 const moverCandidates = [];
 const index = [];
-const retailRows = [];
+const retailSeries = [];
+// One row per advertised item and region for a given week, with the same-week comparisons USDA readers expect.
+const retailRow = ({ s, family }, week) => {
+  const latest = s.observations.findLast((o) => o.date <= week);
+  if (!latest || latest.date !== week) return null;
+  const weekAgo = nearest(s.observations, addDays(latest.date, -7), 3);
+  const yearAgo = nearest(s.observations, addDays(latest.date, -364), 4);
+  const price = latest.advertised_average; const yearPrice = yearAgo?.advertised_average ?? null;
+  return { id: s.id, slug: family.slug, family: family.name, commodity: s.commodity, product: s.product, package: s.package, region: s.market, date: latest.date, price, stores: latest.evidence?.store_count ?? null, weekAgo: weekAgo?.advertised_average ?? null, yearAgo: yearPrice, yearChange: price && yearPrice ? ((price - yearPrice) / yearPrice) * 100 : null, count: s.count };
+};
 // One benchmark per commodity is the basket: the product USDA quotes most consistently for that food, so the
 // index tracks 291 foods rather than 69,000 packs of the same few.
 const basket = [];
@@ -109,6 +118,8 @@ const RANKING_LATEST_BASE = '2019-10-31';
 const stapleRows = new Map();
 const rankingRows = new Map();
 const summaries = [];
+const slugs = families.map((f) => f.slug);
+if (new Set(slugs).size !== slugs.length) throw new Error(`Two families share a slug: ${slugs.filter((s, i) => slugs.indexOf(s) !== i).join(', ')}`);
 const byFamily = Map.groupBy(rows, (r) => wanted.get(r.commodity));
 for (const family of families) {
   const familyRows = byFamily.get(family.slug) ?? [];
@@ -163,14 +174,7 @@ for (const family of families) {
   // across 332 commodities with potatoes alone at 81 MB, and they compress by 86 per cent. Sending them raw made
   // a daily publish a gigabyte of upload, which is what kept failing on an ordinary connection.
   await writeFile(join(data, 'downloads', `${family.slug}.csv.gz`), gzipSync(csv));
-  // Retail promotions: one row per advertised item and region, with the same-week comparisons USDA readers expect.
-  for (const s of groups.filter((g) => g.retail)) {
-    const latest = s.latest;
-    const weekAgo = nearest(s.observations, addDays(latest.date, -7), 3);
-    const yearAgo = nearest(s.observations, addDays(latest.date, -364), 4);
-    const price = latest.advertised_average; const yearPrice = yearAgo?.advertised_average ?? null;
-    retailRows.push({ id: s.id, slug: family.slug, family: family.name, commodity: s.commodity, product: s.product, package: s.package, region: s.market, date: latest.date, price, stores: latest.evidence?.store_count ?? null, weekAgo: weekAgo?.advertised_average ?? null, yearAgo: yearPrice, yearChange: price && yearPrice ? ((price - yearPrice) / yearPrice) * 100 : null, count: s.count });
-  }
+  for (const s of groups.filter((g) => g.retail)) retailSeries.push({ s, family });
 }
 const sortFeed = (list) => [...list].sort((a, b) => b.date.localeCompare(a.date) || (a.source === 'Markon' ? -1 : 1) || a.title.localeCompare(b.title));
 const familyFeed = (slug) => sortFeed(feed.filter((i) => i.families.includes(slug) && i.date >= newsCutoff)).slice(0, 30).map((i) => ({ ...i, notes: i.notes.filter((n) => !n.commodity || families.find((f) => f.slug === slug).news.test(n.commodity)) }));
@@ -179,8 +183,13 @@ for (const family of families) {
   const page = JSON.parse(await readFile(path, 'utf8'));
   await writeFile(path, JSON.stringify({ ...page, news: familyFeed(family.slug), common: { ...page.common, news: common.news } }));
 }
-const retailWeek = retailRows.map((r) => r.date).sort().at(-1) ?? null;
-const currentRetail = retailRows.filter((r) => r.date === retailWeek).sort((a, b) => a.family.localeCompare(b.family) || (b.stores ?? 0) - (a.stores ?? 0) || a.product.localeCompare(b.product));
+// USDA publishes the weekly retail reports one by one through Friday, so a run that lands mid-release sees a new week
+// holding only the first report (eggs alone on 2 October). The current week is the latest one with at least half
+// the rows of the fullest recent week; a partial week shows up once the rest of its reports are in.
+const retailCounts = [...Map.groupBy(retailSeries.flatMap(({ s }) => s.observations.filter((o) => o.date >= addDays(lastDate, -42)).map((o) => o.date)), (d) => d)].map(([date, list]) => [date, list.length]).sort(([a], [b]) => b.localeCompare(a));
+const fullest = Math.max(0, ...retailCounts.slice(0, 5).map(([, n]) => n));
+const retailWeek = retailCounts.find(([, n]) => n >= fullest / 2)?.[0] ?? null;
+const currentRetail = (retailWeek ? retailSeries.map((x) => retailRow(x, retailWeek)).filter(Boolean) : []).sort((a, b) => a.family.localeCompare(b.family) || (b.stores ?? 0) - (a.stores ?? 0) || a.product.localeCompare(b.product));
 const regions = [...new Set(currentRetail.map((r) => r.region))].sort((a, b) => (a === 'National' ? -1 : b === 'National' ? 1 : a.localeCompare(b)));
 // The headline counts foods rather than averaging them. A count of how many rose and fell cannot be wrong in the
 // way an unweighted average can: every figure in it is a comparison a reader can check on that commodity's page.
