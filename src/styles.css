@@ -7,7 +7,7 @@ a{color:var(--dk-link);text-underline-offset:3px}a:hover{text-decoration-thickne
 h1,h2,h3,p,dl{margin-top:0}h1{font-size:28px;line-height:1.2;margin-bottom:12px;letter-spacing:-.4px}h2{font-size:19px;line-height:1.3}h3{font-size:17px;line-height:1.3}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--dk-focus);outline-offset:2px}
 .skip-link{position:absolute;top:-100px;left:15px;background:var(--dk-focus);color:var(--dk-ink);padding:10px;z-index:20}.skip-link:focus{top:8px}
-.dk-container{max-width:1080px}.main{padding-top:28px;padding-bottom:24px;min-height:65vh}
+.main{padding-top:28px;padding-bottom:24px;min-height:65vh}
 .hero{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:24px}.hero>div{max-width:760px}
 .lede{font-size:17px;line-height:1.55;color:var(--dk-muted);margin-bottom:0}.detail-hero .dk-hint{margin:10px 0 0}
 
