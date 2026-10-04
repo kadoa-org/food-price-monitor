@@ -84,9 +84,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .news-signals{margin:8px 0 0;padding-left:18px;font-size:13px;color:var(--dk-muted);line-height:1.5}.news-signals q{color:var(--dk-ink)}
 @media(max-width:700px){.news-head{flex-direction:column;gap:2px}}
 
-/* About page prose */
-.prose{max-width:760px}.prose h2{margin-top:30px}.prose p{color:#383f43}.prose .lede{font-size:17px}.prose ul{padding-left:20px}.prose li{margin-bottom:6px}.prose .dk-table-wrap{margin-bottom:8px}
-
 @media(max-width:700px){
   h1{font-size:26px}.main{padding-top:22px}.header-date{display:none}
   .hero{flex-direction:column;gap:16px}

@@ -7,6 +7,7 @@ import { ChangeTag, ChartCard, FilterSelect, KeyFigures, SectionHeading, ShowMor
 import BandChart from './BandChart';
 import { StapleChart, StapleRanking, monthTime, stapleScales } from './StaplesChart';
 import EvidenceDialog from './EvidenceDialog';
+import AboutPage from './AboutPage';
 
 const url = (slug) => `${BASE}/commodity/${slug}`;
 // The file is gzipped: a full history runs to tens of megabytes as plain CSV, and compressing it is what keeps a
@@ -317,27 +318,6 @@ function Retail({ page }) {
     </Section>
   </>;
 }
-function About({ page }) {
-  return <article className="prose">
-    <h1 className="dk-h1">About the data</h1>
-    <p className="lede">Every business day the US Department of Agriculture (USDA) publishes food price data for about {number(page.commodityCount)} commodities:</p>
-    <ul>
-      <li>what growers were paid at shipping point</li>
-      <li>what buyers paid at the big city wholesale markets</li>
-      <li>what supermarkets advertised in their weekly ads</li>
-    </ul>
-    <p>The data comes out as dozens of separate text reports and PDFs, one per market, with no history and no way to see how a price has moved over time. We think public data should be simple to find and read, so <a href="https://www.kadoa.com">Kadoa</a> built an open-source tracker for it.</p>
-    <p>The project is open source and contributions are welcome: <a href="https://github.com/kadoa-org/food-price-monitor">github.com/kadoa-org/food-price-monitor</a>.</p>
-    <h2>How to read it</h2>
-    <ul>
-      <li>A price is USDA's low and high quote for one product in one market, in dollars per package, exactly as reported.</li>
-      <li>A change compares the middle of that range with the report closest to 4 or 52 weeks earlier. Red means up, green means down.</li>
-      <li>A chart stops where USDA stopped quoting, usually because the growing region is out of season. We leave those gaps open.</li>
-      <li>Retail prices are sale prices from supermarket weekly ads, not shelf prices. They have their own page.</li>
-    </ul>
-    <p className="dk-hint">Updated every business day, last on {dateLabel(page.common.generatedAt.slice(0, 10))}. USDA data is public domain.</p>
-  </article>;
-}
 export default function App({ page }) {
-  return <Shell page={page}>{page.kind === 'home' ? <Overview page={page} /> : page.kind === 'commodity' ? <Commodity page={page} /> : page.kind === 'retail' ? <Retail page={page} /> : page.kind === 'commodities' ? <Commodities page={page} /> : <About page={page} />}</Shell>;
+  return <Shell page={page}>{page.kind === 'home' ? <Overview page={page} /> : page.kind === 'commodity' ? <Commodity page={page} /> : page.kind === 'retail' ? <Retail page={page} /> : page.kind === 'commodities' ? <Commodities page={page} /> : <AboutPage />}</Shell>;
 }
