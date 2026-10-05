@@ -3,6 +3,7 @@ import { Button, DataTable, GitHubButton, LiveBadge, NavBar, SearchInput, Sectio
 import CommandPalette from './CommandPalette';
 import { BASE, HOME, addDays, midpoint, dataPath, seriesUrl, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, quote, reports, shortMarket, summarize, unitLabel } from './model.mjs';
 import PriceChart from './PriceChart';
+import ComparisonChart, { COMPARISON_COLOURS } from './ComparisonChart';
 import { ChangeTag, ChartCard, FilterSelect, KeyFigures, SectionHeading, ShowMore } from './Figures';
 import BandChart from './BandChart';
 import { StapleChart, StapleRanking, monthTime, stapleScales } from './StaplesChart';
@@ -193,7 +194,7 @@ function Commodity({ page }) {
   useEffect(() => { if (history.id === selected.id) return; const controller = new AbortController(); fetch(seriesUrl(page.common, selected), { signal: controller.signal }).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then((file) => setHistory({ id: selected.id, rows: file.observations, dimensions: file.dimensions, reportTitle: file.report_title, error: false })).catch((error) => { if (error.name !== 'AbortError') setHistory({ id: selected.id, rows: [], dimensions: {}, reportTitle: null, error: true }); }); return () => controller.abort(); }, [selected.id, history.id]);
   const pending = history.id !== selected.id;
   // The national egg index reports one value per day rather than a low and a high; retail ads do too.
-  const monthly = selected.source_id.startsWith('bls-');
+  const monthly = selected.source_id.startsWith('bls-') || selected.source_id.startsWith('ers-');
   // Store prices (BLS, monthly) get a dashed comparison: the first price on the chart grown with all consumer prices,
   // so it moves with the period chosen. A month without a CPI figure (BLS skipped October 2025) takes the month before.
   const [cpi, setCpi] = useState(null);
@@ -267,11 +268,51 @@ function Commodity({ page }) {
       ]}
       footer={<p className="chart-note">Source: {selected.source_id.startsWith('usda-')
         ? <a href={`https://mymarketnews.ams.usda.gov/viewReport/${selected.source_id.replace('usda-', '')}`} target="_blank" rel="noreferrer">USDA Market News, {reports[selected.source_id]?.name ?? selected.source_id}</a>
-        : <a href="https://www.bls.gov/cpi/factsheets/average-prices.htm" target="_blank" rel="noreferrer">US Bureau of Labor Statistics, average prices</a>}.</p>}
+        : selected.source_id.startsWith('ers-')
+          ? <a href="https://www.ers.usda.gov/data-products/livestock-and-meat-domestic-data" target="_blank" rel="noreferrer">USDA Economic Research Service, wholesale prices</a>
+          : <a href="https://www.bls.gov/cpi/factsheets/average-prices.htm" target="_blank" rel="noreferrer">US Bureau of Labor Statistics, average prices</a>}.</p>}
     />
+    {page.comparison && <ComparisonCard comparison={page.comparison} />}
     <NewsSection items={page.news} common={page.common} slug={page.summary.slug} />
     {evidence && <EvidenceDialog row={evidence} series={{ ...selected, commodity: selected.commodity ?? page.summary.name, dimensions: history.dimensions ?? {}, reportTitle: history.reportTitle }} onClose={() => setEvidence(null)} />}
   </>;
+}
+// What shoppers paid against what wholesalers were paid, monthly, on one chart. The card has a fixed id so other
+// pages and posts can link straight to it.
+function ComparisonCard({ comparison }) {
+  const { store, wholesale } = comparison;
+  const unit = unitLabel(comparison.package);
+  const months = [...new Set([...store, ...wholesale].map(([m]) => m))].sort();
+  const storeBy = new Map(store), wholesaleBy = new Map(wholesale);
+  const rows = months.map((m) => ({ month: m, store: storeBy.get(m) ?? null, wholesale: wholesaleBy.get(m) ?? null })).reverse();
+  // A month inside the range that one source skipped is named under the chart, since the line has a hole there.
+  const missing = (list) => { const have = new Set(list.map(([m]) => m)); return months.filter((m) => m > list[0][0] && m < list.at(-1)[0] && !have.has(m)); };
+  const gaps = [...missing(store).map((m) => `no store price for ${monthLabel(m)}`), ...missing(wholesale).map((m) => `no wholesale price for ${monthLabel(m)}`)];
+  const swatch = (key) => <span className="chart-legend__swatch" style={{ background: COMPARISON_COLOURS[key] }} />;
+  const [visible, setVisible] = useState(24);
+  return <div id="wholesale-vs-store"><ChartCard
+    id="wholesale-vs-store-title"
+    title="Wholesale vs store prices"
+    description={`${comparison.product}, ${unit}, monthly averages.`}
+    date={`Up to and including ${monthLabel(months.at(-1))}`}
+    tabs={[
+      { label: 'Chart', content: <>
+        <div className="chart-legend" aria-hidden="true"><span className="chart-legend__item">{swatch('store')}Store price</span><span className="chart-legend__item">{swatch('wholesale')}Wholesale price</span></div>
+        <ComparisonChart store={store} wholesale={wholesale} unit={unit} />
+        {gaps.length > 0 && <p className="chart-gap-note">There was {gaps.join(' and ')}, so the line has a gap there.</p>}
+      </> },
+      { label: 'Tabular data', short: 'Tabular', content: <>
+        <DataTable rows={rows.slice(0, visible)} rowKey={(r) => r.month} columns={[
+          { key: 'month', header: 'Month', render: (r) => monthLabel(r.month) },
+          { key: 'store', header: 'Store', align: 'right', render: (r) => (r.store === null ? '–' : money(r.store)) },
+          { key: 'wholesale', header: 'Wholesale', align: 'right', render: (r) => (r.wholesale === null ? '–' : money(r.wholesale)) },
+          { key: 'gap', header: 'Difference', align: 'right', render: (r) => { if (r.store === null || r.wholesale === null) return '–'; const d = r.store - r.wholesale; return `${d < 0 ? '-' : ''}${money(Math.abs(d))}`; } },
+        ]} />
+        {rows.length > visible && <div className="table-more"><Button onClick={() => setVisible((n) => n + 48)}>Show more</Button><span className="dk-hint">Showing {visible} of {number(rows.length)}</span></div>}
+      </> },
+    ]}
+    footer={<p className="chart-note">Sources: <a href="https://www.bls.gov/cpi/factsheets/average-prices.htm" target="_blank" rel="noreferrer">US Bureau of Labor Statistics, average prices</a> (store); <a href="https://www.ers.usda.gov/data-products/livestock-and-meat-domestic-data" target="_blank" rel="noreferrer">USDA Economic Research Service, wholesale prices</a> (wholesale, combined regional).</p>}
+  /></div>;
 }
 function Commodities({ page }) {
   const [query, setQuery] = useState(''); const [stage, setStage] = useState('all'); const [sort, setSort] = useState({ key: 'name', dir: 'asc' });

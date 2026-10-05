@@ -114,6 +114,9 @@ const RANKING = {
 };
 // A food whose first price since the common month came more than two months later is not comparable over the period.
 const RANKING_LATEST_BASE = '2019-10-31';
+// Store vs wholesale: the BLS item and the wholesale source for the same product, from the month the BLS data starts.
+const COMPARISONS = { eggs: { storeItem: '708111', wholesaleSource: 'ers-wholesale', product: 'Grade A large eggs' } };
+const COMPARISON_FROM = '2019-01-01';
 // A BLS series can appear under more than one commodity page, so each item code is counted once.
 const stapleRows = new Map();
 const rankingRows = new Map();
@@ -150,6 +153,14 @@ for (const family of families) {
       points: monthly.map((o) => [o.date.slice(0, 7), pct(o.advertised_average), o.advertised_average]),
     });
   }
+  // Store and wholesale prices for the same food, both monthly, so a page can chart what shoppers paid against what
+  // wholesalers were paid. Only foods with a pair listed in COMPARISONS get one.
+  const pair = COMPARISONS[family.slug];
+  const storeGroup = pair && groups.find((g) => g.source_id === 'bls-ap' && g.dimensions?.item_code === pair.storeItem && g.dimensions?.area_code === '0000');
+  const wholesaleGroup = pair && groups.find((g) => g.source_id === pair.wholesaleSource);
+  const monthly = (g) => g.observations.filter((o) => o.date >= COMPARISON_FROM && o.advertised_average > 0).map((o) => [o.date.slice(0, 7), o.advertised_average]);
+  if (pair && (!storeGroup || !wholesaleGroup)) throw new Error(`Comparison for ${family.name} is missing its ${storeGroup ? 'wholesale' : 'store'} series`);
+  const comparison = pair ? { store: monthly(storeGroup), wholesale: monthly(wholesaleGroup), storeSeriesId: storeGroup.id, wholesaleSeriesId: wholesaleGroup.id, package: storeGroup.package, product: pair.product } : null;
   const csv = toCsv(familyRows);
   // A commodity page charts wholesale series when there are any; retail-only commodities (meat) chart their weekly ad prices.
   let wholesale = groups.filter((s) => !s.retail);
@@ -167,7 +178,7 @@ for (const family of families) {
   if (bench.monthChange !== null && bench.monthChange !== undefined) breadthRows.push({ slug: family.slug, name: family.name, change: bench.monthChange, market: benchmark.market, stage: benchmark.stage, price: quoteShort(bench.latest), unit: unitLabel(benchmark.package) });
   moverCandidates.push({ slug: family.slug, name: family.name, product: benchmark.product, origin: benchmark.origin, market: benchmark.market, stage: benchmark.stage, package: benchmark.package, retail: benchmark.retail, latest: compact(bench.latest), weekAgo: bench.weekAgo && compact(bench.weekAgo), weekChange: bench.weekChange, recent: benchmark.observations.filter((r) => priced(r) && r.date > addDays(lastDate, -30)).length });
   index.push({ slug: family.slug, name: family.name, curated: !family.auto, stages: summary.stages, markets: summary.markets, seriesCount: summary.seriesCount, firstDate: summary.firstDate, lastDate: summary.lastDate, product: benchmark.product, market: benchmark.market, stage: benchmark.stage, package: benchmark.package, latest: compact(bench.latest), yearAgo: bench.yearAgo && compact(bench.yearAgo), yearChange: bench.yearChange, matches: family.matches });
-  await writeFile(join(data, 'commodity', `${family.slug}.json`), JSON.stringify({ kind: 'commodity', key: `commodity/${family.slug}`, title: family.auto ? `${family.name} prices` : `${family.singular} prices`, summary, markets: [...new Set(wholesale.map(marketKey))].sort(), series: wholesale.filter((x) => marketKey(x) === marketKey(benchmark)).map(meta), seriesTotal: wholesale.length, initialSeriesId: benchmark.id, initialDimensions: benchmark.dimensions, initialReportTitle: benchmark.latest.evidence?.report_title ?? null, initialObservations: compactAll(benchmark.observations), common }));
+  await writeFile(join(data, 'commodity', `${family.slug}.json`), JSON.stringify({ kind: 'commodity', key: `commodity/${family.slug}`, title: family.auto ? `${family.name} prices` : `${family.singular} prices`, summary, markets: [...new Set(wholesale.map(marketKey))].sort(), series: wholesale.filter((x) => marketKey(x) === marketKey(benchmark)).map(meta), seriesTotal: wholesale.length, initialSeriesId: benchmark.id, initialDimensions: benchmark.dimensions, initialReportTitle: benchmark.latest.evidence?.report_title ?? null, initialObservations: compactAll(benchmark.observations), comparison, common }));
   // The full product list loads after first paint; potatoes alone has close to 4,000 products.
   await writeFile(join(data, 'commodity', `${family.slug}.series.json`), JSON.stringify(wholesale.map(meta)));
   // Gzipped on disk rather than at upload time. These are the heaviest thing the site publishes, 758 MB of CSV
