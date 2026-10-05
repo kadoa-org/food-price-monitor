@@ -4,10 +4,21 @@ import { monthLabel } from './model.mjs';
 
 // Two prices for the same food on one scale: what wholesalers were paid and what shoppers paid, a monthly average
 // each. Wholesale takes the site's series blue; store prices the Analysis Function orange, its colour-blind-safe
-// partner. A month one source did not publish is a hole in that line, never bridged.
+// partner. A single month one source did not publish is bridged with a dotted line through the average of the
+// months either side, marked as an estimate in the tooltip; a longer stretch stays a hole.
 export const COMPARISON_COLOURS = { wholesale: INK, store: '#f46a25' };
 
 const time = (month) => Date.parse(`${month}-15`);
+const shift = (month, k) => { const d = new Date(`${month}-01T00:00:00Z`); d.setUTCMonth(d.getUTCMonth() + k); return d.toISOString().slice(0, 7); };
+function withEstimates(list) {
+  const out = [];
+  list.forEach(([m, v], i) => {
+    const prev = list[i - 1];
+    if (prev && shift(prev[0], 2) === m) out.push({ x: time(shift(m, -1)), y: Number(((prev[1] + v) / 2).toFixed(3)), month: shift(m, -1), estimated: true });
+    out.push({ x: time(m), y: v, month: m });
+  });
+  return out;
+}
 
 export default function ComparisonChart({ store, wholesale, unit }) {
   const canvas = useRef(null), chart = useRef(null);
@@ -15,12 +26,13 @@ export default function ComparisonChart({ store, wholesale, unit }) {
     if (!canvas.current || !store.length || !wholesale.length) return undefined;
     const from = Math.min(time(store[0][0]), time(wholesale[0][0])), to = Math.max(time(store.at(-1)[0]), time(wholesale.at(-1)[0]));
     const span = to - from;
-    const narrow = canvas.current.clientWidth < 600;
-    const points = (list) => withGaps(list.map(([m, v]) => ({ x: time(m), y: v, month: m })), 45);
+    // The canvas has no size yet on first paint; its container does.
+    const narrow = (canvas.current.parentElement?.clientWidth || window.innerWidth) < 600;
+    const points = (list) => withGaps(withEstimates(list), 45);
     const top = Math.max(...store.map(([, v]) => v), ...wholesale.map(([, v]) => v));
     const step = top > 6 ? 2 : 1;
     const max = Math.ceil((top * 1.05) / step) * step;
-    const line = (key, data, order) => ({ key, order, data, parsing: false, borderColor: COMPARISON_COLOURS[key], borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, pointHitRadius: 18, pointBackgroundColor: COMPARISON_COLOURS[key], clip: false });
+    const line = (key, data, order) => ({ key, order, data, parsing: false, borderColor: COMPARISON_COLOURS[key], borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, pointHitRadius: 18, pointBackgroundColor: COMPARISON_COLOURS[key], clip: false, segment: { borderDash: (ctx) => (ctx.p0.raw?.estimated || ctx.p1.raw?.estimated ? [3, 4] : undefined) } });
     chart.current = new Chart(canvas.current, {
       type: 'line',
       data: { datasets: [line('store', points(store), 1), line('wholesale', points(wholesale), 2)] },
@@ -55,7 +67,7 @@ export default function ComparisonChart({ store, wholesale, unit }) {
             filter: (item) => item.raw?.y !== null,
             callbacks: {
               title: (items) => monthLabel(items[0].raw.month ?? new Date(items[0].parsed.x).toISOString().slice(0, 7)),
-              label: (item) => `${item.dataset.key === 'store' ? 'Store' : 'Wholesale'}: ${money(item.parsed.y)}`,
+              label: (item) => `${item.dataset.key === 'store' ? 'Store' : 'Wholesale'}: ${money(item.parsed.y)}${item.raw?.estimated ? ' (estimated, not published)' : ''}`,
               labelColor: (item) => ({ borderColor: COMPARISON_COLOURS[item.dataset.key], backgroundColor: COMPARISON_COLOURS[item.dataset.key] }),
             },
           },

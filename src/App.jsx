@@ -285,9 +285,6 @@ function ComparisonCard({ comparison }) {
   const months = [...new Set([...store, ...wholesale].map(([m]) => m))].sort();
   const storeBy = new Map(store), wholesaleBy = new Map(wholesale);
   const rows = months.map((m) => ({ month: m, store: storeBy.get(m) ?? null, wholesale: wholesaleBy.get(m) ?? null })).reverse();
-  // A month inside the range that one source skipped is named under the chart, since the line has a hole there.
-  const missing = (list) => { const have = new Set(list.map(([m]) => m)); return months.filter((m) => m > list[0][0] && m < list.at(-1)[0] && !have.has(m)); };
-  const gaps = [...missing(store).map((m) => `no store price for ${monthLabel(m)}`), ...missing(wholesale).map((m) => `no wholesale price for ${monthLabel(m)}`)];
   const swatch = (key) => <span className="chart-legend__swatch" style={{ background: COMPARISON_COLOURS[key] }} />;
   const [visible, setVisible] = useState(24);
   return <div id="wholesale-vs-store"><ChartCard
@@ -299,7 +296,6 @@ function ComparisonCard({ comparison }) {
       { label: 'Chart', content: <>
         <div className="chart-legend" aria-hidden="true"><span className="chart-legend__item">{swatch('store')}Store price</span><span className="chart-legend__item">{swatch('wholesale')}Wholesale price</span></div>
         <ComparisonChart store={store} wholesale={wholesale} unit={unit} />
-        {gaps.length > 0 && <p className="chart-gap-note">There was {gaps.join(' and ')}, so the line has a gap there.</p>}
       </> },
       { label: 'Tabular data', short: 'Tabular', content: <>
         <DataTable rows={rows.slice(0, visible)} rowKey={(r) => r.month} columns={[
