@@ -36,6 +36,7 @@ const METHODS = [
 export default function AboutPage() {
   return (
     <KitAboutPage
+      dataset="food-prices"
       lede="Daily US food prices at shipping points, wholesale markets and supermarkets, from USDA and BLS reports."
       steps={[
         { title: 'Monitor', text: 'Kadoa checks USDA and BLS for new price reports every day.' },
