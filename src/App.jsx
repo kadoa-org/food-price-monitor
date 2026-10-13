@@ -9,6 +9,7 @@ import BandChart from './BandChart';
 import { StapleChart, StapleRanking, monthTime, stapleScales } from './StaplesChart';
 import EvidenceDialog from './EvidenceDialog';
 import AboutPage from './AboutPage';
+import { CandyLegend, CandyLines, CandyYears, monthName } from './CandyChart';
 
 const url = (slug) => `${BASE}/commodity/${slug}`;
 // The file is gzipped: a full history runs to tens of megabytes as plain CSV, and compressing it is what keeps a
@@ -21,7 +22,7 @@ export function Shell({ page, children }) {
   return <><a className="skip-link" href="#main-content">Skip to content</a>
     <SiteHeader brand="🥕 US Food Price Monitor" brandHref={HOME} brandSuffix={<a href="https://www.kadoa.com" target="_blank" rel="noreferrer" className="dk-header-link">by Kadoa</a>} right={<span className="header-right"><LiveBadge>Updated daily</LiveBadge><GitHubButton repo="kadoa-org/food-price-monitor" /><Button inverse onClick={() => setSearch(true)} aria-label="Search (Cmd+K)">Search <kbd className="header-kbd">⌘K</kbd></Button></span>} />
     <CommandPalette open={search} onClose={() => setSearch(false)} dataPath={dataPath(page?.common)} />
-    <NavBar collapse items={[{ href: HOME, label: 'Overview', active: kind === 'home' }, { href: `${BASE}/commodities`, label: 'Commodities', active: kind === 'commodity' || kind === 'commodities' }, { href: `${BASE}/retail`, label: 'Retail prices', active: kind === 'retail' }, { href: `${BASE}/about`, label: 'About the data', end: true, active: kind === 'about' }]} />
+    <NavBar collapse items={[{ href: HOME, label: 'Overview', active: kind === 'home' }, { href: `${BASE}/commodities`, label: 'Commodities', active: kind === 'commodity' || kind === 'commodities' }, { href: `${BASE}/retail`, label: 'Retail prices', active: kind === 'retail' }, { href: `${BASE}/insights`, label: 'Insights', active: kind === 'insights' || kind === 'insight' || kind === 'candy' }, { href: `${BASE}/about`, label: 'About the data', end: true, active: kind === 'about' }]} />
     <main id="main-content" className="dk-container main">{children}</main><SiteFooter current="food-prices" /></>;
 }
 export function Loading({ error = false }) {
@@ -132,6 +133,7 @@ function Overview({ page }) {
   return <>
     <div className="title-block"><h1 className="dk-h1">US Food Price Monitor</h1><p className="lede">Daily US food prices, wholesale and retail, from USDA and BLS.</p></div>
     <HomeHeadlines breadth={page.breadth} />
+    {page.candy && <p className="candy-teaser"><a href={`${BASE}/candy`}>Candy prices</a> are up {Math.round(page.candy.figures.candySince)}% since {monthLabel(page.candy.from)}, against {Math.round(page.candy.figures.allSince)}% for all prices.</p>}
     <Staples staples={page.breadth?.staples} />
     <section className="benchmarks">
       <SectionHeading description="Daily wholesale quotes for one benchmark product per food, each against a year earlier, from USDA." date={`Up to and including ${dateLabel(common.lastDate)}`}>Wholesale benchmarks</SectionHeading>
@@ -355,6 +357,107 @@ function Retail({ page }) {
     </Section>
   </>;
 }
+const CANDY_LABELS = { candy: 'Candy and gum', all: 'All prices', wages: 'Hourly pay' };
+// One plain line: readers who want the series ids find them in the download.
+const CandySource = ({ pay = true }) => <p className="chart-note">Source: BLS consumer price index{pay ? ' and average hourly earnings' : ''}, not seasonally adjusted.</p>;
+const candyDownload = (common) => <><p className="download-intro">Every month since December 1997: the candy and all-items price indexes and, from 2006, average hourly pay, as a gzipped CSV.</p><a className="dk-btn" href={`${dataPath(common)}/downloads/candy-prices.csv.gz`} download>Download CSV (gzip)</a></>;
+const Unavailable = () => <p role="alert">Candy prices could not be loaded from BLS in this update.</p>;
+// Year-on-year change for each calendar year, as a chart card; the candy page and the insight share it.
+function CandyYearsCard({ c }) {
+  return <ChartCard
+    id="candy-years-title"
+    title="Candy prices each year"
+    description={`Change in candy prices over twelve months to ${monthName(c.month)}, against all consumer prices.`}
+    date={`Up to and including ${monthLabel(c.month)}`}
+    tabs={[{ label: 'Chart', content: <ShowMore total={c.years.length} initial={12} noun="years">{(n) => <CandyYears years={c.years} month={c.month} limit={n} />}</ShowMore> },
+      { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={c.years} rowKey={(r) => r.year} columns={[
+        { key: 'year', header: 'Year', render: (r) => `${monthName(c.month)} ${r.year}` },
+        { key: 'candy', header: 'Candy', align: 'right', render: (r) => <Change value={r.candy} /> },
+        { key: 'all', header: 'All prices', align: 'right', render: (r) => <Change value={r.all} /> },
+      ]} /> }]}
+    footer={<CandySource pay={false} />}
+  />;
+}
+// The candy page: BLS's candy price index against all prices and pay since the site's common base month, refreshed with
+// each CPI release. The story behind it lives on the insight page, so this one stays a page of figures.
+function Candy({ page }) {
+  const c = page.candy;
+  const head = <div className="title-block"><h1 className="dk-h1">Candy prices</h1><p className="lede">The US price index for candy and chewing gum, against all consumer prices and pay, from BLS.</p></div>;
+  if (!c) return <>{head}<Unavailable /></>;
+  const f = c.figures;
+  const yearAgo = `${Number(c.month.slice(0, 4)) - 1}${c.month.slice(4)}`;
+  const rows = [...c.monthly].reverse();
+  return <>
+    {head}
+    <KeyFigures items={[
+      f.candyYear !== null && { label: 'Candy, past year', value: <ChangeTag value={f.candyYear} />, note: `${monthLabel(yearAgo)} to ${monthLabel(c.month)}. All prices ${pctLabel(f.allYear)}` },
+      { label: `Candy since ${monthLabel(c.from)}`, value: <ChangeTag value={f.candySince} />, note: `All prices ${pctLabel(f.allSince)}, hourly pay ${pctLabel(f.wagesSince)}` },
+      { label: 'Work time for the same candy', value: <ChangeTag value={f.workSince} />, note: `Against ${monthLabel(c.from)}, at average hourly pay` },
+    ]} />
+    <ChartCard
+      id="candy-since-title"
+      title={`Candy prices since ${c.from.slice(0, 4)}`}
+      description={`Percent change since ${monthLabel(c.from)}.`}
+      date={`Up to and including ${monthLabel(c.month)}`}
+      tabs={[
+        { label: 'Chart', content: <>
+          <CandyLegend keys={['candy', 'all', 'wages']} labels={CANDY_LABELS} />
+          <CandyLines lines={[{ key: 'candy', label: CANDY_LABELS.candy, points: c.monthly.map((r) => [r[0], r[1]]) }, { key: 'all', label: CANDY_LABELS.all, points: c.monthly.map((r) => [r[0], r[2]]) }, { key: 'wages', label: CANDY_LABELS.wages, points: c.monthly.map((r) => [r[0], r[3]]) }]}
+            label={`Since ${monthLabel(c.from)}, candy prices rose ${pctLabel(f.candySince)}, all prices ${pctLabel(f.allSince)} and hourly pay ${pctLabel(f.wagesSince)}.`} />
+        </> },
+        { label: 'Tabular data', short: 'Tabular', content: <ShowMore total={rows.length} initial={24} noun="months">{(n) => <DataTable rows={rows.slice(0, n)} rowKey={(r) => r[0]} columns={[
+          { key: 'month', header: 'Month', render: (r) => monthLabel(r[0]) },
+          { key: 'candy', header: 'Candy', align: 'right', render: (r) => (r[1] === null ? '–' : pctLabel(r[1])) },
+          { key: 'all', header: 'All prices', align: 'right', render: (r) => (r[2] === null ? '–' : pctLabel(r[2])) },
+          { key: 'wages', header: 'Hourly pay', align: 'right', render: (r) => (r[3] === null ? '–' : pctLabel(r[3])) },
+        ]} />}</ShowMore> },
+        { label: 'Download', content: candyDownload(page.common) },
+      ]}
+      footer={<CandySource />}
+    />
+    <CandyYearsCard c={c} />
+    <p className="candy-more"><a href={`${BASE}/insights/candy-prices`}>Why candy pulled away from inflation in 2023</a></p>
+  </>;
+}
+// ── Insights: an index of cards (the energy and congress monitors' layout), and one page per analysis.
+function InsightsIndex({ page }) {
+  return <>
+    <div className="title-block"><h1 className="dk-h1">Insights</h1><p className="lede">Analysis built on the monitor's USDA and BLS data.</p></div>
+    <ul className="insight-cards">{page.insights.map((i) => <li className="insight-card" key={i.slug}><h2 className="insight-card__title"><a href={`${BASE}/insights/${i.slug}`}>{i.title}</a></h2><p className="insight-card__desc">{i.summary}</p></li>)}</ul>
+  </>;
+}
+function Insight({ page }) {
+  const c = page.candy;
+  if (!c) return <><div className="title-block"><h1 className="dk-h1">{page.title}</h1></div><Unavailable /></>;
+  const l = c.longRun;
+  const rows = l.points.filter((p) => p[0].endsWith(c.month.slice(4)) || p[0] === l.from).reverse();
+  return <>
+    <div className="title-block"><h1 className="dk-h1">{page.title}</h1>
+      <p className="lede">From {monthLabel(l.from)} to {monthLabel(l.split)}, US prices for <strong style={{ color: '#b34700' }}>candy and chewing gum</strong> rose {Math.round(l.candyBefore)}% and <strong>all consumer prices</strong> {Math.round(l.allBefore)}%. Since then candy is up {Math.round(l.candyAfter)}%, against {Math.round(l.allAfter)}% for all prices.</p></div>
+    <ChartCard
+      id="candy-long-title"
+      title={`Candy against all prices since ${l.from.slice(0, 4)}`}
+      description={`Percent change since ${monthLabel(l.from)}, when BLS started the candy index.`}
+      date={`Up to and including ${monthLabel(c.month)}`}
+      tabs={[
+        { label: 'Chart', content: <>
+          <CandyLegend keys={['candy', 'all']} labels={CANDY_LABELS} />
+          <CandyLines lines={[{ key: 'candy', label: CANDY_LABELS.candy, points: l.points.map((p) => [p[0], p[1]]) }, { key: 'all', label: CANDY_LABELS.all, points: l.points.map((p) => [p[0], p[2]]) }]}
+            label={`Candy and all prices rose about as much from ${monthLabel(l.from)} to ${monthLabel(l.split)}, ${pctLabel(l.candyBefore)} and ${pctLabel(l.allBefore)}; since then candy rose ${pctLabel(l.candyAfter)} and all prices ${pctLabel(l.allAfter)}.`} />
+        </> },
+        { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={rows} rowKey={(r) => r[0]} columns={[
+          { key: 'month', header: 'Month', render: (r) => monthLabel(r[0]) },
+          { key: 'candy', header: 'Candy', align: 'right', render: (r) => (r[1] === null ? '–' : pctLabel(r[1])) },
+          { key: 'all', header: 'All prices', align: 'right', render: (r) => (r[2] === null ? '–' : pctLabel(r[2])) },
+        ]} /> },
+        { label: 'Download', content: candyDownload(page.common) },
+      ]}
+      footer={<CandySource pay={false} />}
+    />
+    <CandyYearsCard c={c} />
+  </>;
+}
 export default function App({ page }) {
-  return <Shell page={page}>{page.kind === 'home' ? <Overview page={page} /> : page.kind === 'commodity' ? <Commodity page={page} /> : page.kind === 'retail' ? <Retail page={page} /> : page.kind === 'commodities' ? <Commodities page={page} /> : <AboutPage />}</Shell>;
+  const View = { home: Overview, commodity: Commodity, retail: Retail, commodities: Commodities, candy: Candy, insights: InsightsIndex, insight: Insight }[page.kind];
+  return <Shell page={page}>{View ? <View page={page} /> : <AboutPage />}</Shell>;
 }

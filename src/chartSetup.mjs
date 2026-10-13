@@ -54,6 +54,15 @@ export function monthTicks(from, to, max = 6) {
   for (; d.getTime() <= to; d.setUTCMonth(d.getUTCMonth() + stepMonths)) if (d.getTime() >= from) ticks.push(d.getTime());
   return ticks;
 }
+// January 1st of every year, every second, fifth or tenth year: the smallest step that gives each label `minGap` px.
+export function yearTicks(from, to, width, minGap = 48) {
+  const start = new Date(from), first = start.getUTCFullYear() + (start.getUTCMonth() || start.getUTCDate() > 1 ? 1 : 0);
+  const last = new Date(to).getUTCFullYear();
+  const step = [1, 2, 5, 10, 20].find((s) => width / Math.ceil((last - first + 1) / s) >= minGap) ?? 20;
+  const ticks = [];
+  for (let y = Math.ceil(first / step) * step; y <= last; y += step) ticks.push(Date.UTC(y, 0, 1));
+  return ticks;
+}
 // Month labels stack the month over the year, as UKHSA does, so twelve of them fit a phone-width axis without
 // rotating. Chart.js draws an array as separate lines.
 export const tickLabel = (t, span) => {

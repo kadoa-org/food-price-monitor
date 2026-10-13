@@ -206,3 +206,15 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .ranking__key{margin:14px 0 0;font-size:14px;color:var(--gov-secondary)}
 @media (max-width:640px){.ranking__row{grid-template-columns:112px minmax(0,1fr) 48px;gap:8px}}
 .chart-legend__swatch--inflation{height:0;border-top:2px dashed #505a5f;background:none}
+
+/* Candy page and insights. Insight cards follow the energy monitor (the Congress Trading Monitor's card
+   layout); candy takes the site's second series colour, orange. */
+.candy-teaser{margin:0 0 36px;padding:12px 16px;border-left:5px solid #f46a25;background:#f3f2f1;font-size:19px;line-height:1.4}
+.candy-teaser a{font-weight:700}
+.candy-more{margin:8px 0 36px;font-size:19px}.candy-more a{font-weight:700}
+.candy-years__bar{background:#f46a25}
+/* The tab panel keeps a 560 px minimum so tabs do not jump; the candy charts have no filters above them, so they take the room. */
+.chart--candy{--chart-height:440px}
+@media (max-width:640px){.chart--candy{--chart-height:340px}}
+.insight-cards{list-style:none;margin:24px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}
+.insight-card{background:#f3f2f1;padding:20px 20px 4px;border-top:4px solid #1d70b8}.insight-card__title{font-size:24px;line-height:1.25;margin:0 0 12px}.insight-card__title a{color:#1d70b8}.insight-card__desc{margin:0 0 16px}

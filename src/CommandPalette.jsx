@@ -5,6 +5,8 @@ const PAGES = [
   { type: 'page', id: HOME, label: 'Overview', hint: 'Six benchmark prices' },
   { type: 'page', id: `${BASE}/commodities`, label: 'Commodities', hint: 'Every commodity USDA quotes' },
   { type: 'page', id: `${BASE}/retail`, label: 'Retail prices', hint: 'Supermarket ad prices by region' },
+  { type: 'page', id: `${BASE}/candy`, label: 'Candy prices', hint: 'Candy against inflation and pay' },
+  { type: 'page', id: `${BASE}/insights`, label: 'Insights', hint: 'Analysis built on the data' },
   { type: 'page', id: `${BASE}/about`, label: 'About the data', hint: 'Sources and how to read it' },
 ];
 // Cmd+K palette from the congress site, restyled with the kit and driven by the commodities index. Pages are full

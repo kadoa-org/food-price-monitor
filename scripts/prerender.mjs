@@ -60,6 +60,28 @@ function seo(page, path) {
     description = `Grocery prices this week${page.week ? ` (week ending ${day(page.week)})` : ''}: what US supermarkets advertised for fresh produce, beef, pork, chicken, turkey and eggs by region, from USDA's weekly survey of grocery ads, with last week's and last year's price.`;
     crumbs.push({ name: 'Retail prices', url: canonical });
     ld = [{ '@context': 'https://schema.org', '@type': 'WebPage', name: title, url: canonical, description, dateModified: updated }];
+  } else if (page.kind === 'candy') {
+    const cd = page.candy; const f = cd?.figures; const year = (cd?.month ?? c.generatedAt).slice(0, 4);
+    const pc = (v) => `${Math.round(v)}%`;
+    title = `Candy Prices ${year}: Halloween Candy Price Index from BLS Data`;
+    description = f
+      ? `US candy prices are up ${pc(f.candySince)} since August 2019, against ${pc(f.allSince)} for all consumer prices and ${pc(f.wagesSince)} for hourly pay. ${f.candyYear !== null ? `Candy rose ${f.candyYear.toFixed(1)}% in the year to ${cd.month}. ` : ''}Monthly BLS candy and chewing gum price index with charts and a free CSV download.`
+      : 'The US price index for candy and chewing gum from BLS, against all consumer prices and hourly pay, with charts and a free CSV download.';
+    crumbs.push({ name: 'Candy prices', url: canonical });
+    ld = [{ '@context': 'https://schema.org', '@type': 'Dataset', name: 'US candy and chewing gum price index (BLS CPI)', description, url: canonical, keywords: ['candy prices', 'halloween candy prices', 'candy price index', 'chocolate prices', 'candy inflation'], spatialCoverage: 'United States', license: 'https://www.usa.gov/government-works', isBasedOn: 'https://www.bls.gov/cpi/', creator: { '@type': 'Organization', name: 'Kadoa', url: SITE }, dateModified: updated }];
+  } else if (page.kind === 'insights') {
+    title = 'Food Price Insights: Charts and Analysis';
+    description = `Analysis built on the US Food Price Monitor's USDA and BLS data: ${page.insights.map((i) => i.title.toLowerCase()).join('; ')}.`;
+    crumbs.push({ name: 'Insights', url: canonical });
+    ld = [{ '@context': 'https://schema.org', '@type': 'ItemList', name: title, url: canonical, numberOfItems: page.insights.length, itemListElement: page.insights.map((i, n) => ({ '@type': 'ListItem', position: n + 1, name: i.title, url: `${SITE}/food-prices/insights/${i.slug}` })) }];
+  } else if (page.kind === 'insight') {
+    const l = page.candy?.longRun;
+    title = page.title;
+    description = l
+      ? `From December 1997 to December 2022, US candy prices rose ${Math.round(l.candyBefore)}% and all consumer prices ${Math.round(l.allBefore)}%. Since then candy is up ${Math.round(l.candyAfter)}%, against ${Math.round(l.allAfter)}% for all prices. Charts from BLS data.`
+      : 'US candy prices against all consumer prices since 1997, from BLS data.';
+    crumbs.push({ name: 'Insights', url: `${SITE}/food-prices/insights` }, { name: 'Candy prices', url: canonical });
+    ld = [{ '@context': 'https://schema.org', '@type': 'Article', headline: title, description, url: canonical, dateModified: updated, author: { '@type': 'Organization', name: 'Kadoa', url: SITE }, publisher: { '@type': 'Organization', name: 'Kadoa', url: SITE } }];
   } else {
     title = 'About the Data: How the US Food Price Monitor Collects USDA Prices';
     description = 'Where the food price data comes from, what shipping point, wholesale and retail prices mean, how gaps and corrections are handled, and how to download the CSVs. USDA data is public domain.';

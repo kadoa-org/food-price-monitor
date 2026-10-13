@@ -212,6 +212,10 @@ export function pageKey(path) {
   if (cleanPath === `${BASE}/about`) return 'about';
   if (cleanPath === `${BASE}/retail`) return 'retail';
   if (cleanPath === `${BASE}/commodities`) return 'commodities';
+  if (cleanPath === `${BASE}/candy`) return 'candy';
+  if (cleanPath === `${BASE}/insights`) return 'insights';
+  const insight = new RegExp(`^${BASE}/insights/([a-z0-9-]+)$`).exec(cleanPath);
+  if (insight) return `insights/${insight[1]}`;
   const m = new RegExp(`^${BASE}/commodity/([a-z0-9-]+)$`).exec(cleanPath);
   return m ? `commodity/${m[1]}` : null;
 }

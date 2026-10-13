@@ -6,6 +6,7 @@ import { createInterface } from 'node:readline';
 import { createGunzip, gzipSync } from 'node:zlib';
 import { buildDiffusion, buildIndex, indexSummary } from '../src/index-calc.mjs';
 import { WEIGHTS, WEIGHTS_SOURCE, stratumOf } from '../src/cpi-weights.mjs';
+import { CANDY_SERIES, buildCandy, candyCsv, candyHeadline, parseBls } from '../src/candy.mjs';
 import { BASE, addDays, curated, familyFor, marketKey, newsFamilies, groupSeries, markonNews, movers, nearest, pickBenchmark, priced, reports, summarize, usdaNews, isRetail, quote, unitLabel, quoteShort } from '../src/model.mjs';
 import { existsSync } from 'node:fs';
 
@@ -223,24 +224,25 @@ const staples = [...stapleRows.values()].filter((r) => r.date === staplesMonth);
 // In CPI weight order, heaviest first. Spelled out because an object puts numeric keys like '706111' first, in number order.
 const stapleOrder = ['Soft drinks', 'Chicken', 'Cheese', 'Beef steaks', 'Ground beef', 'Coffee', 'Milk', 'Bread', 'Rice', 'Eggs'];
 staples.sort((a, b) => stapleOrder.indexOf(a.name) - stapleOrder.indexOf(b.name));
+// BLS flat files, each fetched once per run: the all-items file feeds both the staples' inflation line and the candy
+// index. A failed fetch stays failed for the run, so both consumers report it.
+const blsFiles = new Map();
+function blsText(path) {
+  if (!blsFiles.has(path)) {
+    blsFiles.set(path, fetch(`https://download.bls.gov/pub/time.series/${path}`, {
+      // No Accept header: BLS answers 406 to text/plain for these files.
+      headers: { 'User-Agent': 'kadoa-food-price-monitor/1.0 (adrian@kadoa.com)' },
+      signal: AbortSignal.timeout(120_000),
+    }).then((response) => { if (!response.ok) throw new Error(`BLS ${path} HTTP ${response.status}`); return response.text(); }));
+  }
+  return blsFiles.get(path);
+}
 // Overall inflation over the same months, for the reference line in the staples ranking: CPI-U, all items, U.S. city
 // average, not seasonally adjusted (CUUR0000SA0), from the BLS flat files the dataset's average prices come from.
 // It is context, not a price, so a failure is a named degraded state: logged, and the ranking shows no line and says
 // so, rather than failing the daily publish.
 async function overallInflation(fromYm, toYm) {
-  const response = await fetch('https://download.bls.gov/pub/time.series/cu/cu.data.1.AllItems', {
-    // No Accept header: BLS answers 406 to text/plain for this file.
-    headers: { 'User-Agent': 'kadoa-food-price-monitor/1.0 (adrian@kadoa.com)' },
-    signal: AbortSignal.timeout(120_000),
-  });
-  if (!response.ok) throw new Error(`BLS HTTP ${response.status}`);
-  const values = new Map();
-  for (const line of (await response.text()).split('\n')) {
-    const [id, year, period, value] = line.split('\t').map((f) => f.trim());
-    if (id !== 'CUUR0000SA0' || !/^M(0[1-9]|1[0-2])$/.test(period ?? '')) continue;
-    const v = Number(value);
-    if (Number.isFinite(v)) values.set(`${year}-${period.slice(1)}`, v);
-  }
+  const values = parseBls(await blsText('cu/cu.data.1.AllItems'), ['CUUR0000SA0']).get('CUUR0000SA0');
   const from = values.get(fromYm), to = values.get(toYm);
   if (!from || !to) throw new Error(`CPI missing for ${!from ? fromYm : toYm}`);
   // The monthly index ships as its own file for the dashed inflation line on the store price charts.
@@ -256,6 +258,28 @@ if (staplesMonth) {
     console.error(JSON.stringify({ step: 'cpi', status: 'unavailable', error: error.message }));
   }
 }
+// Candy prices (BLS CPI, candy and chewing gum) against all prices and pay, for the candy page and its insight. Like the
+// inflation line it comes from BLS rather than the dataset, so a failure is a named degraded state: logged, and both
+// pages say the figures could not be loaded, rather than failing the daily publish. The routes stay, so links hold.
+let candy = null;
+try {
+  const [food, allItems, earnings] = await Promise.all([blsText('cu/cu.data.11.USFoodBeverage'), blsText('cu/cu.data.1.AllItems'), blsText('ce/ce.data.05b.TotalPrivate.AllEmployeeHoursAndEarnings')]);
+  candy = buildCandy({
+    candy: parseBls(food, [CANDY_SERIES.candy]).get(CANDY_SERIES.candy),
+    all: parseBls(allItems, [CANDY_SERIES.all]).get(CANDY_SERIES.all),
+    wages: parseBls(earnings, [CANDY_SERIES.wages]).get(CANDY_SERIES.wages),
+  });
+  await writeFile(join(data, 'downloads', 'candy-prices.csv.gz'), gzipSync(candyCsv(candy.rows)));
+  console.error(JSON.stringify({ step: 'candy', status: 'ok', month: candy.month, ...candy.figures }));
+} catch (error) {
+  console.error(JSON.stringify({ step: 'candy', status: 'unavailable', error: error.message }));
+}
+// Insights: one page per analysis, so a link (Reddit, a newsletter) opens the chart with its own title.
+const INSIGHTS = [{ slug: 'candy-prices', title: candy ? candyHeadline(candy.longRun) : 'Candy prices against inflation', summary: 'Candy matched inflation from 1997 to 2022, then pulled ahead.' }];
+await mkdir(join(data, 'insights'), { recursive: true });
+await writeFile(join(data, 'candy.json'), JSON.stringify({ kind: 'candy', key: 'candy', title: 'Candy prices', common, candy }));
+await writeFile(join(data, 'insights.json'), JSON.stringify({ kind: 'insights', key: 'insights', title: 'Insights', common, insights: INSIGHTS }));
+for (const i of INSIGHTS) await writeFile(join(data, 'insights', `${i.slug}.json`), JSON.stringify({ kind: 'insight', key: `insights/${i.slug}`, slug: i.slug, title: i.title, common, candy }));
 // Only foods priced in the latest month are ranked, like the staples, so nothing sits in the ranking with a stale price.
 const ranking = [...rankingRows.values()].filter((r) => r.date === staplesMonth).map(({ date, ...r }) => r).sort((a, b) => b.change - a.change);
 console.error(JSON.stringify({ step: 'ranking', foods: ranking.length, listed: Object.keys(RANKING).length }));
@@ -269,10 +293,10 @@ const { base: indexBase, points: indexPoints } = buildIndex(basket, { weights: W
 const unweightedPoints = buildIndex(basket).points;
 const priceIndex = { base: indexBase, weights: WEIGHTS_SOURCE, summary: indexSummary(indexPoints), points: indexPoints.slice(-105), unweighted: unweightedPoints.slice(-105) };
 console.error(JSON.stringify({ step: 'index', base: indexBase, weeks: indexPoints.length, latest: priceIndex.summary }));
-await writeFile(join(data, 'home.json'), JSON.stringify({ kind: 'home', key: 'home', title: 'US Food Price Monitor', common, breadth, index: priceIndex, featured, movers: movers(moverCandidates, lastDate), retail: { week: retailWeek, rows: currentRetail.filter((r) => r.region === 'National') }, news: sortFeed([...sortFeed(feed.filter((i) => i.source === 'Markon')).slice(0, 3), ...sortFeed(feed.filter((i) => i.source === 'USDA')).slice(0, 3)]).map(({ notes, ...i }) => i) }));
+await writeFile(join(data, 'home.json'), JSON.stringify({ kind: 'home', key: 'home', title: 'US Food Price Monitor', common, breadth, index: priceIndex, candy: candy && { month: candy.month, from: candy.from, figures: candy.figures }, featured, movers: movers(moverCandidates, lastDate), retail: { week: retailWeek, rows: currentRetail.filter((r) => r.region === 'National') }, news: sortFeed([...sortFeed(feed.filter((i) => i.source === 'Markon')).slice(0, 3), ...sortFeed(feed.filter((i) => i.source === 'USDA')).slice(0, 3)]).map(({ notes, ...i }) => i) }));
 await writeFile(join(data, 'retail.json'), JSON.stringify({ kind: 'retail', key: 'retail', title: 'Retail prices', common, week: retailWeek, regions, rows: currentRetail }));
 const sources = manifest.sources.map((s) => ({ ...s, ...(reports[s.source_id] ?? { name: s.source_id, stage: 'Unknown', cadence: 'Unknown' }), reportId: s.source_id.replace('usda-', ''), commodities: s.commodities.length }));
 await writeFile(join(data, 'about.json'), JSON.stringify({ kind: 'about', key: 'about', title: 'About the data', common, sources, commodityCount: families.length, commodities: summaries.filter((c) => c.curated) }));
 await writeFile(join(data, 'commodities.json'), JSON.stringify({ kind: 'commodities', key: 'commodities', title: 'Commodities', common, items: index }));
-await writeFile(join(data, 'routes.json'), JSON.stringify([{ path: BASE, key: 'home' }, { path: `${BASE}/commodities`, key: 'commodities' }, ...families.map((f) => ({ path: `${BASE}/commodity/${f.slug}`, key: `commodity/${f.slug}` })), { path: `${BASE}/retail`, key: 'retail' }, { path: `${BASE}/about`, key: 'about' }]));
+await writeFile(join(data, 'routes.json'), JSON.stringify([{ path: BASE, key: 'home' }, { path: `${BASE}/commodities`, key: 'commodities' }, ...families.map((f) => ({ path: `${BASE}/commodity/${f.slug}`, key: `commodity/${f.slug}` })), { path: `${BASE}/retail`, key: 'retail' }, { path: `${BASE}/candy`, key: 'candy' }, { path: `${BASE}/insights`, key: 'insights' }, ...INSIGHTS.map((i) => ({ path: `${BASE}/insights/${i.slug}`, key: `insights/${i.slug}` })), { path: `${BASE}/about`, key: 'about' }]));
 console.log(JSON.stringify({ commodities: families.length, news: feed.length, markon: markonItems.length, rows: rows.length, datasetRows: manifest.rows, commodities: summaries.length, retailRows: currentRetail.length, sourceRun: manifest.runId, lastDate }));

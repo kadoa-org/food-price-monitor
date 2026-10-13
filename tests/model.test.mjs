@@ -75,6 +75,10 @@ test('route matching handles trailing slashes and rejects unknown pages', () => 
   expect(pageKey('/food-prices/about/')).toBe('about');
   expect(pageKey('/food-prices/commodity/peppers-bell-type')).toBe('commodity/peppers-bell-type');
   expect(pageKey('/food-prices/commodities/')).toBe('commodities');
+  expect(pageKey('/food-prices/candy')).toBe('candy');
+  expect(pageKey('/food-prices/insights/')).toBe('insights');
+  expect(pageKey('/food-prices/insights/candy-prices')).toBe('insights/candy-prices');
+  expect(pageKey('/food-prices/insights/Candy')).toBeNull();
   expect(pageKey('/food-prices/commodity/Bad Slug')).toBeNull();
 });
 test('news articles map to commodities from their own commodity words and gaps get a plain explanation', () => {
