@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { buildCandy, candyCsv, candyHeadline, parseBls } from '../src/candy.mjs';
+import { buildCandy, candyCsv, candyHeadline, horizonStart, parseBls, rebase } from '../src/candy.mjs';
 import { yearTicks } from '../src/chartSetup.mjs';
 
 test('year labels thin out to every second or fifth year as the axis narrows', () => {
@@ -45,7 +45,21 @@ test('measures candy against all prices and pay from the common base month', () 
   expect(c.figures.workSince).toBeCloseTo(((candy.get('2026-08') / candy.get('2019-08')) / (wages.get('2026-08') / wages.get('2019-08')) - 1) * 100, 1);
   expect(c.years[0].year).toBe(2026);
   expect(c.years.at(-1).year).toBe(1999);
-  expect(candyHeadline(c.longRun)).toBe('Candy prices are rising twice as fast as inflation');
+  expect(candyHeadline(c.longRun)).toBe('Trick or treat: candy prices are rising twice as fast as inflation');
+});
+
+test('each time range measures from its own first month, and pay only where it exists from that month', () => {
+  const c = buildCandy({ candy, all, wages });
+  expect(horizonStart(c.rows, c.month, 'year')).toBe('2025-08');
+  expect(horizonStart(c.rows, c.month, '2019')).toBe('2019-08');
+  expect(horizonStart(c.rows, c.month, '2006')).toBe('2006-03');
+  expect(horizonStart(c.rows, c.month, '1997')).toBe('1997-12');
+  const since2019 = rebase(c.rows, '2019-08');
+  expect(since2019[0]).toEqual(['2019-08', 0, 0, 0]);
+  expect(since2019).toEqual(c.monthly);
+  const full = rebase(c.rows, '1997-12');
+  expect(full.at(-1)[1]).toBeCloseTo(c.longRun.points.at(-1)[1], 2);
+  expect(full.every((r) => r[3] === null)).toBe(true);
 });
 
 test('leaves out a year whose month BLS did not publish instead of comparing across the gap', () => {

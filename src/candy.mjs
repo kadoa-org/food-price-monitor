@@ -67,11 +67,31 @@ export function buildCandy({ candy, all, wages }) {
   return { month, from: CANDY_FROM, series: CANDY_SERIES, monthly, figures, years, longRun, rows };
 }
 
-// The insight's headline. "Twice as fast" only when the ratio rounds to two; otherwise the ratio is spelled out.
+// The time ranges the candy page offers, each measured from its own first month: the past year, the site's base month
+// before the pandemic, the first month BLS publishes pay, and the start of the candy index.
+export const HORIZONS = [['year', 'Past year'], ['2019', 'Since 2019'], ['2006', 'Since 2006'], ['1997', 'Since 1997']];
+export function horizonStart(rows, month, horizon) {
+  const has = (r, keys) => keys.every((k) => r[k] !== null);
+  if (horizon === 'year') return `${Number(month.slice(0, 4)) - 1}${month.slice(4)}`;
+  if (horizon === '2019') return CANDY_FROM;
+  if (horizon === '2006') return rows.find((r) => has(r, ['candy', 'all', 'wages']))?.month ?? CANDY_FROM;
+  return rows.find((r) => has(r, ['candy', 'all']))?.month ?? LONG_FROM;
+}
+// Percent change of each series since `from`, monthly: [month, candy, all, wages]. A month BLS did not publish is
+// null; pay is null throughout when it has no value in the first month, so no line starts from a different month.
+export function rebase(rows, from) {
+  const base = rows.find((r) => r.month === from);
+  if (!base?.candy || !base.all) throw new Error(`No candy and all-items value for ${from}`);
+  const change = (v, b) => (v === null || !b ? null : pct(v, b));
+  return rows.filter((r) => r.month >= from).map((r) => [r.month, change(r.candy, base.candy), change(r.all, base.all), change(r.wages, base.wages)]);
+}
+
+// The insight's headline, written for Halloween. "Twice as fast" only when the ratio rounds to two; otherwise the ratio
+// is spelled out.
 export function candyHeadline(longRun) {
   const ratio = longRun.candyAfter / longRun.allAfter;
   const pace = Math.abs(ratio - 2) < 0.25 ? 'twice as fast as' : ratio > 1 ? `${ratio.toFixed(1)} times as fast as` : 'more slowly than';
-  return `Candy prices are rising ${pace} inflation`;
+  return `Trick or treat: candy prices are rising ${pace} inflation`;
 }
 
 export const candyCsv = (rows) => ['month,candy_cpi,all_items_cpi,average_hourly_earnings_usd', ...rows.map((r) => [r.month, r.candy ?? '', r.all ?? '', r.wages ?? ''].join(','))].join('\n') + '\n';

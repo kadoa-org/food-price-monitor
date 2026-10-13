@@ -10,6 +10,7 @@ import { StapleChart, StapleRanking, monthTime, stapleScales } from './StaplesCh
 import EvidenceDialog from './EvidenceDialog';
 import AboutPage from './AboutPage';
 import { CandyLegend, CandyLines, CandyYears, monthName } from './CandyChart';
+import { HORIZONS, horizonStart, rebase } from './candy.mjs';
 
 const url = (slug) => `${BASE}/commodity/${slug}`;
 // The file is gzipped: a full history runs to tens of megabytes as plain CSV, and compressing it is what keeps a
@@ -382,11 +383,18 @@ function CandyYearsCard({ c }) {
 // each CPI release. The story behind it lives on the insight page, so this one stays a page of figures.
 function Candy({ page }) {
   const c = page.candy;
+  const [horizon, setHorizon] = useState('2019');
   const head = <div className="title-block"><h1 className="dk-h1">Candy prices</h1><p className="lede">The US price index for candy and chewing gum, against all consumer prices and pay, from BLS.</p></div>;
   if (!c) return <>{head}<Unavailable /></>;
   const f = c.figures;
   const yearAgo = `${Number(c.month.slice(0, 4)) - 1}${c.month.slice(4)}`;
-  const rows = [...c.monthly].reverse();
+  // Each range is measured from its own first month; pay drops out of the ranges that start before BLS published it.
+  const start = horizonStart(c.rows, c.month, horizon);
+  const series = rebase(c.rows, start);
+  const pay = series.some((r) => r[3] !== null);
+  const keys = pay ? ['candy', 'all', 'wages'] : ['candy', 'all'];
+  const last = series.findLast((r) => r[1] !== null && r[2] !== null);
+  const rows = [...series].reverse();
   return <>
     {head}
     <KeyFigures items={[
@@ -396,24 +404,25 @@ function Candy({ page }) {
     ]} />
     <ChartCard
       id="candy-since-title"
-      title={`Candy prices since ${c.from.slice(0, 4)}`}
-      description={`Percent change since ${monthLabel(c.from)}.`}
+      title={horizon === 'year' ? 'Candy prices over the past year' : `Candy prices since ${start.slice(0, 4)}`}
+      description={`Percent change since ${monthLabel(start)}.${pay ? '' : ' Pay is left out: BLS publishes it from 2006.'}`}
       date={`Up to and including ${monthLabel(c.month)}`}
       tabs={[
         { label: 'Chart', content: <>
-          <CandyLegend keys={['candy', 'all', 'wages']} labels={CANDY_LABELS} />
-          <CandyLines lines={[{ key: 'candy', label: CANDY_LABELS.candy, points: c.monthly.map((r) => [r[0], r[1]]) }, { key: 'all', label: CANDY_LABELS.all, points: c.monthly.map((r) => [r[0], r[2]]) }, { key: 'wages', label: CANDY_LABELS.wages, points: c.monthly.map((r) => [r[0], r[3]]) }]}
-            label={`Since ${monthLabel(c.from)}, candy prices rose ${pctLabel(f.candySince)}, all prices ${pctLabel(f.allSince)} and hourly pay ${pctLabel(f.wagesSince)}.`} />
+          <div className="chart-filters"><FilterSelect label="Time range" value={horizon} options={HORIZONS} onChange={setHorizon} /></div>
+          <CandyLegend keys={keys} labels={CANDY_LABELS} />
+          <CandyLines key={horizon} lines={keys.map((k, i) => ({ key: k, label: CANDY_LABELS[k], points: series.map((r) => [r[0], r[i + 1]]) }))}
+            label={`Since ${monthLabel(start)}, candy prices rose ${pctLabel(last[1])} and all prices ${pctLabel(last[2])}${pay && last[3] !== null ? `, hourly pay ${pctLabel(last[3])}` : ''}.`} />
         </> },
-        { label: 'Tabular data', short: 'Tabular', content: <ShowMore total={rows.length} initial={24} noun="months">{(n) => <DataTable rows={rows.slice(0, n)} rowKey={(r) => r[0]} columns={[
+        { label: 'Tabular data', short: 'Tabular', content: <ShowMore key={horizon} total={rows.length} initial={24} noun="months">{(n) => <DataTable rows={rows.slice(0, n)} rowKey={(r) => r[0]} columns={[
           { key: 'month', header: 'Month', render: (r) => monthLabel(r[0]) },
           { key: 'candy', header: 'Candy', align: 'right', render: (r) => (r[1] === null ? '–' : pctLabel(r[1])) },
           { key: 'all', header: 'All prices', align: 'right', render: (r) => (r[2] === null ? '–' : pctLabel(r[2])) },
-          { key: 'wages', header: 'Hourly pay', align: 'right', render: (r) => (r[3] === null ? '–' : pctLabel(r[3])) },
+          ...(pay ? [{ key: 'wages', header: 'Hourly pay', align: 'right', render: (r) => (r[3] === null ? '–' : pctLabel(r[3])) }] : []),
         ]} />}</ShowMore> },
         { label: 'Download', content: candyDownload(page.common) },
       ]}
-      footer={<CandySource />}
+      footer={<CandySource pay={pay} />}
     />
     <CandyYearsCard c={c} />
     <p className="candy-more"><a href={`${BASE}/insights/candy-prices`}>Why candy pulled away from inflation in 2023</a></p>

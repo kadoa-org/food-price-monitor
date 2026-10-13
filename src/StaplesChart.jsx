@@ -9,11 +9,12 @@ const GRID = 'rgba(11, 12, 12, 0.06)';
 const signedPct = (v) => `${v > 0 ? '+' : ''}${Math.round(v)}%`;
 const monthTime = (ym) => Date.UTC(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)) - 1, 1);
 
-// Round bounds and gridlines for a set of percent changes, zero always among them.
-export function pctScale(values) {
+// Round bounds and gridlines for a set of percent changes, zero always among them. `steps` are the gridline spacings
+// to choose from; a chart of small changes passes finer ones.
+export function pctScale(values, steps = [10, 20, 25, 50, 100, 200, 250, 500]) {
   const min = Math.min(0, ...values), max = Math.max(0, ...values);
   const span = max - min || 1;
-  const step = [10, 20, 25, 50, 100, 200, 250, 500].find((n) => span / n <= 3) ?? 1000;
+  const step = steps.find((n) => span / n <= 3) ?? 1000;
   const bounds = { min: min - span * 0.06, max: max + span * 0.04 };
   const ticks = [];
   for (let v = Math.ceil(bounds.min / step) * step; v <= bounds.max; v += step) ticks.push(v);

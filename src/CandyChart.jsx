@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { AXIS_INK, BASELINE, Chart, INK, LABEL_INK, PAPER, RULE, withGaps, yearTicks } from './chartSetup.mjs';
+import { AXIS_INK, BASELINE, Chart, DAY, INK, LABEL_INK, PAPER, RULE, monthTicks, tickLabel, withGaps, yearTicks } from './chartSetup.mjs';
 import { monthLabel } from './model.mjs';
 import { pctScale } from './StaplesChart';
 
@@ -20,8 +20,9 @@ export function CandyLines({ lines, label }) {
   useEffect(() => {
     if (!canvas.current) return undefined;
     const months = lines.flatMap((l) => l.points.filter((p) => p[1] !== null).map((p) => p[0])).sort();
-    const from = time(months[0]), to = time(months.at(-1));
-    const scale = pctScale(lines.flatMap((l) => l.points.map((p) => p[1]).filter((v) => v !== null)));
+    const from = time(months[0]), to = time(months.at(-1)), short = to - from < 3 * 365 * DAY;
+    // Whole-percent steps down to 1%, so the past year's single-digit changes get gridlines too.
+    const scale = pctScale(lines.flatMap((l) => l.points.map((p) => p[1]).filter((v) => v !== null)), [1, 2, 5, 10, 20, 50, 100]);
     const datasets = lines.map((l, order) => ({
       key: l.key, label: l.label, order,
       data: withGaps(l.points.filter((p) => p[1] !== null).map(([m, y]) => ({ x: time(m), y, month: m })), 75),
@@ -39,10 +40,11 @@ export function CandyLines({ lines, label }) {
             type: 'linear', min: from, max: to,
             border: { color: BASELINE },
             grid: { color: RULE, drawTicks: false },
-            ticks: { autoSkip: false, maxRotation: 0, padding: 8, color: AXIS_INK, callback: (v) => String(new Date(v).getUTCFullYear()) },
+            ticks: { autoSkip: false, maxRotation: 0, padding: 8, color: AXIS_INK, callback: (v) => (short ? tickLabel(v, to - from) : String(new Date(v).getUTCFullYear())) },
             // Year labels at a step that leaves each one about 48 px, measured on the axis at every layout, so a phone, a
             // narrow window or a resize gets 2000, 2005, 2010 rather than 29 labels on top of each other.
-            afterBuildTicks: (axis) => { axis.ticks = yearTicks(from, to, axis.width || canvas.current?.clientWidth || 600).map((value) => ({ value })); },
+            // A year or two reads in months (Jan 2026 stacked), anything longer in years.
+            afterBuildTicks: (axis) => { axis.ticks = (short ? monthTicks(from, to) : yearTicks(from, to, axis.width || canvas.current?.clientWidth || 600)).map((value) => ({ value })); },
           },
           y: {
             min: scale.min, max: scale.max,
