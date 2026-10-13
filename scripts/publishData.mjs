@@ -39,17 +39,22 @@ if (existsSync(join(root, 'public/og-image.png'))) spawnSync('cp', [join(root, '
 process.on('exit', () => rmSync(snapshot, { recursive: true, force: true }));
 const dataDir = join(snapshot, 'data');
 const home = JSON.parse(await readFile(join(dataDir, 'home.json'), 'utf8'));
-// A run folder must never change once published: pages prerender from the CDN, which caches every file in it. The
-// id carries the source run, so a retry with the same data resumes into the same folder, and a hash of home.json,
-// so a rebuild that changes the pages (new fields, a fix) lands in a fresh folder instead of behind a stale cache.
-const homeHash = createHash('sha256').update(await readFile(join(dataDir, 'home.json'))).digest('hex').slice(0, 8);
-const runId = `${home.common.generatedAt.slice(0, 19).replaceAll(':', '-')}-${home.common.sourceRun.slice(-8)}-${homeHash}`.replace(/[^A-Za-z0-9._-]/g, '-');
-const base = `${PREFIX}/data/${runId}`;
 const types = { '.json': 'application/json', '.csv': 'text/csv', '.gz': 'application/gzip', '.png': 'image/png', '.svg': 'image/svg+xml' };
 const storageUrl = (path) => `https://${HOST}/${ZONE}/${path}`;
 const headers = { AccessKey: KEY };
 const sha256 = (body) => createHash('sha256').update(body).digest('hex');
 const isShared = (rel) => rel.startsWith('series/');
+// A run folder must never change once published: pages prerender from the CDN, which caches every file in it. The
+// id carries the source run, so a retry with the same data resumes into the same folder, and a hash of every page
+// file, so a rebuild that changes any page (new fields, a fix, a reworded headline) lands in a fresh folder instead of
+// behind a stale cache. Hashing home.json alone let a change to another page reuse the folder, and the edge kept
+// serving the old file (the candy insight headline, 13 Oct 2026).
+const pageFiles = [];
+for await (const local of walk(dataDir)) { const rel = relative(dataDir, local); if (!isShared(rel)) pageFiles.push(rel); }
+const pagesHash = createHash('sha256');
+for (const rel of pageFiles.sort()) pagesHash.update(`${rel}\0${sha256(await readFile(join(dataDir, rel)))}\0`);
+const runId = `${home.common.generatedAt.slice(0, 19).replaceAll(':', '-')}-${home.common.sourceRun.slice(-8)}-${pagesHash.digest('hex').slice(0, 8)}`.replace(/[^A-Za-z0-9._-]/g, '-');
+const base = `${PREFIX}/data/${runId}`;
 
 async function* walk(dir) { for (const entry of await readdir(dir, { withFileTypes: true })) { const p = join(dir, entry.name); if (entry.isDirectory()) yield* walk(p); else if (!entry.name.startsWith('.')) yield p; } }
 // The pointer and the manifest are written as strings, everything else as a buffer, so the size a timeout is
