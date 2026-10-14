@@ -134,7 +134,7 @@ function Overview({ page }) {
   return <>
     <div className="title-block"><h1 className="dk-h1">US Food Price Monitor</h1><p className="lede">Daily US food prices, wholesale and retail, from USDA and BLS.</p></div>
     <HomeHeadlines breadth={page.breadth} />
-    {page.candy && <p className="candy-teaser"><a href={`${BASE}/candy`}>Candy prices</a> are up {Math.round(page.candy.figures.candySince)}% since {monthLabel(page.candy.from)}, against {Math.round(page.candy.figures.allSince)}% for all prices.</p>}
+    {page.candy && <p className="candy-teaser"><a href={`${BASE}/candy`}>Candy prices</a> are up {Math.round(page.candy.figures.candySince)}% in five years, against {Math.round(page.candy.figures.allSince)}% for all prices.</p>}
     <Staples staples={page.breadth?.staples} />
     <section className="benchmarks">
       <SectionHeading description="Daily wholesale quotes for one benchmark product per food, each against a year earlier, from USDA." date={`Up to and including ${dateLabel(common.lastDate)}`}>Wholesale benchmarks</SectionHeading>
@@ -403,8 +403,8 @@ function Candy({ page }) {
     {head}
     <KeyFigures items={[
       f.candyYear !== null && { label: 'Candy, past year', value: <ChangeTag value={f.candyYear} />, note: `${monthLabel(yearAgo)} to ${monthLabel(c.month)}. All prices ${pctLabel(f.allYear)}` },
-      { label: `Candy since ${monthLabel(c.from)}`, value: <ChangeTag value={f.candySince} />, note: `All prices ${pctLabel(f.allSince)}, hourly pay ${pctLabel(f.wagesSince)}` },
-      { label: 'Work time for the same candy', value: <ChangeTag value={f.workSince} />, note: `Against ${monthLabel(c.from)}, at average hourly pay` },
+      { label: 'Candy, past 5 years', value: <ChangeTag value={f.candySince} />, note: `${monthLabel(f.since)} to ${monthLabel(c.month)}. All prices ${pctLabel(f.allSince)}, hourly pay ${pctLabel(f.wagesSince)}` },
+      { label: 'Work time for the same candy, 5 years', value: <ChangeTag value={f.workSince} />, note: `${monthLabel(f.since)} to ${monthLabel(c.month)}, at average hourly pay` },
     ]} />
     <ChartCard
       id="candy-since-title"
