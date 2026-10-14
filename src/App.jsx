@@ -441,9 +441,9 @@ function InsightsIndex({ page }) {
 }
 function Insight({ page }) {
   const c = page.candy;
-  // Opens on the full range, which the headline rests on: level with inflation to December 2022, about twice as fast
-  // since. Shorter ranges re-base and rescale like the candy page.
-  const [horizon, setHorizon] = useState('all');
+  // Opens on the site's base month, August 2019, like the candy page and the grocery staples; the full range since 1997,
+  // which the lede describes, is one choice away.
+  const [horizon, setHorizon] = useState('2019');
   if (!c) return <><div className="title-block"><h1 className="dk-h1">{page.title}</h1></div><Unavailable /></>;
   const l = c.longRun;
   const start = horizonStart(c.rows, c.month, horizon);
