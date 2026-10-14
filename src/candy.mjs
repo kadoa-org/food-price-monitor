@@ -3,8 +3,9 @@
 // adjusted, so a month is only ever compared with the same month a whole number of years earlier, or with a fixed
 // base month. The index covers all candy and gum bought for home use, not only Halloween candy.
 export const CANDY_SERIES = { candy: 'CUUR0000SEFR02', all: 'CUUR0000SA0', wages: 'CEU0500000003' };
-// The headline figures cover the same five years the candy charts open on, so the page states one period throughout.
-export const HEADLINE_YEARS = 5;
+// The base month of the headline figures and the candy page's default range: August 2019, the month the site's grocery
+// staples are measured from, before the pandemic moved food prices. Candy then reads on the same footing as them.
+export const CANDY_FROM = '2019-08';
 // The candy index starts in December 1997. Over the 25 years to December 2022 it rose almost exactly as much as all
 // prices; the long view on the insight page splits there.
 export const LONG_FROM = '1997-12';
@@ -39,7 +40,7 @@ export function buildCandy({ candy, all, wages }) {
   // Index values and pay as BLS publishes them, for the charts, the table and the download.
   const rows = months(LONG_FROM).map((m) => ({ month: m, candy: candy.get(m) ?? null, all: all.get(m) ?? null, wages: wages.get(m) ?? null }));
   const yearAgo = shiftYear(month, -1);
-  const since = horizonStart(rows, month, String(HEADLINE_YEARS));
+  const since = horizonStart(rows, month, '2019');
   if (!wages.has(since) || !wages.has(month)) throw new Error(`Pay has no value for ${wages.has(since) ? month : since}`);
   const figures = {
     candyYear: candy.has(yearAgo) ? pct(candy.get(month), candy.get(yearAgo)) : null,
@@ -66,12 +67,13 @@ export function buildCandy({ candy, all, wages }) {
 }
 
 // The time ranges the candy charts offer, each measured from its own first month: rolling windows back from the latest
-// month, and the start of the candy index. Pay starts in 2006, so it is in every range but the full one.
-export const HORIZONS = [['1', 'Past year'], ['5', '5 years'], ['10', '10 years'], ['20', '20 years'], ['all', 'All, since 1997']];
+// month, the site's base month, and the start of the candy index. Pay starts in 2006, so it is in every range but the
+// full one. There is no five-year window: two years off 2019, it would only invite a mismatch with the headline figures.
+export const HORIZONS = [['1', 'Past year'], ['2019', 'Since 2019'], ['10', '10 years'], ['20', '20 years'], ['all', 'All, since 1997']];
 export function horizonStart(rows, month, horizon) {
   const priced = (r) => r.candy !== null && r.all !== null;
   if (horizon === 'all') return rows.find(priced)?.month ?? LONG_FROM;
-  const target = shiftYear(month, -Number(horizon));
+  const target = horizon === '2019' ? CANDY_FROM : shiftYear(month, -Number(horizon));
   // A window that starts on a month BLS did not publish starts on the next one it did.
   const start = rows.find((r) => r.month >= target && priced(r));
   if (!start) throw new Error(`No candy and all-items month from ${target}`);

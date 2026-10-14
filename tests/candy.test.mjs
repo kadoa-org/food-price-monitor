@@ -39,9 +39,9 @@ test('measures candy against all prices and pay from the common base month', () 
   expect(c.longRun.allBefore).toBe(100);
   expect(c.longRun.candyAfter).toBe(20);
   expect(c.longRun.allAfter).toBe(10);
-  expect(c.figures.since).toBe('2021-08');
+  expect(c.figures.since).toBe('2019-08');
   // Pay is a month ahead of prices in the fixture as at BLS; the comparison stops at the latest price month.
-  expect(c.figures.workSince).toBeCloseTo(((candy.get('2026-08') / candy.get('2021-08')) / (wages.get('2026-08') / wages.get('2021-08')) - 1) * 100, 1);
+  expect(c.figures.workSince).toBeCloseTo(((candy.get('2026-08') / candy.get('2019-08')) / (wages.get('2026-08') / wages.get('2019-08')) - 1) * 100, 1);
   expect(c.years[0].year).toBe(2026);
   expect(c.years.at(-1).year).toBe(1999);
   expect(candyHeadline(c.longRun)).toBe('Trick or treat: candy prices are rising twice as fast as inflation');
@@ -49,15 +49,15 @@ test('measures candy against all prices and pay from the common base month', () 
 
 test('each time range measures from its own first month, and pay only where it exists from that month', () => {
   const c = buildCandy({ candy, all, wages });
-  expect(['1', '5', '10', '20', 'all'].map((h) => horizonStart(c.rows, c.month, h))).toEqual(['2025-08', '2021-08', '2016-08', '2006-08', '1997-12']);
+  expect(['1', '2019', '10', '20', 'all'].map((h) => horizonStart(c.rows, c.month, h))).toEqual(['2025-08', '2019-08', '2016-08', '2006-08', '1997-12']);
   // A window whose first month BLS did not publish starts on the next published month.
-  const gap = new Map(candy); gap.delete('2021-08');
+  const gap = new Map(candy); gap.delete('2016-08');
   const g = buildCandy({ candy: gap, all, wages });
-  expect(horizonStart(g.rows, g.month, '5')).toBe('2021-09');
-  // The five-year chart ends where the headline figure says.
-  const five = rebase(c.rows, '2021-08');
-  expect(five[0]).toEqual(['2021-08', 0, 0, 0]);
-  expect(five.at(-1)[1]).toBeCloseTo(c.figures.candySince, 2);
+  expect(horizonStart(g.rows, g.month, '10')).toBe('2016-09');
+  // The default chart ends where the headline figure says.
+  const since2019 = rebase(c.rows, '2019-08');
+  expect(since2019[0]).toEqual(['2019-08', 0, 0, 0]);
+  expect(since2019.at(-1)[1]).toBeCloseTo(c.figures.candySince, 2);
   const full = rebase(c.rows, '1997-12');
   expect(full.at(-1)[1]).toBeCloseTo((candy.get('2026-08') / candy.get('1997-12') - 1) * 100, 2);
   expect(full.every((r) => r[3] === null)).toBe(true);
@@ -68,7 +68,7 @@ test('leaves out a year whose month BLS did not publish instead of comparing acr
   const c = buildCandy({ candy: gap, all, wages });
   expect(c.years.map((y) => y.year)).not.toContain(2025);
   expect(c.years.map((y) => y.year)).not.toContain(2026);
-  expect(rebase(c.rows, '2021-08').find(([m]) => m === '2025-08')[1]).toBeNull();
+  expect(rebase(c.rows, '2019-08').find(([m]) => m === '2025-08')[1]).toBeNull();
 });
 
 test('fails loudly when a base month is missing rather than measuring from the wrong month', () => {

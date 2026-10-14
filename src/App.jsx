@@ -134,7 +134,7 @@ function Overview({ page }) {
   return <>
     <div className="title-block"><h1 className="dk-h1">US Food Price Monitor</h1><p className="lede">Daily US food prices, wholesale and retail, from USDA and BLS.</p></div>
     <HomeHeadlines breadth={page.breadth} />
-    {page.candy && <p className="candy-teaser"><a href={`${BASE}/candy`}>Candy prices</a> are up {Math.round(page.candy.figures.candySince)}% in five years, against {Math.round(page.candy.figures.allSince)}% for all prices.</p>}
+    {page.candy && <p className="candy-teaser"><a href={`${BASE}/candy`}>Candy prices</a> are up {Math.round(page.candy.figures.candySince)}% since 2019, against {Math.round(page.candy.figures.allSince)}% for all prices.</p>}
     <Staples staples={page.breadth?.staples} />
     <section className="benchmarks">
       <SectionHeading description="Daily wholesale quotes for one benchmark product per food, each against a year earlier, from USDA." date={`Up to and including ${dateLabel(common.lastDate)}`}>Wholesale benchmarks</SectionHeading>
@@ -386,8 +386,8 @@ const rangeWords = (horizon, start) => (horizon === '1' ? 'over the past year' :
 const RangeSelect = ({ value, onChange }) => <div className="chart-filters"><FilterSelect label="Time range" value={value} options={HORIZONS} onChange={onChange} /></div>;
 function Candy({ page }) {
   const c = page.candy;
-  // Opens on five years, long enough to show the break from inflation and short enough to read month by month.
-  const [horizon, setHorizon] = useState('5');
+  // Opens on the headline figures' base month, so the chart ends where they say.
+  const [horizon, setHorizon] = useState('2019');
   const head = <div className="title-block"><h1 className="dk-h1">Candy prices</h1><p className="lede">The US price index for candy and chewing gum, against all consumer prices and pay, from BLS.</p></div>;
   if (!c) return <>{head}<Unavailable /></>;
   const f = c.figures;
@@ -403,8 +403,8 @@ function Candy({ page }) {
     {head}
     <KeyFigures items={[
       f.candyYear !== null && { label: 'Candy, past year', value: <ChangeTag value={f.candyYear} />, note: `${monthLabel(yearAgo)} to ${monthLabel(c.month)}. All prices ${pctLabel(f.allYear)}` },
-      { label: 'Candy, past 5 years', value: <ChangeTag value={f.candySince} />, note: `${monthLabel(f.since)} to ${monthLabel(c.month)}. All prices ${pctLabel(f.allSince)}, hourly pay ${pctLabel(f.wagesSince)}` },
-      { label: 'Work time for the same candy, 5 years', value: <ChangeTag value={f.workSince} />, note: `${monthLabel(f.since)} to ${monthLabel(c.month)}, at average hourly pay` },
+      { label: `Candy since ${monthLabel(f.since)}`, value: <ChangeTag value={f.candySince} />, note: `${monthLabel(f.since)} to ${monthLabel(c.month)}. All prices ${pctLabel(f.allSince)}, pay ${pctLabel(f.wagesSince)}` },
+      { label: 'Work time for the same candy', value: <ChangeTag value={f.workSince} />, note: `Since ${monthLabel(f.since)}, at average hourly pay` },
     ]} />
     <ChartCard
       id="candy-since-title"
@@ -441,9 +441,9 @@ function InsightsIndex({ page }) {
 }
 function Insight({ page }) {
   const c = page.candy;
-  // Opens on five years like the candy page; candy rose about twice as much as all prices over them, as the headline
-  // says, and the full range since 1997 is one choice away.
-  const [horizon, setHorizon] = useState('5');
+  // Opens on the full range, which the headline rests on: level with inflation to December 2022, about twice as fast
+  // since. Shorter ranges re-base and rescale like the candy page.
+  const [horizon, setHorizon] = useState('all');
   if (!c) return <><div className="title-block"><h1 className="dk-h1">{page.title}</h1></div><Unavailable /></>;
   const l = c.longRun;
   const start = horizonStart(c.rows, c.month, horizon);

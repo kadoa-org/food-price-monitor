@@ -65,7 +65,7 @@ function seo(page, path) {
     const pc = (v) => `${Math.round(v)}%`;
     title = `Candy Prices ${year}: Halloween Candy Price Index from BLS Data`;
     description = f
-      ? `US candy prices are up ${pc(f.candySince)} in five years, against ${pc(f.allSince)} for all consumer prices and ${pc(f.wagesSince)} for hourly pay. ${f.candyYear !== null ? `Candy rose ${f.candyYear.toFixed(1)}% in the year to ${cd.month}. ` : ''}Monthly BLS candy and chewing gum price index with charts and a free CSV download.`
+      ? `US candy prices are up ${pc(f.candySince)} since August 2019, against ${pc(f.allSince)} for all consumer prices and ${pc(f.wagesSince)} for hourly pay. ${f.candyYear !== null ? `Candy rose ${f.candyYear.toFixed(1)}% in the year to ${cd.month}. ` : ''}Monthly BLS candy and chewing gum price index with charts and a free CSV download.`
       : 'The US price index for candy and chewing gum from BLS, against all consumer prices and hourly pay, with charts and a free CSV download.';
     crumbs.push({ name: 'Candy prices', url: canonical });
     ld = [{ '@context': 'https://schema.org', '@type': 'Dataset', name: 'US candy and chewing gum price index (BLS CPI)', description, url: canonical, keywords: ['candy prices', 'halloween candy prices', 'candy price index', 'chocolate prices', 'candy inflation'], spatialCoverage: 'United States', license: 'https://www.usa.gov/government-works', isBasedOn: 'https://www.bls.gov/cpi/', creator: { '@type': 'Organization', name: 'Kadoa', url: SITE }, dateModified: updated }];
