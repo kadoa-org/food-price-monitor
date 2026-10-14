@@ -381,9 +381,13 @@ function CandyYearsCard({ c }) {
 }
 // The candy page: BLS's candy price index against all prices and pay since the site's common base month, refreshed with
 // each CPI release. The story behind it lives on the insight page, so this one stays a page of figures.
+// How a chart title names its range: a rolling window by its length, a fixed start by its year.
+const rangeWords = (horizon, start) => (horizon === '1' ? 'over the past year' : /^(5|10|20)$/.test(horizon) ? `over the past ${horizon} years` : `since ${start.slice(0, 4)}`);
+const RangeSelect = ({ value, onChange }) => <div className="chart-filters"><FilterSelect label="Time range" value={value} options={HORIZONS} onChange={onChange} /></div>;
 function Candy({ page }) {
   const c = page.candy;
-  const [horizon, setHorizon] = useState('2019');
+  // Opens on five years, long enough to show the break from inflation and short enough to read month by month.
+  const [horizon, setHorizon] = useState('5');
   const head = <div className="title-block"><h1 className="dk-h1">Candy prices</h1><p className="lede">The US price index for candy and chewing gum, against all consumer prices and pay, from BLS.</p></div>;
   if (!c) return <>{head}<Unavailable /></>;
   const f = c.figures;
@@ -404,12 +408,12 @@ function Candy({ page }) {
     ]} />
     <ChartCard
       id="candy-since-title"
-      title={horizon === 'year' ? 'Candy prices over the past year' : `Candy prices since ${start.slice(0, 4)}`}
+      title={`Candy prices ${rangeWords(horizon, start)}`}
       description={`Percent change since ${monthLabel(start)}.${pay ? '' : ' Pay is left out: BLS publishes it from 2006.'}`}
       date={`Up to and including ${monthLabel(c.month)}`}
       tabs={[
         { label: 'Chart', content: <>
-          <div className="chart-filters"><FilterSelect label="Time range" value={horizon} options={HORIZONS} onChange={setHorizon} /></div>
+          <RangeSelect value={horizon} onChange={setHorizon} />
           <CandyLegend keys={keys} labels={CANDY_LABELS} />
           <CandyLines key={horizon} lines={keys.map((k, i) => ({ key: k, label: CANDY_LABELS[k], points: series.map((r) => [r[0], r[i + 1]]) }))}
             label={`Since ${monthLabel(start)}, candy prices rose ${pctLabel(last[1])} and all prices ${pctLabel(last[2])}${pay && last[3] !== null ? `, hourly pay ${pctLabel(last[3])}` : ''}.`} />
@@ -437,22 +441,30 @@ function InsightsIndex({ page }) {
 }
 function Insight({ page }) {
   const c = page.candy;
+  // Opens on five years like the candy page; candy rose about twice as much as all prices over them, as the headline
+  // says, and the full range since 1997 is one choice away.
+  const [horizon, setHorizon] = useState('5');
   if (!c) return <><div className="title-block"><h1 className="dk-h1">{page.title}</h1></div><Unavailable /></>;
   const l = c.longRun;
-  const rows = l.points.filter((p) => p[0].endsWith(c.month.slice(4)) || p[0] === l.from).reverse();
+  const start = horizonStart(c.rows, c.month, horizon);
+  const series = rebase(c.rows, start);
+  const last = series.findLast((r) => r[1] !== null && r[2] !== null);
+  // One row a year, in the latest month's calendar month, plus the first month of the range.
+  const rows = series.filter((r) => r[0].endsWith(c.month.slice(4)) || r[0] === start).reverse();
   return <>
     <div className="title-block"><h1 className="dk-h1">{page.title}</h1>
       <p className="lede">From {monthLabel(l.from)} to {monthLabel(l.split)}, US prices for <strong style={{ color: '#b34700' }}>candy and chewing gum</strong> rose {Math.round(l.candyBefore)}% and <strong>all consumer prices</strong> {Math.round(l.allBefore)}%. Since then candy is up {Math.round(l.candyAfter)}%, against {Math.round(l.allAfter)}% for all prices.</p></div>
     <ChartCard
       id="candy-long-title"
-      title={`Candy against all prices since ${l.from.slice(0, 4)}`}
-      description={`Percent change since ${monthLabel(l.from)}, when BLS started the candy index.`}
+      title={`Candy against all prices ${rangeWords(horizon, start)}`}
+      description={`Percent change since ${monthLabel(start)}${horizon === 'all' ? ', when BLS started the candy index' : ''}.`}
       date={`Up to and including ${monthLabel(c.month)}`}
       tabs={[
         { label: 'Chart', content: <>
+          <RangeSelect value={horizon} onChange={setHorizon} />
           <CandyLegend keys={['candy', 'all']} labels={CANDY_LABELS} />
-          <CandyLines lines={[{ key: 'candy', label: CANDY_LABELS.candy, points: l.points.map((p) => [p[0], p[1]]) }, { key: 'all', label: CANDY_LABELS.all, points: l.points.map((p) => [p[0], p[2]]) }]}
-            label={`Candy and all prices rose about as much from ${monthLabel(l.from)} to ${monthLabel(l.split)}, ${pctLabel(l.candyBefore)} and ${pctLabel(l.allBefore)}; since then candy rose ${pctLabel(l.candyAfter)} and all prices ${pctLabel(l.allAfter)}.`} />
+          <CandyLines key={horizon} lines={[{ key: 'candy', label: CANDY_LABELS.candy, points: series.map((r) => [r[0], r[1]]) }, { key: 'all', label: CANDY_LABELS.all, points: series.map((r) => [r[0], r[2]]) }]}
+            label={`Since ${monthLabel(start)}, candy prices rose ${pctLabel(last[1])} and all prices ${pctLabel(last[2])}.`} />
         </> },
         { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={rows} rowKey={(r) => r[0]} columns={[
           { key: 'month', header: 'Month', render: (r) => monthLabel(r[0]) },

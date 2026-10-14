@@ -67,15 +67,18 @@ export function buildCandy({ candy, all, wages }) {
   return { month, from: CANDY_FROM, series: CANDY_SERIES, monthly, figures, years, longRun, rows };
 }
 
-// The time ranges the candy page offers, each measured from its own first month: the past year, the site's base month
-// before the pandemic, the first month BLS publishes pay, and the start of the candy index.
-export const HORIZONS = [['year', 'Past year'], ['2019', 'Since 2019'], ['2006', 'Since 2006'], ['1997', 'Since 1997']];
+// The time ranges the candy charts offer, each measured from its own first month: rolling windows back from the latest
+// month, the site's base month before the pandemic, and the start of the candy index. Pay starts in 2006, so it is in
+// every range but the full one.
+export const HORIZONS = [['1', 'Past year'], ['5', '5 years'], ['2019', 'Since 2019'], ['10', '10 years'], ['20', '20 years'], ['all', 'All, since 1997']];
 export function horizonStart(rows, month, horizon) {
-  const has = (r, keys) => keys.every((k) => r[k] !== null);
-  if (horizon === 'year') return `${Number(month.slice(0, 4)) - 1}${month.slice(4)}`;
-  if (horizon === '2019') return CANDY_FROM;
-  if (horizon === '2006') return rows.find((r) => has(r, ['candy', 'all', 'wages']))?.month ?? CANDY_FROM;
-  return rows.find((r) => has(r, ['candy', 'all']))?.month ?? LONG_FROM;
+  const priced = (r) => r.candy !== null && r.all !== null;
+  if (horizon === 'all') return rows.find(priced)?.month ?? LONG_FROM;
+  const target = horizon === '2019' ? CANDY_FROM : `${Number(month.slice(0, 4)) - Number(horizon)}${month.slice(4)}`;
+  // A window that starts on a month BLS did not publish starts on the next one it did.
+  const start = rows.find((r) => r.month >= target && priced(r));
+  if (!start) throw new Error(`No candy and all-items month from ${target}`);
+  return start.month;
 }
 // Percent change of each series since `from`, monthly: [month, candy, all, wages]. A month BLS did not publish is
 // null; pay is null throughout when it has no value in the first month, so no line starts from a different month.
