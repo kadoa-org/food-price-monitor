@@ -168,12 +168,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 /* Key figures on a detail page: one grey row, a figure per cell, divided by thin rules. */
 .key-figures{margin:0 0 50px}.key-figures__context{font-size:16px;margin:15px 0 0;max-width:80ch}
 .key-figures__row{display:grid;grid-template-columns:repeat(var(--key-columns),minmax(0,1fr));margin:0;background:var(--gov-grey-bg)}
-.key-figures__item{padding:20px 25px;min-width:0}
+.key-figures__item{padding:15px 20px;min-width:0}
 /* Each figure spans three rows shared with its neighbours, so values stay level when a label wraps. */
 .key-figures__item{display:grid;grid-row:span 3;grid-template-rows:subgrid;align-content:start}
 .key-figures__item+.key-figures__item{border-left:1px solid var(--gov-border)}
-.key-figures__label{margin:0 0 6px;font-size:16px;color:var(--gov-secondary)}
-.key-figures__value{margin:0;font-size:24px;line-height:1.25;font-variant-numeric:tabular-nums}
+.key-figures__label{margin:0 0 4px;font-size:16px;color:var(--gov-secondary)}
+.key-figures__value{margin:0;font-size:24px;line-height:1.2;font-variant-numeric:tabular-nums}
 .key-figures__value .change-tag{font-size:19px}
 .key-figures__value a{color:var(--gov-link,#1d70b8);text-underline-offset:3px}
 .change-tag--small{padding:1px 5px 2px;font-size:14px;line-height:17px;gap:2px}.change-tag--small .change-tag__arrow{font-size:14px}
