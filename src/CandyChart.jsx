@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { AXIS_INK, BASELINE, Chart, DAY, INK, LABEL_INK, PAPER, RULE, monthTicks, tickLabel, withGaps, yearTicks } from './chartSetup.mjs';
+import { AXIS_INK, BASELINE, Chart, DAY, INK, LABEL_INK, PAPER, RULE, endLabelRoom, endLabels, monthTicks, tickLabel, withGaps, yearTicks } from './chartSetup.mjs';
 import { monthLabel } from './model.mjs';
 import { pctScale } from './StaplesChart';
 
@@ -32,8 +32,9 @@ export function CandyLines({ lines, label }) {
     const chart = new Chart(canvas.current, {
       type: 'line',
       data: { datasets },
+      plugins: [endLabels],
       options: {
-        layout: { padding: { top: 12, right: 20, bottom: 2 } },
+        layout: { padding: (ctx) => ({ top: 12, right: endLabelRoom(ctx), bottom: 2 }) },
         interaction: { mode: 'index', axis: 'x', intersect: false },
         scales: {
           x: {

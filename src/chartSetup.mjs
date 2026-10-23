@@ -84,4 +84,33 @@ export function withGaps(points, maxGapDays) {
   return out;
 }
 
+// Names each line at its last point, right of the plot, where the chart has room (not on a phone, where the key above
+// the chart does the job). Labels that would overlap are pushed apart. Use as `plugins: [endLabels]` and
+// `layout.padding.right: endLabelRoom`; each dataset's `label` is the text.
+const END_FONT = `600 13px ${FONT}`;
+const END_MIN_WIDTH = 480;
+export function endLabelRoom({ chart }) {
+  if (chart.width < END_MIN_WIDTH) return 20;
+  const { ctx } = chart; ctx.save(); ctx.font = END_FONT;
+  const widest = Math.max(...chart.data.datasets.map((d) => ctx.measureText(d.label ?? '').width));
+  ctx.restore();
+  return Math.ceil(widest) + 14;
+}
+export const endLabels = {
+  id: 'endLabels',
+  afterDatasetsDraw(chart) {
+    if (chart.width < END_MIN_WIDTH) return;
+    const items = chart.data.datasets.map((d, i) => {
+      const meta = chart.getDatasetMeta(i);
+      const last = meta.data.findLast((pt, j) => d.data[j]?.y !== null && d.data[j]?.y !== undefined && Number.isFinite(pt.y));
+      return last && d.label ? { text: d.label, x: last.x, y: last.y } : null;
+    }).filter(Boolean).sort((a, b) => a.y - b.y);
+    for (let i = 1; i < items.length; i++) items[i].y = Math.max(items[i].y, items[i - 1].y + 16);
+    const { ctx } = chart; ctx.save();
+    ctx.font = END_FONT; ctx.fillStyle = LABEL_INK; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    for (const it of items) ctx.fillText(it.text, it.x + 8, it.y);
+    ctx.restore();
+  },
+};
+
 export { Chart };

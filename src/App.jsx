@@ -88,7 +88,6 @@ function Staples({ staples }) {
   const items = staples.items;
   const scales = stapleScales(items);
   const from = monthTime(staples.from), to = monthTime(staples.month);
-  const late = items.filter((r) => r.baseDate.slice(0, 7) !== staples.from);
   const columns = [
     { key: 'name', header: 'Food', render: (r) => <a className="cell-link" href={r.seriesId ? `${url(r.slug)}?series=${r.seriesId}` : url(r.slug)}>{r.name}</a> },
     { key: 'basePrice', header: monthLabel(staples.from), align: 'right', render: (r) => money(r.basePrice) },
@@ -99,7 +98,7 @@ function Staples({ staples }) {
   return <ChartCard
     id="staples-title"
     title={`Grocery prices since ${staples.from.slice(0, 4)}`}
-    description={`Percent change in average US store prices since ${monthLabel(staples.from)}, for the ${items.length} foods with the largest weight in the Consumer Price Index, from BLS.`}
+    description={`Percent change in average US store prices since ${monthLabel(staples.from)}, for the ${items.length} foods with the largest weight in the Consumer Price Index.`}
     date={`Up to and including ${monthLabel(staples.month)}`}
     tabs={[
       { label: 'Chart', content: <ul className="staples__grid">
@@ -116,7 +115,7 @@ function Staples({ staples }) {
       staples.ranking?.length > 0 && { label: 'Ranking', content: <ShowMore total={staples.ranking.length} initial={15} noun="foods">{(n) => <StapleRanking ranking={staples.ranking} limit={n} cpi={staples.cpi} href={(r) => (r.seriesId ? `${url(r.slug)}?series=${r.seriesId}` : url(r.slug))} />}</ShowMore> },
       { label: 'Tabular data', short: 'Tabular', content: <ShowMore total={items.length} initial={15} noun="foods">{(n) => <DataTable rows={items.slice(0, n)} columns={columns} rowKey={(r) => r.name} />}</ShowMore> },
     ]}
-    footer={<p className="chart-note">Source: <a href="https://www.bls.gov/cpi/factsheets/average-prices.htm" target="_blank" rel="noreferrer">BLS average prices</a>, US city average. {late.map((r) => `${r.name} from ${monthLabel(r.baseDate.slice(0, 7))}. `).join('')}Not adjusted for inflation.</p>}
+    footer={<p className="chart-note">Source: <a href="https://www.bls.gov/cpi/factsheets/average-prices.htm" target="_blank" rel="noreferrer">BLS average prices</a>, US city average.</p>}
   />;
 }
 function Overview({ page }) {
@@ -360,7 +359,7 @@ function Retail({ page }) {
 }
 const CANDY_LABELS = { candy: 'Candy and gum', all: 'All prices', wages: 'Hourly pay' };
 // One plain line: readers who want the series ids find them in the download.
-const CandySource = ({ pay = true }) => <p className="chart-note">Source: BLS consumer price index{pay ? ' and average hourly earnings' : ''}, not seasonally adjusted.</p>;
+const CandySource = ({ pay = true }) => <p className="chart-note">Source: BLS <a href="https://www.bls.gov/cpi/" target="_blank" rel="noreferrer">consumer price index</a>{pay ? <> and <a href="https://www.bls.gov/ces/" target="_blank" rel="noreferrer">average hourly earnings</a></> : ''}, not seasonally adjusted.</p>;
 const candyDownload = (common) => <><p className="download-intro">Every month since December 1997: the candy and all-items price indexes and, from 2006, average hourly pay, as a gzipped CSV.</p><a className="dk-btn" href={`${dataPath(common)}/downloads/candy-prices.csv.gz`} download>Download CSV (gzip)</a></>;
 const Unavailable = () => <p role="alert">Candy prices could not be loaded from BLS in this update.</p>;
 // Year-on-year change for each calendar year, as a chart card; the candy page and the insight share it.
@@ -452,10 +451,8 @@ function Insight({ page }) {
   // One row a year, in the latest month's calendar month, plus the first month of the range.
   const rows = series.filter((r) => r[0].endsWith(c.month.slice(4)) || r[0] === start).reverse();
   return <>
-    <div className="title-block"><h1 className="dk-h1">{page.title}</h1>
-      {/* One intro in one style, as UKHSA topic pages open: the finding, then what is behind it. No coloured words:
-          the chart below has its own legend. */}
-      <CandyCauses lead={`From ${monthLabel(l.from)} to ${monthLabel(l.split)}, US candy prices rose ${Math.round(l.candyBefore)}%, the same as all consumer prices. Since then candy is up ${Math.round(l.candyAfter)}%, against ${Math.round(l.allAfter)}% for all prices.`} /></div>
+    {/* Two sentences with the numbers; what is behind them is in About the data under the cards. */}
+    <div className="title-block"><h1 className="dk-h1">{page.title}</h1><p className="lede">From {monthLabel(l.from)} to {monthLabel(l.split)}, US candy prices rose {Math.round(l.candyBefore)}%, the same as all consumer prices. Since then candy is up {Math.round(l.candyAfter)}%, against {Math.round(l.allAfter)}% for all prices.</p></div>
     <ChartCard
       id="candy-long-title"
       title={`Candy against all prices ${rangeWords(horizon, start)}`}
@@ -478,21 +475,21 @@ function Insight({ page }) {
       footer={<CandySource pay={false} />}
     />
     <CandyYearsCard c={c} />
+    <CandyAbout />
   </>;
 }
-// What is behind the rise, as short intro text under the title in the way UKHSA topic pages open: a lead-in and a
-// short list, one source link per point. Researched 14 Oct 2026; the figures come from outside the dataset, so they
-// carry their dates.
-function CandyCauses({ lead }) {
-  return <div className="insight-intro">
-    <p>{lead}</p>
-    <p>Three things are behind the rise:</p>
+// What is behind the rise, one source link per point, then how the index is measured. Researched 14 Oct 2026; the
+// figures come from outside the dataset, so they carry their dates.
+function CandyAbout() {
+  return <section className="insight-notes">
+    <SectionHeading>About the data</SectionHeading>
     <ul>
       <li><strong>Delayed cocoa shock.</strong> Cocoa prices hit a record in December 2024 and have since fallen by more than half. Makers like Hershey <a href="https://www.sec.gov/Archives/edgar/data/0000047111/000162828026050900/hsy-20260628.htm">buy 3 to 24 months ahead</a>, so those record costs still feed into 2026 prices, after increases of more than 10% in late 2025.</li>
       <li><strong>Protected US sugar.</strong> World sugar is well below its peak, but <a href="https://www.ers.usda.gov/topics/crops/sugar-and-sweeteners/policy">US import limits</a> keep US sugar near its record: $1.02 a pound in September 2026.</li>
       <li><strong>Real price rises, not trading up.</strong> BLS <a href="https://www.bls.gov/cpi/questions-and-answers.htm">prices the same products every month</a> and adjusts for smaller packs. The rise is not people buying pricier brands; the same candy costs more.</li>
+      <li>Candy is the BLS consumer price index for candy and chewing gum, all prices the index for all items, both not seasonally adjusted.</li>
     </ul>
-  </div>;
+  </section>;
 }
 export default function App({ page }) {
   const View = { home: Overview, commodity: Commodity, retail: Retail, commodities: Commodities, candy: Candy, insights: InsightsIndex, insight: Insight }[page.kind];

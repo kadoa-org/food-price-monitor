@@ -96,14 +96,19 @@ export function Tabs({ tabs, initial = 0 }) {
   </div>;
 }
 
-// A chart card: title, italic description, the date the data runs to, then the tabs.
-export function ChartCard({ title, description, date, tabs, footer, id }) {
+// A chart card as the shared dataset kit draws one (kit/figures.jsx on the other dataset sites): a heading of title,
+// italic description and the date the data runs to, then the tabs, then the source. The card spaces the three
+// evenly, so a heading without a description or date still sits clear of the tabs.
+// hideTitle keeps the title for screen readers only, where the page heading above already names the chart.
+export function ChartCard({ title, description, date, tabs, footer, id, hideTitle = false }) {
   return <section className="chart-panel-card" aria-labelledby={id}>
-    <h2 className="chart-panel-card__title" id={id}>{title}</h2>
-    {description && <p className="chart-panel-card__desc">{description}</p>}
-    {date && <p className="chart-panel-card__date">{date}</p>}
+    <div className={`chart-panel-card__head${hideTitle ? ' chart-panel-card__head--hidden' : ''}`}>
+      <h2 className={hideTitle ? 'govuk-visually-hidden' : 'chart-panel-card__title'} id={id}>{title}</h2>
+      {description && <p className="chart-panel-card__desc">{description}</p>}
+      {date && <p className="chart-panel-card__date">{date}</p>}
+    </div>
     <Tabs tabs={tabs.filter(Boolean)} />
-    {footer}
+    {footer && <div className="chart-panel-card__footer">{footer}</div>}
   </section>;
 }
 

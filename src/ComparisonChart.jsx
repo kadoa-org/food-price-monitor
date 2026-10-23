@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { AXIS_INK, BASELINE, Chart, DAY, INK, LABEL_INK, PAPER, RULE, money, monthTicks, tickLabel, withGaps } from './chartSetup.mjs';
+import { AXIS_INK, BASELINE, Chart, DAY, INK, LABEL_INK, PAPER, RULE, endLabelRoom, endLabels, money, monthTicks, tickLabel, withGaps } from './chartSetup.mjs';
 import { monthLabel } from './model.mjs';
 
 // Two prices for the same food on one scale: what wholesalers were paid and what shoppers paid, a monthly average
@@ -32,12 +32,13 @@ export default function ComparisonChart({ store, wholesale, unit }) {
     const top = Math.max(...store.map(([, v]) => v), ...wholesale.map(([, v]) => v));
     const step = top > 6 ? 2 : 1;
     const max = Math.ceil((top * 1.05) / step) * step;
-    const line = (key, data, order) => ({ key, order, data, parsing: false, borderColor: COMPARISON_COLOURS[key], borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, pointHitRadius: 18, pointBackgroundColor: COMPARISON_COLOURS[key], clip: false, segment: { borderDash: (ctx) => (ctx.p0.raw?.estimated || ctx.p1.raw?.estimated ? [3, 4] : undefined) } });
+    const line = (key, data, order) => ({ key, label: key === 'store' ? 'Store' : 'Wholesale', order, data, parsing: false, borderColor: COMPARISON_COLOURS[key], borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, pointHitRadius: 18, pointBackgroundColor: COMPARISON_COLOURS[key], clip: false, segment: { borderDash: (ctx) => (ctx.p0.raw?.estimated || ctx.p1.raw?.estimated ? [3, 4] : undefined) } });
     chart.current = new Chart(canvas.current, {
       type: 'line',
       data: { datasets: [line('store', points(store), 1), line('wholesale', points(wholesale), 2)] },
+      plugins: [endLabels],
       options: {
-        layout: { padding: { top: 12, right: 20, bottom: 2 } },
+        layout: { padding: (ctx) => ({ top: 12, right: endLabelRoom(ctx), bottom: 2 }) },
         interaction: { mode: 'index', axis: 'x', intersect: false },
         scales: {
           x: {

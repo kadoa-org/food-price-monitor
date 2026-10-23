@@ -125,7 +125,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 
 /* Chart card: grey container, title, italic description, date, tabs */
 /* Measured from the UKHSA chart card: 20px padding, header and tabs 24px apart. */
-.chart-panel-card{background:var(--gov-grey-bg);padding:20px;margin:0 0 40px;min-width:0}
+.chart-panel-card{background:var(--gov-grey-bg);padding:20px;margin:0 0 40px;min-width:0;display:flex;flex-direction:column;gap:24px}
+/* Kit spacing: heading, tabs and source 24px apart (20px on a phone), whatever the heading holds. */
+.chart-panel-card__head>:last-child{margin-bottom:0}.chart-panel-card__head--hidden{position:absolute}
+.chart-panel-card__footer{margin-top:-10px}.chart-panel-card__footer>.chart-note:first-child{margin-top:0}
 .chart-panel-card__title{font-size:24px;line-height:30px;font-weight:700;margin:0 0 8px}
 .chart-panel-card__desc{font-size:16px;line-height:20px;font-style:italic;color:var(--gov-secondary);margin:0 0 10px}
 .chart-panel-card__date{font-size:16px;line-height:20px;color:var(--gov-secondary);margin:0 0 24px}
@@ -155,7 +158,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .chart-legend__item{display:inline-flex;align-items:center;gap:8px}.chart-legend__swatch{display:inline-block;width:28px;height:3px;background:#12436d}
 .chart-legend__swatch--gap{height:0;border-top:2px dotted var(--gov-border);background:none}
 
-@media (max-width:640px){.chart-panel-card{padding:15px}.govuk-tabs__tab{font-size:16px;padding:10px 8px}.govuk-tabs__list-item--selected .govuk-tabs__tab{padding:14px 7px 16px}.govuk-tabs__panel{padding:12px;min-height:400px}.govuk-tabs__long{display:none}.govuk-tabs__short{display:inline}}
+@media (max-width:640px){.chart-panel-card{padding:15px;gap:20px}.govuk-tabs__tab{font-size:16px;padding:10px 8px}.govuk-tabs__list-item--selected .govuk-tabs__tab{padding:14px 7px 16px}.govuk-tabs__panel{padding:12px;min-height:400px}.govuk-tabs__long{display:none}.govuk-tabs__short{display:inline}}
 .table-intro{margin:0 0 15px}.download-intro{margin:0 0 20px;font-size:19px;line-height:25px}
 
 /* Key figures on a detail page: one grey row, a figure per cell, divided by thin rules. */
@@ -215,8 +218,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 /* Prose on an insight page: GOV.UK's two-thirds reading column, 19px body, a 24px section heading over 19px bold
    subheadings. */
 .insight-prose{max-width:640px;margin:8px 0 40px}
-/* Intro under an insight's title, as UKHSA topic pages open: body text and a short list in the reading column. */
-.insight-intro{max-width:760px;margin-top:10px;font-size:19px;line-height:1.5;color:var(--dk-ink)}.insight-intro p{margin:0 0 15px}.insight-intro ul{margin:0;padding-left:20px}.insight-intro li{margin-bottom:10px}
+/* About the data under an insight's cards: what is behind the numbers and how they are measured, as a list. */
+.insight-notes{margin:40px 0 0;max-width:760px}.insight-notes ul{margin:0;padding-left:20px}.insight-notes li{margin:0 0 10px;line-height:1.5}
 .insight-prose h2{font-size:24px;line-height:1.25;margin:0 0 15px}
 .insight-prose h3{font-size:19px;line-height:1.3;margin:20px 0 5px}
 .insight-prose p{font-size:19px;line-height:1.5;margin:0 0 15px}
