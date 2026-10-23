@@ -165,6 +165,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .key-figures{margin:0 0 30px}.key-figures__context{font-size:16px;margin:15px 0 0;max-width:80ch}
 .key-figures__row{display:grid;grid-template-columns:repeat(var(--key-columns),minmax(0,1fr));margin:0;background:var(--gov-grey-bg)}
 .key-figures__item{padding:15px 20px;min-width:0}
+/* Each figure spans three rows shared with its neighbours, so values stay level when a label wraps. */
+.key-figures__item{display:grid;grid-row:span 3;grid-template-rows:subgrid;align-content:start}
 .key-figures__item+.key-figures__item{border-left:1px solid var(--gov-border)}
 .key-figures__label{margin:0 0 6px;font-size:14px;color:var(--gov-secondary)}
 .key-figures__value{margin:0;font-size:22px;line-height:1.25;font-variant-numeric:tabular-nums}
