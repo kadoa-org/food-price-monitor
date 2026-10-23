@@ -11,7 +11,7 @@
     "build": "vite build && bun scripts/prerender.mjs",
     "preview": "vite preview --host 127.0.0.1 --port 5188",
     "test": "bun test tests",
-    "og": "bun scripts/ogImage.mjs && bun scripts/icons.mjs",
+    "og": "bun scripts/ogImage.mjs && bun scripts/ogInsights.mjs && bun scripts/icons.mjs",
     "publish": "bun run data && bun run og && bun scripts/publishData.mjs"
   },
   "dependencies": {
