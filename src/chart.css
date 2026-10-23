@@ -23,7 +23,7 @@
   --chart-paper: #fff;
 
   --chart-line-width: 2px;
-  --chart-axis-size: 12px;
+  --chart-axis-size: 14px;
   --chart-height: 340px;
 
   position: relative;
@@ -79,7 +79,7 @@
   padding: 0;
   display: grid;
   place-items: center;
-  font-size: 13px;
+  font-size: 14px;
   border: 0;
 }
 

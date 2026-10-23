@@ -1,15 +1,15 @@
 /* Page styles for the food price monitor. Tokens and chrome come from the shared kit (GOV.UK palette at data-app density). */
 @import './chart.css';
 *{box-sizing:border-box}
-body{margin:0;background:#fcfcfd;color:var(--dk-ink);font:15px/1.5 var(--dk-font);-webkit-font-smoothing:antialiased}
+body{margin:0;background:#fff;color:var(--dk-ink);font:19px/1.4 var(--dk-font);-webkit-font-smoothing:antialiased}
 button,input,select{font:inherit}button{cursor:pointer}
 a{color:var(--dk-link);text-underline-offset:3px}a:hover{text-decoration-thickness:2px}
-h1,h2,h3,p,dl{margin-top:0}h1{font-size:28px;line-height:1.2;margin-bottom:12px;letter-spacing:-.4px}h2{font-size:19px;line-height:1.3}h3{font-size:17px;line-height:1.3}
+h1,h2,h3,p,dl{margin-top:0}h1{font-size:36px;line-height:1.12;margin-bottom:20px}h2{font-size:24px;line-height:1.25;margin-bottom:20px}h3{font-size:19px;line-height:1.3;margin-bottom:15px}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--dk-focus);outline-offset:2px}
 .skip-link{position:absolute;top:-100px;left:15px;background:var(--dk-focus);color:var(--dk-ink);padding:10px;z-index:20}.skip-link:focus{top:8px}
-.main{padding-top:28px;padding-bottom:24px;min-height:65vh}
-.hero{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:24px}.hero>div{max-width:760px}
-.lede{font-size:17px;line-height:1.55;color:var(--dk-muted);margin-bottom:0}.detail-hero .dk-hint{margin:10px 0 0}
+.main{padding-top:40px;padding-bottom:60px;min-height:65vh}
+.hero{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:40px}.hero>div{max-width:760px}
+.lede{font-size:19px;line-height:1.45;color:var(--dk-muted);margin-bottom:0}.detail-hero .dk-hint{margin:10px 0 0}
 
 .dk-btn{text-decoration:none;min-height:36px;height:auto;padding-top:7px;padding-bottom:7px}
 .dk-section-head{align-items:flex-end}.dk-section-head .dk-hint{max-width:70ch}
@@ -17,99 +17,103 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 /* Tables: quote and caption stacked in one cell; numbers right-aligned in tabular figures (kit .dk-num). */
 .dk-table td{padding-top:10px;padding-bottom:10px;vertical-align:top}
 .cell-link{font-weight:600}.cell-nowrap{white-space:nowrap}.cell-quote{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
-.cell-note{display:block;font-size:12px;color:var(--dk-muted);margin-top:2px;line-height:1.4}
+.cell-note{display:block;font-size:14px;color:var(--dk-muted);margin-top:2px;line-height:1.4}
 .dk-table .dk-num .cell-note{text-align:right}
 .table-more{display:flex;align-items:center;gap:15px;padding-top:15px}
-.text-button{background:none;border:0;color:var(--dk-link);text-decoration:underline;text-underline-offset:3px;padding:0;font-size:14px}
+.text-button{background:none;border:0;color:var(--dk-link);text-decoration:underline;text-underline-offset:3px;padding:0;font-size:16px}
 
 /* Filters: one row above everything they scope. GOV.UK select: square, dark 1px border. */
 .filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px;margin-bottom:24px}.filters>*{flex:0 1 auto;width:240px;max-width:100%}.filters .product-select{width:360px}
-.filters label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;min-width:0}
-.filter-fact{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;min-width:0}.filter-fact-value{display:flex;align-items:center;min-height:40px;padding-bottom:6px;border-bottom:1px solid var(--dk-rule-soft);font-size:16px;font-weight:400;overflow-wrap:anywhere}.filters--single>*{width:320px}
-.filters select{min-width:0;width:100%;height:40px;padding:0 36px 0 10px;border:1px solid var(--dk-ink);border-radius:0;color:var(--dk-ink);background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%230b0c0c' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 12px center;appearance:none;font-size:14px;font-weight:400;text-overflow:ellipsis}
+.filters label{display:flex;flex-direction:column;gap:6px;font-size:16px;font-weight:600;min-width:0}
+.filter-fact{display:flex;flex-direction:column;gap:6px;font-size:16px;font-weight:600;min-width:0}.filter-fact-value{display:flex;align-items:center;min-height:40px;padding-bottom:6px;border-bottom:1px solid var(--dk-rule-soft);font-size:16px;font-weight:400;overflow-wrap:anywhere}.filters--single>*{width:320px}
+.filters select{min-width:0;width:100%;height:40px;padding:0 36px 0 10px;border:1px solid var(--dk-ink);border-radius:0;color:var(--dk-ink);background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%230b0c0c' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 12px center;appearance:none;font-size:16px;font-weight:400;text-overflow:ellipsis}
 
 /* Chart panel */
 .chart-card{border:1px solid var(--dk-rule);background:#fff;padding:20px;margin-bottom:28px}
 .quote-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:8px}.quote-heading>div:first-child{min-width:0}
-.quote-value{font-size:30px;margin:10px 0 4px;line-height:1.2;letter-spacing:-.4px}.quote-value span{font-size:14px;font-weight:400;color:var(--dk-muted);letter-spacing:0}
-.product-caption{font-size:14px;line-height:1.5;margin-bottom:4px;color:#333;overflow-wrap:anywhere}
+.quote-value{font-size:36px;margin:10px 0 4px;line-height:1.2;letter-spacing:-.4px}.quote-value span{font-size:16px;font-weight:400;color:var(--dk-muted);letter-spacing:0}
+.product-caption{font-size:16px;line-height:1.5;margin-bottom:4px;color:#333;overflow-wrap:anywhere}
 .chart-controls{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex-shrink:0}
 .range-control{display:flex;border:1px solid var(--dk-rule)}
-.range-control button{background:#fff;border:0;min-width:56px;min-height:34px;padding:0 10px;font-size:13px;color:var(--dk-muted)}
+.range-control button{background:#fff;border:0;min-width:56px;min-height:34px;padding:0 10px;font-size:16px;color:var(--dk-muted)}
 .range-control button+button{border-left:1px solid var(--dk-rule)}
 .range-control button[aria-pressed=true]{background:var(--dk-link);color:#fff;font-weight:600}
-.compare-toggle{display:inline-flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap}.compare-toggle input{width:18px;height:18px;margin:0;accent-color:var(--dk-link)}
-.chart-gap-note{margin:12px 0 0;font-size:13px;line-height:1.5;color:var(--dk-muted)}
-.chart-note{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--dk-rule-soft);font-size:12px;color:var(--dk-muted)}
+.compare-toggle{display:inline-flex;align-items:center;gap:6px;font-size:16px;white-space:nowrap}.compare-toggle input{width:18px;height:18px;margin:0;accent-color:var(--dk-link)}
+.chart-gap-note{margin:12px 0 0;font-size:14px;line-height:1.5;color:var(--dk-muted)}
+.chart-note{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--dk-rule-soft);font-size:14px;color:var(--dk-muted)}
 .chart-loading{position:relative;color:var(--dk-muted);padding-top:14px}
 .skeleton-chart{height:250px;background:#eeefef;margin-top:16px}.skeleton-title{width:240px;max-width:80%;height:32px;background:#eeefef;margin:20px 0}.skeleton-line{width:70%;height:20px;background:#eeefef;margin-bottom:24px}
 
 /* GOV.UK summary list at compact density */
-.dk-summary{margin:0 0 20px;font-size:14px;line-height:1.5}
+.dk-summary{margin:0 0 20px;font-size:16px;line-height:1.5}
 .dk-summary>div{display:grid;grid-template-columns:minmax(120px,32%) 1fr;gap:12px;padding:8px 0;border-bottom:1px solid var(--dk-rule-soft)}
 .dk-summary dt{font-weight:600;overflow-wrap:anywhere}.dk-summary dd{margin:0;overflow-wrap:anywhere}.dk-summary dd .dk-tag{margin-left:6px;vertical-align:middle}
-.dk-summary--wide{font-size:15px}.dk-summary--wide>div{padding:10px 0}
+.dk-summary--wide{font-size:16px}.dk-summary--wide>div{padding:10px 0}
 
 /* Record dialog */
 .evidence-dialog{width:min(640px,calc(100vw - 32px));max-height:85vh;overflow:auto;border:1px solid var(--dk-muted);padding:24px;color:var(--dk-ink);background:#fff}
 .evidence-dialog::backdrop{background:rgba(11,12,12,.4)}
 .dialog-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}.dialog-heading h2{margin:0}
-.source-quotes p{font-size:14px;margin-bottom:8px;border-left:3px solid var(--dk-rule);padding-left:10px}
-.evidence-dialog summary{cursor:pointer;font-size:13px;color:var(--dk-link);margin-bottom:8px}.evidence-dialog details{margin:16px 0}
+.source-quotes p{font-size:16px;margin-bottom:8px;border-left:3px solid var(--dk-rule);padding-left:10px}
+.evidence-dialog summary{cursor:pointer;font-size:16px;color:var(--dk-link);margin-bottom:8px}.evidence-dialog details{margin:16px 0}
 
 /* Landing page: title block, one finding, a 3x2 grid of aligned panels, then full-width tables */
-.title-block{margin-bottom:20px}.title-block .lede{margin-bottom:6px}.title-block .dk-hint{margin:0}
-.board{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.title-block{margin-bottom:40px}.title-block .lede{margin-bottom:6px}.title-block .dk-hint{margin:0}
+/* 340px columns: two across the 960px page, since a 27px price range does not fit a third of it. */
+.board{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:12px}
 .panel{background:var(--gov-grey-bg);padding:20px 25px 20px;display:grid;grid-template-rows:auto auto auto;row-gap:10px;min-width:0}
 .panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;min-width:0}.panel-head>div{min-width:0}
 .panel-head a{font-size:19px;font-weight:700;color:var(--dk-ink);text-decoration:none;display:block;line-height:1.2}.panel-head a:hover{text-decoration:underline}
-.panel-market{display:block;font-size:12px;color:var(--dk-muted);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.panel-market{display:block;font-size:16px;color:var(--dk-muted);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .panel-delta{text-align:right;line-height:1.2;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
 .change{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}.change--up{color:var(--dk-red)}.change--down{color:var(--dk-green)}.change--up .tri{border-bottom-color:var(--dk-red)}.change--down .tri{border-top-color:var(--dk-green)}
 .tri{display:inline-block;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:7px solid var(--dk-ink);margin-right:5px;vertical-align:2px}.tri--down{border-bottom:0;border-top:7px solid var(--dk-ink)}
-.panel-value{display:block;font-size:26px;font-weight:400;line-height:1.15;font-variant-numeric:tabular-nums;letter-spacing:-.3px;white-space:nowrap}
-.panel-sub{display:block;font-size:12px;color:var(--dk-muted);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.news-list--compact>li{padding:8px 0}.news-list--compact .news-head a{font-weight:600;font-size:14px}
-@media(max-width:640px){.panel{padding:12px}.panel-value{font-size:22px}}
+.panel-value{display:block;font-size:27px;font-weight:400;line-height:1.15;font-variant-numeric:tabular-nums;letter-spacing:-.3px;white-space:nowrap}
+.panel-sub{display:block;font-size:16px;color:var(--dk-muted);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.news-list--compact>li{padding:8px 0}.news-list--compact .news-head a{font-weight:600;font-size:16px}
+@media(max-width:640px){.panel{padding:12px}.panel-value{font-size:21px}}
 
-.toolbar-select{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600}.toolbar-select select{height:32px;border:1px solid var(--dk-ink);border-radius:0;background:#fff;padding:0 8px;font-size:14px;font-weight:400}
+.toolbar-select{display:inline-flex;align-items:center;gap:8px;font-size:16px;font-weight:600}.toolbar-select select{height:32px;border:1px solid var(--dk-ink);border-radius:0;background:#fff;padding:0 8px;font-size:16px;font-weight:400}
 /* Market news */
 .emoji{margin-right:6px;font-size:1.05em}
-.dk-inset{border-left:5px solid var(--dk-rule);padding:6px 0 6px 14px;margin:14px 0 0;font-size:14px;line-height:1.5;color:#383f43}
+.dk-inset{border-left:5px solid var(--dk-rule);padding:6px 0 6px 14px;margin:14px 0 0;font-size:16px;line-height:1.5;color:#383f43}
 .news-list{list-style:none;margin:0;padding:0;border-top:1px solid var(--dk-rule-soft)}
 .news-list>li{padding:12px 0;border-bottom:1px solid var(--dk-rule-soft)}
-.news-head{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;align-items:baseline}.news-head a{font-weight:600;overflow-wrap:anywhere}.news-source{font-size:12px;color:var(--dk-muted);white-space:nowrap}.news-date{white-space:nowrap}
-.news-summary{margin:4px 0 0 64px;font-size:14px;color:#383f43;max-width:76ch}
+.news-head{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;align-items:baseline}.news-head a{font-weight:600;overflow-wrap:anywhere}.news-source{font-size:16px;color:var(--dk-muted);white-space:nowrap}.news-date{white-space:nowrap}
+.news-summary{margin:4px 0 0 64px;font-size:16px;color:#383f43;max-width:76ch}
 .news-tags{margin:8px 0 0;display:flex;gap:6px;flex-wrap:wrap}.news-tags a{text-decoration:none}
-.news-signals{margin:8px 0 0;padding-left:18px;font-size:13px;color:var(--dk-muted);line-height:1.5}.news-signals q{color:var(--dk-ink)}
+.news-signals{margin:8px 0 0;padding-left:18px;font-size:16px;color:var(--dk-muted);line-height:1.5}.news-signals q{color:var(--dk-ink)}
 @media(max-width:700px){.news-head{flex-direction:column;gap:2px}}
 
 @media(max-width:700px){
-  h1{font-size:26px}.main{padding-top:22px}.header-date{display:none}
+  h1{font-size:27px}.main{padding-top:25px;padding-bottom:40px}.header-date{display:none}
   .hero{flex-direction:column;gap:16px}
   .filters>*,.filters .product-select{width:100%}
-  .quote-heading{flex-direction:column;gap:12px}.chart-controls{align-items:flex-start}.quote-value{font-size:26px}
+  .quote-heading{flex-direction:column;gap:12px}.chart-controls{align-items:flex-start}.quote-value{font-size:27px}
   .chart-card{padding:14px}
   .dk-summary>div{grid-template-columns:1fr;gap:2px}
-  .table-more{flex-wrap:wrap}.dk-nav-list{gap:20px}.dk-nav a{font-size:13px}
+  .table-more{flex-wrap:wrap}.dk-nav-list{gap:20px}.dk-nav a{font-size:16px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 
 /* Header actions and Cmd+K palette */
-.header-right{display:flex;align-items:center;gap:14px}.header-kbd{font:12px ui-monospace,Menlo,monospace;opacity:.8;margin-left:2px}
+.header-right{display:flex;align-items:center;gap:14px}.header-kbd{font:14px ui-monospace,Menlo,monospace;opacity:.8;margin-left:2px}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .cmdk{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 0}
 .cmdk-backdrop{position:absolute;inset:0;background:rgba(11,12,12,.5)}
 .cmdk-box{position:relative;width:100%;max-width:560px;background:#fff;border:2px solid var(--dk-ink)}
 .cmdk-head{display:flex;align-items:center;gap:8px;padding:12px;border-bottom:1px solid var(--dk-rule)}.cmdk-input{flex:1;height:36px}
-.cmdk kbd{padding:1px 6px;border:1px solid var(--dk-rule);background:var(--dk-bg-hover);font:13px ui-monospace,Menlo,monospace;color:var(--dk-muted)}
-.cmdk-list{max-height:52vh;overflow:auto;padding:4px 0}.cmdk-group{padding:8px 12px 4px;font-size:13px;font-weight:700;color:var(--dk-muted)}
-.cmdk-item{display:flex;align-items:center;gap:12px;padding:7px 12px;color:var(--dk-ink);text-decoration:none;font-size:15px}.cmdk-item--active,.cmdk-item:hover{background:var(--dk-bg-hover)}
+.cmdk kbd{padding:1px 6px;border:1px solid var(--dk-rule);background:var(--dk-bg-hover);font:14px ui-monospace,Menlo,monospace;color:var(--dk-muted)}
+.cmdk-list{max-height:52vh;overflow:auto;padding:4px 0}.cmdk-group{padding:8px 12px 4px;font-size:16px;font-weight:700;color:var(--dk-muted)}
+.cmdk-item{display:flex;align-items:center;gap:12px;padding:7px 12px;color:var(--dk-ink);text-decoration:none;font-size:16px}.cmdk-item--active,.cmdk-item:hover{background:var(--dk-bg-hover)}
 .cmdk-label{flex:1;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cmdk-item--active .cmdk-label{color:var(--dk-link)}
-.cmdk-hint{font-size:13px;color:var(--dk-muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cmdk-right{font-size:13px;color:var(--dk-muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cmdk-hint{font-size:16px;color:var(--dk-muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cmdk-right{font-size:16px;color:var(--dk-muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .cmdk-empty{padding:24px 12px;text-align:center;color:var(--dk-muted)}
-.cmdk-foot{display:flex;align-items:center;gap:6px;padding:0 12px;height:32px;border-top:1px solid var(--dk-rule);font-size:13px;color:var(--dk-muted)}
+.cmdk-foot{display:flex;align-items:center;gap:6px;padding:0 12px;height:32px;border-top:1px solid var(--dk-rule);font-size:16px;color:var(--dk-muted)}
 @media(max-width:640px){.header-right .dk-btn-label,.header-kbd{display:none}}
+/* Header controls at the 16px navigation size. On phones "by Kadoa" sits under the site name, so the name is not cut off. */
+.dk-header .dk-btn{font-size:16px}
+@media(max-width:640px){.dk-header-brand-group{flex-direction:column;align-items:flex-start;gap:0}.dk-header-brand{font-size:16px}.header-right{gap:8px}}
 
 /* Reverse engineered from the UKHSA data dashboard, which is built on the GOV.UK Design System. Values are the ones
    read off the live page, not approximations. */
@@ -120,12 +124,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 /* GOV.UK tag used for change */
 .change-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px 4px;font-size:16px;line-height:20px;font-weight:700;font-variant-numeric:tabular-nums}
 .change-tag--up{background:var(--gov-tag-red-bg);color:var(--gov-tag-red)}.change-tag--down{background:var(--gov-tag-green-bg);color:var(--gov-tag-green)}.change-tag--flat{background:#e8f1f8;color:#0c2d4a}
-.change-tag__arrow{font-weight:700;font-size:18px;line-height:1}.change-tag--up .change-tag__arrow{color:#942514}.change-tag--down .change-tag__arrow{color:#005a30}
+.change-tag__arrow{font-weight:700;font-size:19px;line-height:1}.change-tag--up .change-tag__arrow{color:#942514}.change-tag--down .change-tag__arrow{color:#005a30}
 .change-tag .change-tag__main+*{font-weight:400}
 
 /* Chart card: grey container, title, italic description, date, tabs */
 /* Measured from the UKHSA chart card: 20px padding, header and tabs 24px apart. */
-.chart-panel-card{background:var(--gov-grey-bg);padding:20px;margin:0 0 40px;min-width:0;display:flex;flex-direction:column;gap:24px}
+.chart-panel-card{background:var(--gov-grey-bg);padding:25px;margin:0 0 60px;min-width:0;display:flex;flex-direction:column;gap:30px}
 /* Kit spacing: heading, tabs and source 24px apart (20px on a phone), whatever the heading holds. */
 .chart-panel-card__head>:last-child{margin-bottom:0}.chart-panel-card__head--hidden{position:absolute}
 .chart-panel-card__footer{margin-top:-10px}.chart-panel-card__footer>.chart-note:first-child{margin-top:0}
@@ -158,22 +162,22 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .chart-legend__item{display:inline-flex;align-items:center;gap:8px}.chart-legend__swatch{display:inline-block;width:28px;height:3px;background:#12436d}
 .chart-legend__swatch--gap{height:0;border-top:2px dotted var(--gov-border);background:none}
 
-@media (max-width:640px){.chart-panel-card{padding:15px;gap:20px}.govuk-tabs__tab{font-size:16px;padding:10px 8px}.govuk-tabs__list-item--selected .govuk-tabs__tab{padding:14px 7px 16px}.govuk-tabs__panel{padding:12px;min-height:400px}.govuk-tabs__long{display:none}.govuk-tabs__short{display:inline}}
+@media (max-width:640px){.chart-panel-card{padding:15px;gap:20px;margin-bottom:40px}.govuk-tabs__tab{font-size:16px;padding:10px 8px}.govuk-tabs__list-item--selected .govuk-tabs__tab{padding:14px 7px 16px}.govuk-tabs__panel{padding:12px;min-height:400px}.govuk-tabs__long{display:none}.govuk-tabs__short{display:inline}}
 .table-intro{margin:0 0 15px}.download-intro{margin:0 0 20px;font-size:19px;line-height:25px}
 
 /* Key figures on a detail page: one grey row, a figure per cell, divided by thin rules. */
-.key-figures{margin:0 0 30px}.key-figures__context{font-size:16px;margin:15px 0 0;max-width:80ch}
+.key-figures{margin:0 0 50px}.key-figures__context{font-size:16px;margin:15px 0 0;max-width:80ch}
 .key-figures__row{display:grid;grid-template-columns:repeat(var(--key-columns),minmax(0,1fr));margin:0;background:var(--gov-grey-bg)}
-.key-figures__item{padding:15px 20px;min-width:0}
+.key-figures__item{padding:20px 25px;min-width:0}
 /* Each figure spans three rows shared with its neighbours, so values stay level when a label wraps. */
 .key-figures__item{display:grid;grid-row:span 3;grid-template-rows:subgrid;align-content:start}
 .key-figures__item+.key-figures__item{border-left:1px solid var(--gov-border)}
-.key-figures__label{margin:0 0 6px;font-size:14px;color:var(--gov-secondary)}
-.key-figures__value{margin:0;font-size:22px;line-height:1.25;font-variant-numeric:tabular-nums}
-.key-figures__value .change-tag{font-size:17px}
+.key-figures__label{margin:0 0 6px;font-size:16px;color:var(--gov-secondary)}
+.key-figures__value{margin:0;font-size:24px;line-height:1.25;font-variant-numeric:tabular-nums}
+.key-figures__value .change-tag{font-size:19px}
 .key-figures__value a{color:var(--gov-link,#1d70b8);text-underline-offset:3px}
-.change-tag--small{padding:1px 5px 2px;font-size:13px;line-height:17px;gap:2px}.change-tag--small .change-tag__arrow{font-size:14px}
-.key-figures__note{margin:4px 0 0;font-size:14px;color:var(--gov-secondary)}
+.change-tag--small{padding:1px 5px 2px;font-size:14px;line-height:17px;gap:2px}.change-tag--small .change-tag__arrow{font-size:14px}
+.key-figures__note{margin:4px 0 0;font-size:16px;color:var(--gov-secondary)}
 @media (max-width:640px){
   .key-figures__row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .key-figures__item:nth-child(odd){border-left:0}
@@ -184,12 +188,14 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .section-heading{margin:0 0 15px}.section-heading h2{font-size:24px;font-weight:700;line-height:1.25;margin:0 0 8px}.section-heading__desc{font-size:16px;font-style:italic;color:var(--gov-secondary);margin:0 0 8px}.section-heading__date{font-size:16px;color:var(--gov-secondary);margin:0}
 @media (max-width:640px){.section-heading h2{font-size:21px}}
 /* Grocery staples: small multiples of the change since 2019, name and change on one line, the price under it. */
-.staples__grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:24px 20px}
+.staples__grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px 25px}
 .staples__item{display:flex;flex-direction:column;gap:2px;min-width:0}
 .staples__head{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.staples__head a{font-weight:700}.staples__price{font-size:16px;font-variant-numeric:tabular-nums}.staples__unit{font-size:14px;color:var(--gov-secondary)}
+.staples__head a{font-weight:700}.staples__price{font-size:16px;font-variant-numeric:tabular-nums}.staples__unit{font-size:16px;color:var(--gov-secondary)}
 @media (max-width:900px){.staples__grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:640px){.staples__grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 14px}}
+/* Phones: one staple per row, so names and their change tags stay on one line at 19px. */
+@media (max-width:480px){.staples__grid{grid-template-columns:1fr;gap:25px}}
 
 .benchmarks{margin:0 0 36px}.benchmarks__more{margin:10px 0 0;font-size:16px}
 
@@ -214,14 +220,14 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 
 /* Candy page and insights. Insight cards follow the energy monitor (the Congress Trading Monitor's card
    layout); candy takes the site's second series colour, orange. */
-.candy-teaser{margin:0 0 36px;padding:12px 16px;border-left:5px solid #f46a25;background:#f3f2f1;font-size:19px;line-height:1.4}
+.candy-teaser{margin:0 0 40px;padding:12px 16px;border-left:5px solid #f46a25;background:#f3f2f1;font-size:19px;line-height:1.4}
 .candy-teaser a{font-weight:700}
-.candy-more{margin:8px 0 36px;font-size:19px}.candy-more a{font-weight:700}
+.candy-more{margin:10px 0 0;font-size:19px}.candy-more a{font-weight:700}
 /* Prose on an insight page: GOV.UK's two-thirds reading column, 19px body, a 24px section heading over 19px bold
    subheadings. */
 .insight-prose{max-width:640px;margin:8px 0 40px}
 /* About the data under an insight's cards: what is behind the numbers and how they are measured, as a list. */
-.insight-notes{margin:40px 0 0;max-width:760px}.insight-notes ul{margin:0;padding-left:20px}.insight-notes li{margin:0 0 10px;line-height:1.5}
+.insight-notes{margin:60px 0 0;max-width:760px}.insight-notes ul{margin:0;padding-left:20px}.insight-notes li{margin:0 0 15px;line-height:1.45}
 .insight-prose h2{font-size:24px;line-height:1.25;margin:0 0 15px}
 .insight-prose h3{font-size:19px;line-height:1.3;margin:20px 0 5px}
 .insight-prose p{font-size:19px;line-height:1.5;margin:0 0 15px}
@@ -231,3 +237,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 @media (max-width:640px){.chart--candy{--chart-height:340px}}
 .insight-cards{list-style:none;margin:24px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}
 .insight-card{background:#f3f2f1;padding:20px 20px 4px;border-top:4px solid #1d70b8}.insight-card__title{font-size:24px;line-height:1.25;margin:0 0 12px}.insight-card__title a{color:#1d70b8}.insight-card__desc{margin:0 0 16px}
+
+/* Running text keeps to the GOV.UK two-thirds column, about 640px, so lines stay short on a wide screen. */
+.title-block .lede,.hero .lede,.candy-teaser,.insight-notes,.key-figures__context,.chart-panel-card__desc,.section-heading__desc{max-width:640px}
