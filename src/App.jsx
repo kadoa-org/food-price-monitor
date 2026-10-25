@@ -498,7 +498,7 @@ function CandyAbout() {
   </section>;
 }
 // ── Halloween candy: NRF's planned candy spending per person against BLS candy prices since 2010, and what a bag costs
-// at Target this week, against an estimate of its price at 2010 candy prices.
+// at a large US retailer this week.
 const HALLOWEEN_LINES = [
   { key: 'spend', label: 'Candy budget per person', colour: CANDY_COLOURS.candy },
   { key: 'candy', label: 'Candy prices', colour: CANDY_COLOURS.wages },
@@ -537,38 +537,34 @@ function HalloweenInsight({ page }) {
       footer={<p className="chart-note">Source: {external('https://nrf.com/research-insights/holiday-data-and-trends/halloween', 'NRF Halloween survey')}; BLS {external('https://www.bls.gov/cpi/', 'consumer price index')}.</p>}
     />
     <ChartCard
-      id="halloween-target-title"
-      title="What a bag costs at Target this week"
+      id="halloween-bags-title"
+      title="What a bag costs at a large US retailer this week"
       tabs={[
         { label: 'Products', content: <ul className="candy-bags">{h.products.map((p) => <li className="candy-bag" key={p.label}>
           <div className="candy-bag__img"><img src={`${BASE}/${p.img}`} alt="" width="600" height="600" loading="lazy" /></div>
           <h3 className="candy-bag__name">{p.label}</h3>
           <p className="candy-bag__price">{usd(p.price)}</p>
           <p className="candy-bag__size">{p.size}</p>
-          <p className="candy-bag__then">{usd(p.then)} at {h.from} candy prices</p>
         </li>)}</ul> },
         { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={h.products} rowKey={(r) => r.label} columns={[
           { key: 'label', header: 'Product', render: (r) => r.label },
           { key: 'size', header: 'Size', hideBelow: 'sm', render: (r) => r.size },
           { key: 'price', header: 'Price', align: 'right', render: (r) => usd(r.price) },
-          { key: 'then', header: `At ${h.from} prices`, align: 'right', render: (r) => usd(r.then) },
         ]} /> },
       ]}
-      footer={<p className="chart-note">Source: Target.com national online prices, {day}, collected with {external('https://www.kadoa.com', 'Kadoa')}.</p>}
+      footer={<p className="chart-note">Source: national online prices from a large US retailer, {day}, collected with {external('https://www.kadoa.com', 'Kadoa')}.</p>}
     />
-    <HalloweenAbout h={h} />
+    <HalloweenAbout />
   </>;
 }
-function HalloweenAbout({ h }) {
-  const rise = h ? `${Math.round(h.figures.candy)}%` : 'rise';
+function HalloweenAbout() {
   return <section className="insight-notes">
     <SectionHeading>About the data</SectionHeading>
     <ul>
       <li><strong>Why candy got pricier.</strong> Hershey raised prices in 2022, citing sugar, dairy, packaging and labor costs ({external('https://ktvz.com/money/cnn-business-consumer/2022/02/03/everything-hershey-makes-is-going-to-get-more-expensive/', 'CNN Business')}). Then cocoa hit a record of about $12,900 a metric ton in December 2024 ({external('https://tradingeconomics.com/commodity/cocoa', 'Trading Economics')}, {external('https://www.icco.org/cocoa-market-report-for-december-2024/', 'International Cocoa Organization')}).</li>
       <li>The NRF figures are what adults celebrating Halloween planned to spend on candy, not what they paid at the till. The 2026 survey asked 7,889 adults from September 1 to 9.</li>
       <li>Candy prices are the BLS consumer price index for candy and chewing gum in September of each year, not seasonally adjusted. BLS counts a smaller pack at the same price as a price rise.</li>
-      <li>The {h?.from ?? 2010} prices on the cards are estimates. Each is today's price divided by the {rise} rise in candy prices, not a price anyone recorded in {h?.from ?? 2010}.</li>
-      <li>Target prices are national online prices from one day. Store prices and sales can differ.</li>
+      <li>Bag prices are national online prices from one day. Store prices and sales can differ.</li>
     </ul>
   </section>;
 }

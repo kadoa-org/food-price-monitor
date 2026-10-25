@@ -222,12 +222,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
    layout); candy takes the site's second series colour, orange. */
 .candy-more{margin:10px 0 0;font-size:19px}.candy-more a{font-weight:700}
 /* Halloween insight: one card per bag, four across, two on phones. The photo sits on a white tile, then the name, the
-   price large, the pack size and the estimate at 2010 candy prices. */
+   price large and the pack size. */
 .candy-bags{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
 .candy-bag{min-width:0}.candy-bag__img{background:#fff;border:1px solid var(--dk-rule-soft);aspect-ratio:1;display:flex;align-items:center;justify-content:center;padding:10px;margin:0 0 10px}
 .candy-bag__img img{display:block;width:100%;height:100%;object-fit:contain}
 .candy-bag__name{font-size:19px;line-height:1.3;margin:0 0 5px}.candy-bag__price{font-size:36px;line-height:1.1;font-weight:700;margin:0 0 5px}
-.candy-bag__size,.candy-bag__then{font-size:16px;line-height:1.35;margin:0;color:var(--dk-muted)}.candy-bag__then{margin-top:5px}
+.candy-bag__size{font-size:16px;line-height:1.35;margin:0;color:var(--dk-muted)}
 .govuk-tabs__panel:has(> .candy-bags){min-height:0}
 /* A two-word table heading that may break onto two lines on phones, so a narrow table fits without scrolling. */
 @media (max-width:640px){.th-wrap{white-space:normal;display:inline-block}}

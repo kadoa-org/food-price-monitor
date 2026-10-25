@@ -70,9 +70,9 @@ const lastDate = rows.map((r) => r.date).sort().at(-1);
 const firstDate = rows.map((r) => r.date).sort()[0];
 const newsCutoff = addDays(lastDate, -90);
 const common = { generatedAt: manifest.generatedAt, sourceRun: manifest.runId, lastDate, firstDate, totalRows: rows.length, datasetRows: manifest.rows, news: { markon: newsFile ? { fetchedAt: newsFile.fetchedAt, articles: markonItems.length, latest: markonItems[0]?.date ?? null } : null, since: newsCutoff } };
-// Inputs of the Halloween candy insight, typed in from NRF's yearly releases and collected from Target with Kadoa.
+// Inputs of the Halloween candy insight, typed in from NRF's yearly releases and collected from a large US retailer with Kadoa.
 const nrf = JSON.parse(await readFile(join(root, 'data/halloween/nrf-candy.json'), 'utf8'));
-const target = JSON.parse(await readFile(join(root, 'data/halloween/target-2026-10-25.json'), 'utf8'));
+const shop = JSON.parse(await readFile(join(root, 'data/halloween/retailer-2026-10-25.json'), 'utf8'));
 // The newest insight, announced in a banner under the navigation on every other page until the date given, as on the
 // energy monitor. Decided here, before any page is written, so every page and its prerender carry it. The banner has
 // its own text, about 50 characters with the number first, so it fits a phone in one or two lines. Its number comes
@@ -285,12 +285,12 @@ try {
   console.error(JSON.stringify({ step: 'candy', status: 'unavailable', error: error.message }));
 }
 // Halloween candy: NRF's planned candy spending per person celebrating (data/halloween, typed in from NRF's yearly
-// releases) against the same BLS candy and all-items series each September, plus one day of Target prices collected
+// releases) against the same BLS candy and all-items series each September, plus one day of retailer prices collected
 // with Kadoa. BLS is the part that can fail, so it degrades like the candy block: logged, and the page says so.
 let halloween = null;
 try {
   const [food, allItems] = await Promise.all([blsText('cu/cu.data.11.USFoodBeverage'), blsText('cu/cu.data.1.AllItems')]);
-  halloween = buildHalloween({ spend: nrf.values, candy: parseBls(food, [CANDY_SERIES.candy]).get(CANDY_SERIES.candy), all: parseBls(allItems, [CANDY_SERIES.all]).get(CANDY_SERIES.all), target });
+  halloween = buildHalloween({ spend: nrf.values, candy: parseBls(food, [CANDY_SERIES.candy]).get(CANDY_SERIES.candy), all: parseBls(allItems, [CANDY_SERIES.all]).get(CANDY_SERIES.all), shop });
   await writeFile(join(data, 'downloads', 'halloween-candy.csv.gz'), gzipSync(halloweenCsv(halloween.rows)));
   console.error(JSON.stringify({ step: 'halloween', status: 'ok', ...halloween.figures }));
 } catch (error) {

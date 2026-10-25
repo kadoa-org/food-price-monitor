@@ -1,7 +1,7 @@
 {
- "retailer": "Target.com",
+ "retailer": "a large US retailer",
  "date": "2026-10-25",
- "note": "National online prices from Target's Halloween candy section, collected with Kadoa",
+ "note": "National online prices from a large US retailer's Halloween candy section, collected with Kadoa",
  "products": [
   {
    "label": "Reese's Cups",

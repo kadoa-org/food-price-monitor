@@ -1,7 +1,7 @@
 // The Halloween candy insight: NRF's planned candy spending per person celebrating against BLS candy prices and all
 // prices, each September (the month before Halloween, and the month NRF runs its survey), since 2010. The BLS series
 // are the candy block's (CANDY_SERIES), not seasonally adjusted, which is fine here because every year is the same
-// month. Products are a one-day snapshot of Target prices, each with what the same bag would cost at 2010 candy prices.
+// month. Products are a one-day snapshot of a large US retailer's online prices.
 import { CANDY_SERIES } from './candy.mjs';
 
 export const HALLOWEEN_FROM = 2010;
@@ -9,8 +9,8 @@ const MONTH = '09';
 
 const pct = (to, from) => Number(((to / from - 1) * 100).toFixed(2));
 
-// spend: { 'YYYY': dollars } from NRF; candy and all: Maps of 'YYYY-MM' to index value; target: the Kadoa snapshot.
-export function buildHalloween({ spend, candy, all, target }) {
+// spend: { 'YYYY': dollars } from NRF; candy and all: Maps of 'YYYY-MM' to index value; shop: the Kadoa snapshot.
+export function buildHalloween({ spend, candy, all, shop }) {
   const years = Object.keys(spend).map(Number).filter((y) => y >= HALLOWEEN_FROM).sort((a, b) => a - b);
   if (years[0] !== HALLOWEEN_FROM) throw new Error(`NRF spending has no value for ${HALLOWEEN_FROM}`);
   for (const y of years) for (const [name, s] of [['candy', candy], ['all items', all]]) {
@@ -23,13 +23,10 @@ export function buildHalloween({ spend, candy, all, target }) {
     return { year, spend: s, candyCpi: c, allCpi: a, spendChange: pct(s, base.spend), candyChange: pct(c, base.candy), allChange: pct(a, base.all) };
   });
   const last = rows.at(-1);
-  // Today's price divided by the rise in candy prices: an estimate of the 2010 price, not a recorded one.
-  const ratio = last.candyCpi / base.candy;
-  const products = target.products.map((p) => ({ ...p, then: Number((p.price / ratio).toFixed(2)) }));
   return {
     from: first, to: last.year, series: { candy: CANDY_SERIES.candy, all: CANDY_SERIES.all },
     figures: { spendFrom: base.spend, spendTo: last.spend, spend: last.spendChange, candy: last.candyChange, all: last.allChange },
-    rows, products, retailer: target.retailer, date: target.date,
+    rows, products: shop.products, retailer: shop.retailer, date: shop.date,
   };
 }
 
