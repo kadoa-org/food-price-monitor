@@ -1,14 +1,12 @@
 import React, { useId, useLayoutEffect, useRef, useState } from 'react';
 import { Button } from './kit';
 
-// Components reverse engineered from the UKHSA data dashboard (ukhsa-dashboard.data.gov.uk), which is built on the
-// GOV.UK Design System and is the best-regarded public statistics dashboard in that family. Measurements were read
-// from the live page: a #f3f2f1 container with no border, a 24px bold title, a 16px italic grey description, a
-// 16px grey "Up to and including" line, GOV.UK tabs for Chart, Tabular data and Download, and GOV.UK tags for
-// change, red #f4cdc6 on #2a0b06 and green #cce2d8 on #005a30.
+// Chart card components: a #f3f2f1 container with no border, a 24px bold title, a 16px italic grey description, a
+// 16px grey "Up to and including" line, tabs for Chart, Tabular data and Download, and tags for change, red #f4cdc6
+// on #2a0b06 and green #cce2d8 on #005a30.
 
-// A change as a GOV.UK tag with an arrow. Up is red and down is green because on this site a rise is a higher
-// food price, which is the reading UKHSA uses for cases: the colour says whether the move is bad news. The arrow
+// A change as a tag with an arrow. Up is red and down is green because on this site a rise is a higher
+// food price: the colour says whether the move is bad news. The arrow
 // and the sign carry the direction on their own, so the tag never depends on colour.
 export function ChangeTag({ value, children, unit = '%', size }) {
   if (value === null || value === undefined || !Number.isFinite(value)) return null;
@@ -22,11 +20,9 @@ export function ChangeTag({ value, children, unit = '%', size }) {
   </strong>;
 }
 
-// A single row of key figures for a detail page: a label, one value and a short note per cell. It is the UKHSA
-// headline panel with the per-figure metric and date lines folded into one note, because a page about one product
-// needs the answer at a glance, not a second table above the chart.
-// Opens with a "Headlines" heading, as every UKHSA topic page does; `context` is the short summary printed under
-// the panel.
+// A single row of key figures for a detail page: a label, one value and a short note per cell, with the metric and
+// date folded into one note, because a page about one product needs the answer at a glance, not a second table above
+// the chart. Opens with a "Headlines" heading; `context` is the short summary printed under the panel.
 export function KeyFigures({ heading = 'Headlines', description, date, context, items }) {
   const shown = items.filter(Boolean);
   if (!shown.length) return null;
@@ -43,7 +39,7 @@ export function KeyFigures({ heading = 'Headlines', description, date, context, 
   </section>;
 }
 
-// A section heading as UKHSA writes one: a bold title naming the measure and its period, a short italic line on
+// A section heading: a bold title naming the measure and its period, a short italic line on
 // what the numbers are, and the date the data runs to.
 export function SectionHeading({ children, description, date }) {
   return <div className="section-heading">
@@ -53,16 +49,15 @@ export function SectionHeading({ children, description, date }) {
   </div>;
 }
 
-// GOV.UK tabs, with the keyboard behaviour the design system specifies: arrow keys move between tabs and focus
-// follows selection.
+// Tabs with standard tab keyboard behaviour: arrow keys move between tabs and focus follows selection.
 export function Tabs({ tabs, initial = 0 }) {
   const [active, setActive] = useState(initial);
   const refs = useRef([]);
   const panels = useRef([]);
   const id = useId();
   // Every panel takes the height of the first one (the chart), measured on the page and again on resize, so switching
-  // tabs never pulls the content below upward. A longer panel grows instead of scrolling: GOV.UK advises against
-  // scroll areas inside the page, and long lists use ShowMore to stay short.
+  // tabs never pulls the content below upward. A longer panel grows instead of scrolling: the page has no scroll
+  // areas inside it, and long lists use ShowMore to stay short.
   const [lockHeight, setLockHeight] = useState(null);
   useLayoutEffect(() => {
     const measure = () => {
@@ -112,7 +107,7 @@ export function ChartCard({ title, description, date, tabs, footer, id, hideTitl
   </section>;
 }
 
-// "Filter data by" and a GOV.UK select, which UKHSA uses in place of segmented buttons for the time window.
+// "Filter data by" and a select, used in place of segmented buttons for the time window.
 export function FilterSelect({ label = 'Filter data by', value, options, onChange }) {
   const id = useId();
   return <div className="govuk-form-group filter-select">

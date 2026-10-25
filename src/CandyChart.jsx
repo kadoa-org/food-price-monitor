@@ -3,7 +3,7 @@ import { AXIS_INK, BASELINE, Chart, DAY, INK, LABEL_INK, PAPER, RULE, endLabelRo
 import { monthLabel } from './model.mjs';
 import { pctScale } from './StaplesChart';
 
-// Candy takes the Analysis Function orange, the site's second series colour; pay the series blue; all prices the
+// Candy takes the orange, the site's second series colour; pay the series blue; all prices the
 // dashed grey every inflation line on the site uses.
 export const CANDY_COLOURS = { candy: '#f46a25', wages: INK, all: '#505a5f' };
 const signedPct = (v) => `${v > 0 ? '+' : ''}${Math.round(v)}%`;

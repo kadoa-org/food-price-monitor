@@ -171,7 +171,7 @@ const RANGES = [['30', '30 days'], ['365', '1 year'], ['all', 'All']];
 const MEASURES = [['change', 'Percent change'], ['price', 'Price']];
 // A monthly series has one point in 30 days, so it offers the windows that hold enough of them to read.
 const MONTHLY_RANGES = [['365', '1 year'], ['1825', '5 years'], ['all', 'All']];
-// GOV.UK treats a select as a last resort. One option is not a choice, so it is shown as a fact instead of a control.
+// A select is a last resort. One option is not a choice, so it is shown as a fact instead of a control.
 function Choice({ label, value, options, onChange, className = '' }) {
   if (options.length === 1) return <div className={`filter-fact ${className}`.trim()}><span className="filter-fact-label">{label}</span><span className="filter-fact-value">{options[0].label}</span></div>;
   return <label className={className || undefined}>{label}<select value={value} title={options.find((o) => o.value === value)?.label} onChange={(e) => onChange(e.target.value)}>{options.map((o) => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}</select></label>;

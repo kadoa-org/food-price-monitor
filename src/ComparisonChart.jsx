@@ -3,7 +3,7 @@ import { AXIS_INK, BASELINE, Chart, DAY, INK, LABEL_INK, PAPER, RULE, endLabelRo
 import { monthLabel } from './model.mjs';
 
 // Two prices for the same food on one scale: what wholesalers were paid and what shoppers paid, a monthly average
-// each. Wholesale takes the site's series blue; store prices the Analysis Function orange, its colour-blind-safe
+// each. Wholesale takes the site's series blue; store prices the orange, its colour-blind-safe
 // partner. A single month one source did not publish is bridged with a dotted line through the average of the
 // months either side, marked as an estimate in the tooltip; a longer stretch stays a hole.
 export const COMPARISON_COLOURS = { wholesale: INK, store: '#f46a25' };

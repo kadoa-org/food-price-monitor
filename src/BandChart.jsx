@@ -72,7 +72,7 @@ export default function BandChart({ rows, startDate, endDate, name, height = 120
           // January carries the year so the two years in the window can be told apart.
           x: {
             type: 'linear', min: from, max: to,
-            // The UKHSA dashboard's small charts: a very faint grid in both directions (about 5 per cent opacity,
+            // Small charts: a very faint grid in both directions (about 5 per cent opacity,
             // every line the same weight), month ticks under a baseline, and a few labelled months.
             border: { display: true, color: BASELINE },
             grid: { color: GRID, lineWidth: 1, drawTicks: true, tickLength: 4, tickColor: BASELINE },

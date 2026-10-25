@@ -1,4 +1,4 @@
-/* Page styles for the food price monitor. Tokens and chrome come from the shared kit (GOV.UK palette at data-app density). */
+/* Page styles for the food price monitor. Tokens and chrome come from the shared kit (muted public-service palette at data-app density). */
 @import './chart.css';
 *{box-sizing:border-box}
 body{margin:0;background:#fff;color:var(--dk-ink);font:19px/1.4 var(--dk-font);-webkit-font-smoothing:antialiased}
@@ -9,7 +9,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .skip-link{position:absolute;top:-100px;left:15px;background:var(--dk-focus);color:var(--dk-ink);padding:10px;z-index:20}.skip-link:focus{top:8px}
 .main{padding-top:40px;padding-bottom:60px;min-height:65vh}
 .hero{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:40px}.hero>div{max-width:760px}
-.lede{font-size:19px;line-height:1.45;color:var(--dk-muted);margin-bottom:0}.detail-hero .dk-hint{margin:10px 0 0}
+/* The lede is the kit's lead paragraph (.dk-lede): 24px, 21px on phones, in the text colour, in the heading's column. */
+.lede{font-size:24px;line-height:30px;color:var(--dk-ink,#0b0c0c);margin-bottom:0;max-width:var(--dk-text-column,720px);text-wrap:pretty}@media (max-width:640px){.lede{font-size:21px;line-height:25px}}.detail-hero .dk-hint{margin:10px 0 0}
 
 .dk-btn{text-decoration:none;min-height:36px;height:auto;padding-top:7px;padding-bottom:7px}
 .dk-section-head{align-items:flex-end}.dk-section-head .dk-hint{max-width:70ch}
@@ -22,7 +23,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .table-more{display:flex;align-items:center;gap:15px;padding-top:15px}
 .text-button{background:none;border:0;color:var(--dk-link);text-decoration:underline;text-underline-offset:3px;padding:0;font-size:16px}
 
-/* Filters: one row above everything they scope. GOV.UK select: square, dark 1px border. */
+/* Filters: one row above everything they scope. Selects are square, with a dark 1px border. */
 .filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px;margin-bottom:24px}.filters>*{flex:0 1 auto;width:240px;max-width:100%}.filters .product-select{width:360px}
 .filters label{display:flex;flex-direction:column;gap:6px;font-size:16px;font-weight:600;min-width:0}
 .filter-fact{display:flex;flex-direction:column;gap:6px;font-size:16px;font-weight:600;min-width:0}.filter-fact-value{display:flex;align-items:center;min-height:40px;padding-bottom:6px;border-bottom:1px solid var(--dk-rule-soft);font-size:16px;font-weight:400;overflow-wrap:anywhere}.filters--single>*{width:320px}
@@ -44,7 +45,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .chart-loading{position:relative;color:var(--dk-muted);padding-top:14px}
 .skeleton-chart{height:250px;background:#eeefef;margin-top:16px}.skeleton-title{width:240px;max-width:80%;height:32px;background:#eeefef;margin:20px 0}.skeleton-line{width:70%;height:20px;background:#eeefef;margin-bottom:24px}
 
-/* GOV.UK summary list at compact density */
+/* Summary list at compact density */
 .dk-summary{margin:0 0 20px;font-size:16px;line-height:1.5}
 .dk-summary>div{display:grid;grid-template-columns:minmax(120px,32%) 1fr;gap:12px;padding:8px 0;border-bottom:1px solid var(--dk-rule-soft)}
 .dk-summary dt{font-weight:600;overflow-wrap:anywhere}.dk-summary dd{margin:0;overflow-wrap:anywhere}.dk-summary dd .dk-tag{margin-left:6px;vertical-align:middle}
@@ -115,20 +116,19 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .dk-header .dk-btn{font-size:16px}
 @media(max-width:640px){.dk-header-brand-group{flex-direction:column;align-items:flex-start;gap:0}.dk-header-brand{font-size:16px}.header-right{gap:8px}}
 
-/* Reverse engineered from the UKHSA data dashboard, which is built on the GOV.UK Design System. Values are the ones
-   read off the live page, not approximations. */
+/* Chart card tokens: grey card, grey borders, dark text and the red and green change tags. */
 :root{--gov-grey-bg:#f3f2f1;--gov-border:#b1b4b6;--gov-secondary:#505a5f;--gov-text:#0b0c0c;--gov-tag-red-bg:#f4cdc6;--gov-tag-red:#2a0b06;--gov-tag-green-bg:#cce2d8;--gov-tag-green:#005a30}
 .govuk-visually-hidden{position:absolute!important;width:1px!important;height:1px!important;margin:0!important;padding:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;border:0!important;white-space:nowrap!important}
 
 
-/* GOV.UK tag used for change */
+/* Tag used for change */
 .change-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px 4px;font-size:16px;line-height:20px;font-weight:700;font-variant-numeric:tabular-nums}
 .change-tag--up{background:var(--gov-tag-red-bg);color:var(--gov-tag-red)}.change-tag--down{background:var(--gov-tag-green-bg);color:var(--gov-tag-green)}.change-tag--flat{background:#e8f1f8;color:#0c2d4a}
 .change-tag__arrow{font-weight:700;font-size:19px;line-height:1}.change-tag--up .change-tag__arrow{color:#942514}.change-tag--down .change-tag__arrow{color:#005a30}
 .change-tag .change-tag__main+*{font-weight:400}
 
 /* Chart card: grey container, title, italic description, date, tabs */
-/* Measured from the UKHSA chart card: 20px padding, header and tabs 24px apart. */
+/* Chart card: 20px padding, header and tabs 24px apart. */
 .chart-panel-card{background:var(--gov-grey-bg);padding:25px;margin:0 0 60px;min-width:0;display:flex;flex-direction:column;gap:30px}
 /* Kit spacing: heading, tabs and source 24px apart (20px on a phone), whatever the heading holds. */
 .chart-panel-card__head>:last-child{margin-bottom:0}.chart-panel-card__head--hidden{position:absolute}
@@ -137,8 +137,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .chart-panel-card__desc{font-size:16px;line-height:20px;font-style:italic;color:var(--gov-secondary);margin:0 0 10px}
 .chart-panel-card__date{font-size:16px;line-height:20px;color:var(--gov-secondary);margin:0 0 24px}
 
-/* GOV.UK tabs */
-/* GOV.UK Design System tab geometry, so switching tabs never moves anything: inactive tabs are padded 20px each side
+/* Tabs */
+/* Tab geometry, so switching tabs never moves anything: inactive tabs are padded 20px each side
    and the active one 19px plus a 1px border (same width); the active tab grows only upward (-5px) and 1px over the
    panel border, so its text stays on the same line. */
 .govuk-tabs{margin:0}.govuk-tabs__list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;align-items:flex-start}
@@ -147,12 +147,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .govuk-tabs__tab:hover{text-decoration-thickness:max(3px,.1875rem)}
 .govuk-tabs__list-item--selected .govuk-tabs__tab{background:#fff;border:1px solid var(--gov-border);border-bottom:0;text-decoration:none;padding:14px 19px 16px;margin:-5px 0 -1px;position:relative;z-index:1}
 .govuk-tabs__tab:focus-visible{outline:3px solid transparent;background:var(--dk-focus,#fd0);box-shadow:0 -2px var(--dk-focus,#fd0),0 4px var(--gov-text);text-decoration:none}
-/* As the UKHSA chart cards: every panel keeps a minimum height and a long table scrolls inside a fixed height, so a
+/* Every panel keeps a minimum height and a long table scrolls inside a fixed height, so a
    switch from chart to table does not move what is below. */
 .govuk-tabs__panel{background:#fff;border:1px solid var(--gov-border);padding:24px 16px;min-width:0;min-height:560px;box-sizing:border-box}.govuk-tabs__short{display:none}
 .govuk-tabs__panel[hidden]{display:none}
 
-/* GOV.UK select */
+/* Select */
 .chart-filters{display:flex;flex-wrap:wrap;gap:0 30px}.filter-select{margin:0 0 20px}.govuk-label{display:block;font-size:19px;line-height:25px;margin:0 0 5px;color:var(--gov-text)}
 .govuk-select{font:inherit;font-size:19px;line-height:25px;min-width:11.5em;max-width:100%;height:2.5rem;padding:5px;border:2px solid var(--gov-text);border-radius:0;background:#fff;color:var(--gov-text)}
 .govuk-select:focus{outline:3px solid var(--dk-focus,#fd0);outline-offset:0;box-shadow:inset 0 0 0 2px}
@@ -232,7 +232,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 /* A two-word table heading that may break onto two lines on phones, so a narrow table fits without scrolling. */
 @media (max-width:640px){.th-wrap{white-space:normal;display:inline-block}}
 @media (max-width:640px){.candy-bags{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 15px}.candy-bag__price{font-size:27px}}
-/* Prose on an insight page: GOV.UK's two-thirds reading column, 19px body, a 24px section heading over 19px bold
+/* Prose on an insight page: a 640px reading column, 19px body, a 24px section heading over 19px bold
    subheadings. */
 .insight-prose{max-width:640px;margin:8px 0 40px}
 /* About the data under an insight's cards: what is behind the numbers and how they are measured, as a list. */
@@ -247,5 +247,5 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .insight-cards{list-style:none;margin:24px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}
 .insight-card{background:#f3f2f1;padding:20px 20px 4px;border-top:4px solid #1d70b8}.insight-card__title{font-size:24px;line-height:1.25;margin:0 0 12px}.insight-card__title a{color:#1d70b8}.insight-card__desc{margin:0 0 16px}
 
-/* Running text keeps to the GOV.UK two-thirds column, about 640px, so lines stay short on a wide screen. */
-.title-block .lede,.hero .lede,.insight-notes,.key-figures__context,.chart-panel-card__desc,.section-heading__desc{max-width:640px}
+/* Running text keeps to about 640px, so lines stay short on a wide screen. */
+.insight-notes,.key-figures__context,.chart-panel-card__desc,.section-heading__desc{max-width:640px}

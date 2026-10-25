@@ -94,7 +94,7 @@ export const dateLabel = (s) => { const [y, m, d] = s.split('-'); return `${Numb
 export const monthLabel = (s) => { const [y, m] = s.split('-'); return `${MONTHS[Number(m) - 1]} ${y}`; };
 export const addDays = (iso, days) => new Date(Date.parse(iso) + days * DAY).toISOString().slice(0, 10);
 export const unitLabel = (pkg) => (/^(per|each)\b/i.test(pkg) ? pkg : /^(lb|dozen|carton of|bag of)/.test(pkg) ? `per ${pkg}` : `per ${pkg.replace(/s$/, '')}`);
-// A quote is the reported range or the retail advertised average. "to" instead of a dash follows GOV.UK style.
+// A quote is the reported range or the retail advertised average. It uses "to" instead of a dash, which reads aloud clearly.
 export function quote(row) {
   if (row.advertised_average !== null && row.advertised_average !== undefined) return money(row.advertised_average);
   if (row.low !== null && row.high !== null) return row.low === row.high ? money(row.low) : `${money(row.low)} to ${money(row.high)}`;

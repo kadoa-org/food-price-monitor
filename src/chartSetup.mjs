@@ -15,8 +15,7 @@ function token(name, fallback) {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return value || fallback;
 }
-// The Analysis Function dark blue the UKHSA dashboard charts in, rather than the link blue, which on a chart line
-// reads as something to click.
+// Chart lines are dark blue rather than the link blue, which on a chart line reads as something to click.
 export const INK = token('--chart-series-ink', FALLBACK.series);
 export const AXIS_INK = token('--dk-muted', FALLBACK.axis);
 export const LABEL_INK = token('--dk-ink', FALLBACK.ink);
@@ -63,7 +62,7 @@ export function yearTicks(from, to, width, minGap = 48) {
   for (let y = Math.ceil(first / step) * step; y <= last; y += step) ticks.push(Date.UTC(y, 0, 1));
   return ticks;
 }
-// Month labels stack the month over the year, as UKHSA does, so twelve of them fit a phone-width axis without
+// Month labels stack the month over the year, so twelve of them fit a phone-width axis without
 // rotating. Chart.js draws an array as separate lines.
 export const tickLabel = (t, span) => {
   const d = new Date(t);

@@ -90,7 +90,7 @@ export default function PriceChart({ rows, startDate, endDate, unit = '', yTitle
           x: {
             type: 'linear', min: from, max: to,
             border: { color: BASELINE },
-            // Gridlines on both axes, as UKHSA draws them, so a reader can run a finger from a month to the line.
+            // Gridlines on both axes, so a reader can run a finger from a month to the line.
             grid: { color: RULE, drawTicks: false },
             title: { display: true, text: 'Report date', color: AXIS_INK, font: { size: 14 }, padding: { top: 10 } },
             ticks: {

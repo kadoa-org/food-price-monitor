@@ -2,7 +2,7 @@ import { withGaps } from '../src/chartSetup.mjs';
 import { expect, test } from 'bun:test';
 import { autoFamily, shortMarket, dateLabel, familyFor, findingSentence, gapNote, groupSeries, markonTitle, newsFamilies, slugify, titleCase, usdaNews, longestGap, nearest, pageKey, pctChange, pctLabel, pickBenchmark, quote, summarize, unitLabel, yearEarlier } from '../src/model.mjs';
 const row = { id: 'a', series_id: 'red-25lb', date: '2026-09-18', commodity: 'Onions, Dry', market: 'Market', market_stage: 'Shipping Point', package: '25 lb sacks', low: 9, high: 11, mostly_low: null, mostly_high: null, advertised_average: null, comment: null, dimensions: { organic: 'N', var: 'RED' } };
-test('formats dates and quotes in GOV.UK style without locale data', () => {
+test('formats dates and quotes as day month year and "to" ranges without locale data', () => {
   expect(dateLabel('2026-09-18')).toBe('18 Sep 2026');
   expect(quote(row)).toBe('$9.00 to $11.00');
   expect(quote({ ...row, low: 0, high: 0 })).toBe('$0.00');
