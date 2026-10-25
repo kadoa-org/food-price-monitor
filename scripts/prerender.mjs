@@ -77,9 +77,9 @@ function seo(page, path) {
     ld = [{ '@context': 'https://schema.org', '@type': 'ItemList', name: title, url: canonical, numberOfItems: page.insights.length, itemListElement: page.insights.map((i, n) => ({ '@type': 'ListItem', position: n + 1, name: i.title, url: `${SITE}/food-prices/insights/${i.slug}` })) }];
   } else if (page.kind === 'insight' && page.slug === 'halloween-candy') {
     const h = page.halloween; const f = h?.figures; const pc = (v) => `${Math.round(v)}%`;
-    title = f ? `Halloween Candy Prices ${h.to}: Candy Budgets Up ${pc(f.spend)} Since ${h.from}, Candy Prices Up ${pc(f.candy)}` : 'Halloween Candy Spending Against Candy Prices';
+    title = f ? `Halloween Candy Prices ${h.to}: Up ${pc(f.since.candy)} Since ${h.since}, Candy Budgets Up ${pc(f.since.spend)}` : 'Halloween Candy Spending Against Candy Prices';
     description = f
-      ? `Americans celebrating Halloween planned to spend $${f.spendTo.toFixed(2)} each on candy in ${h.to}, up ${pc(f.spend)} from $${f.spendFrom.toFixed(2)} in ${h.from}. Candy prices rose ${pc(f.candy)} over the same years and all prices ${pc(f.all)}, so the bigger budget buys about the same candy. NRF and BLS data, with this week's prices from a large US retailer.`
+      ? `Candy prices rose ${pc(f.since.candy)} from September ${h.since} to ${h.to}, and planned Halloween candy spending per person celebrating ${pc(f.since.spend)}, from $${f.since.spendFrom.toFixed(2)} to $${f.spendTo.toFixed(2)}. In the 2010s budgets rose ${pc(f.decade.spend)} and prices ${pc(f.decade.candy)}. NRF and BLS data, with this week's prices from a large US retailer.`
       : 'Planned Halloween candy spending per person from NRF against the BLS candy price index since 2010.';
     crumbs.push({ name: 'Insights', url: `${SITE}/food-prices/insights` }, { name: 'Halloween candy', url: canonical });
     ld = [{ '@context': 'https://schema.org', '@type': 'Article', headline: page.title, description, url: canonical, dateModified: updated, keywords: ['halloween candy prices', 'halloween candy spending', 'candy prices 2026', 'candy inflation'], author: { '@type': 'Organization', name: 'Kadoa', url: SITE }, publisher: { '@type': 'Organization', name: 'Kadoa', url: SITE } }];

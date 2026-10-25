@@ -497,8 +497,8 @@ function CandyAbout() {
     </ul>
   </section>;
 }
-// ── Halloween candy: NRF's planned candy spending per person against BLS candy prices since 2010, and what a bag costs
-// at a large US retailer this week.
+// ── Halloween candy: NRF's planned candy spending per person against BLS candy prices since 2020 and since 2010, and
+// what a bag costs at a large US retailer this week.
 const HALLOWEEN_LINES = [
   { key: 'spend', label: 'Candy budget per person', colour: CANDY_COLOURS.candy },
   { key: 'candy', label: 'Candy prices', colour: CANDY_COLOURS.wages },
@@ -510,29 +510,32 @@ function HalloweenInsight({ page }) {
   const h = page.halloween;
   const head = (lede) => <div className="title-block"><h1 className="dk-h1">{page.title}</h1>{lede && <p className="lede">{lede}</p>}</div>;
   if (!h) return <>{head()}<p role="alert">Candy prices could not be loaded from BLS in this update.</p><HalloweenAbout /></>;
-  const f = h.figures;
-  const lines = HALLOWEEN_LINES.map((l) => ({ ...l, points: h.rows.map((r) => [r.year, r[`${l.key}Change`]]) }));
+  const f = h.figures, since = f.since, round = (v) => Math.round(v);
+  const linesFrom = (field, rows) => HALLOWEEN_LINES.map((l) => ({ ...l, points: rows.map((r) => [r.year, r[`${l.key}${field}`]]) }));
+  const recent = h.rows.filter((r) => r.year >= h.since);
   const rows = [...h.rows].reverse();
+  const chart = (lines, from, g) => <>
+    <YearLegend lines={lines} />
+    <YearLines lines={lines} label={`Since ${from}, planned candy spending per person rose ${pctLabel(g.spend)}, candy prices ${pctLabel(g.candy)} and all prices ${pctLabel(g.all)}.`} />
+  </>;
   const day = dateLabel(h.date);
   return <>
-    {head(`Planned candy spending per person celebrating rose from $${Math.round(f.spendFrom)} in ${h.from} to $${Math.round(f.spendTo)} this year. Candy prices rose just as fast, so the bigger budget buys about the same candy.`)}
+    {head(`Since ${h.since}, candy prices rose ${round(since.candy)}% and planned candy spending per person celebrating ${round(since.spend)}%, from $${round(since.spendFrom)} to $${round(f.spendTo)}. In the 2010s it was the other way round: budgets rose ${round(f.decade.spend)}%, prices ${round(f.decade.candy)}%.`)}
     <ChartCard
       id="halloween-since-title"
-      title={`Candy budget and candy prices since ${h.from}`}
-      description={`Change since ${h.from}, September of each year.`}
+      title="Candy budget and candy prices"
+      description={`Change since September ${h.since}, or since ${h.from} on the second tab.`}
       tabs={[
-        { label: 'Chart', content: <>
-          <YearLegend lines={lines} />
-          <YearLines lines={lines} label={`Since ${h.from}, planned candy spending per person rose ${pctLabel(f.spend)}, candy prices ${pctLabel(f.candy)} and all prices ${pctLabel(f.all)}.`} />
-        </> },
+        { label: `Since ${h.since}`, content: chart(linesFrom('Since', recent), h.since, since) },
+        { label: `Since ${h.from}`, content: chart(linesFrom('Change', h.rows), h.from, f) },
         { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={rows} rowKey={(r) => r.year} columns={[
           { key: 'year', header: 'Year', render: (r) => r.year },
           { key: 'spend', header: 'Budget', align: 'right', render: (r) => usd(r.spend) },
-          { key: 'spendChange', header: 'Change', align: 'right', render: (r) => pctLabel(r.spendChange) },
-          { key: 'candyChange', header: <span className="th-wrap">Candy prices</span>, align: 'right', render: (r) => pctLabel(r.candyChange) },
-          { key: 'allChange', header: 'All prices', align: 'right', hideBelow: 'sm', render: (r) => pctLabel(r.allChange) },
+          { key: 'spendSince', header: <span className="th-wrap">{`Budget since ${h.since}`}</span>, align: 'right', render: (r) => (r.spendSince == null ? '–' : pctLabel(r.spendSince)) },
+          { key: 'candySince', header: <span className="th-wrap">{`Candy prices since ${h.since}`}</span>, align: 'right', render: (r) => (r.candySince == null ? '–' : pctLabel(r.candySince)) },
+          { key: 'candyChange', header: <span className="th-wrap">{`Candy prices since ${h.from}`}</span>, align: 'right', hideBelow: 'sm', render: (r) => pctLabel(r.candyChange) },
         ]} /> },
-        { label: 'Download', content: <><p className="download-intro">Each year since {h.from}: planned candy spending per person, the candy and all-items price indexes for September, and the change since {h.from}, as a gzipped CSV.</p><a className="dk-btn" href={`${dataPath(page.common)}/downloads/halloween-candy.csv.gz`} download>Download CSV (gzip)</a></> },
+        { label: 'Download', content: <><p className="download-intro">Each year since {h.from}: planned candy spending per person, the candy and all-items price indexes for September, and the change since {h.from} and since {h.since}, as a gzipped CSV.</p><a className="dk-btn" href={`${dataPath(page.common)}/downloads/halloween-candy.csv.gz`} download>Download CSV (gzip)</a></> },
       ]}
       footer={<p className="chart-note">Source: {external('https://nrf.com/research-insights/holiday-data-and-trends/halloween', 'NRF Halloween survey')}; BLS {external('https://www.bls.gov/cpi/', 'consumer price index')}.</p>}
     />
@@ -554,14 +557,15 @@ function HalloweenInsight({ page }) {
       ]}
       footer={<p className="chart-note">Source: national online prices from a large US retailer, {day}, collected with {external('https://www.kadoa.com', 'Kadoa')}.</p>}
     />
-    <HalloweenAbout />
+    <HalloweenAbout h={h} />
   </>;
 }
-function HalloweenAbout() {
+function HalloweenAbout({ h }) {
   return <section className="insight-notes">
     <SectionHeading>About the data</SectionHeading>
     <ul>
       <li><strong>Why candy got pricier.</strong> Hershey raised prices in 2022, citing sugar, dairy, packaging and labor costs ({external('https://ktvz.com/money/cnn-business-consumer/2022/02/03/everything-hershey-makes-is-going-to-get-more-expensive/', 'CNN Business')}). Then cocoa hit a record of about $12,900 a metric ton in December 2024 ({external('https://tradingeconomics.com/commodity/cocoa', 'Trading Economics')}, {external('https://www.icco.org/cocoa-market-report-for-december-2024/', 'International Cocoa Organization')}).</li>
+      {h && <li>The headline starts in September {h.since}, the last year before the price surge. From {h.from} both rose about the same, budgets {Math.round(h.figures.spend)}% and prices {Math.round(h.figures.candy)}%: budgets grew faster in the 2010s and prices caught up after {h.since}. Starting in 2019 or 2021 shows the same gap.</li>}
       <li>The NRF figures are what adults celebrating Halloween planned to spend on candy, not what they paid at the till. The 2026 survey asked 7,889 adults from September 1 to 9.</li>
       <li>Candy prices are the BLS consumer price index for candy and chewing gum in September of each year, not seasonally adjusted. BLS counts a smaller pack at the same price as a price rise.</li>
       <li>Bag prices are national online prices from one day. Store prices and sales can differ.</li>

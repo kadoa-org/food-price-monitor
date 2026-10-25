@@ -7,7 +7,7 @@ import { createGunzip, gzipSync } from 'node:zlib';
 import { buildDiffusion, buildIndex, indexSummary } from '../src/index-calc.mjs';
 import { WEIGHTS, WEIGHTS_SOURCE, stratumOf } from '../src/cpi-weights.mjs';
 import { CANDY_SERIES, buildCandy, candyCsv, candyHeadline, parseBls } from '../src/candy.mjs';
-import { buildHalloween, halloweenBanner, halloweenCsv, halloweenHeadline } from '../src/halloween.mjs';
+import { buildHalloween, halloweenBanner, halloweenBudgetBanner, halloweenCsv, halloweenHeadline } from '../src/halloween.mjs';
 import { BASE, addDays, curated, familyFor, marketKey, newsFamilies, groupSeries, markonNews, movers, nearest, pickBenchmark, priced, reports, summarize, usdaNews, isRetail, quote, unitLabel, quoteShort } from '../src/model.mjs';
 import { existsSync } from 'node:fs';
 
@@ -73,11 +73,36 @@ const common = { generatedAt: manifest.generatedAt, sourceRun: manifest.runId, l
 // Inputs of the Halloween candy insight, typed in from NRF's yearly releases and collected from a large US retailer with Kadoa.
 const nrf = JSON.parse(await readFile(join(root, 'data/halloween/nrf-candy.json'), 'utf8'));
 const shop = JSON.parse(await readFile(join(root, 'data/halloween/retailer-2026-10-25.json'), 'utf8'));
+// BLS flat files, each fetched once per run: the all-items file feeds both the staples' inflation line and the candy
+// index. A failed fetch stays failed for the run, so both consumers report it.
+const blsFiles = new Map();
+function blsText(path) {
+  if (!blsFiles.has(path)) {
+    blsFiles.set(path, fetch(`https://download.bls.gov/pub/time.series/${path}`, {
+      // No Accept header: BLS answers 406 to text/plain for these files.
+      headers: { 'User-Agent': 'kadoa-food-price-monitor/1.0 (adrian@kadoa.com)' },
+      signal: AbortSignal.timeout(120_000),
+    }).then((response) => { if (!response.ok) throw new Error(`BLS ${path} HTTP ${response.status}`); return response.text(); }));
+  }
+  return blsFiles.get(path);
+}
+// Halloween candy: NRF's planned candy spending per person celebrating (data/halloween, typed in from NRF's yearly
+// releases) against the same BLS candy and all-items series each September, plus one day of retailer prices collected
+// with Kadoa. BLS is the part that can fail, so it degrades like the candy block: logged, and the page says so.
+let halloween = null;
+try {
+  const [food, allItems] = await Promise.all([blsText('cu/cu.data.11.USFoodBeverage'), blsText('cu/cu.data.1.AllItems')]);
+  halloween = buildHalloween({ spend: nrf.values, candy: parseBls(food, [CANDY_SERIES.candy]).get(CANDY_SERIES.candy), all: parseBls(allItems, [CANDY_SERIES.all]).get(CANDY_SERIES.all), shop });
+  await writeFile(join(data, 'downloads', 'halloween-candy.csv.gz'), gzipSync(halloweenCsv(halloween.rows)));
+  console.error(JSON.stringify({ step: 'halloween', status: 'ok', ...halloween.figures }));
+} catch (error) {
+  console.error(JSON.stringify({ step: 'halloween', status: 'unavailable', error: error.message }));
+}
 // The newest insight, announced in a banner under the navigation on every other page until the date given, as on the
 // energy monitor. Decided here, before any page is written, so every page and its prerender carry it. The banner has
-// its own text, about 50 characters with the number first, so it fits a phone in one or two lines. Its number comes
-// from NRF alone, so it holds even when BLS cannot be reached.
-const ANNOUNCE = { slug: 'halloween-candy', until: '2026-11-30', text: halloweenBanner(nrf.values) };
+// its own text, about 50 characters with the number first, so it fits a phone in one or two lines. Without BLS it
+// falls back to the NRF budget alone.
+const ANNOUNCE = { slug: 'halloween-candy', until: '2026-11-30', text: halloween ? halloweenBanner(halloween.figures) : halloweenBudgetBanner(nrf.values) };
 if (new Date().toISOString().slice(0, 10) <= ANNOUNCE.until) common.announce = { key: `insights/${ANNOUNCE.slug}`, href: `${BASE}/insights/${ANNOUNCE.slug}`, title: ANNOUNCE.text };
 
 const featured = [];
@@ -234,19 +259,6 @@ const staples = [...stapleRows.values()].filter((r) => r.date === staplesMonth);
 // In CPI weight order, heaviest first. Spelled out because an object puts numeric keys like '706111' first, in number order.
 const stapleOrder = ['Soft drinks', 'Chicken', 'Cheese', 'Beef steaks', 'Ground beef', 'Coffee', 'Milk', 'Bread', 'Rice', 'Eggs'];
 staples.sort((a, b) => stapleOrder.indexOf(a.name) - stapleOrder.indexOf(b.name));
-// BLS flat files, each fetched once per run: the all-items file feeds both the staples' inflation line and the candy
-// index. A failed fetch stays failed for the run, so both consumers report it.
-const blsFiles = new Map();
-function blsText(path) {
-  if (!blsFiles.has(path)) {
-    blsFiles.set(path, fetch(`https://download.bls.gov/pub/time.series/${path}`, {
-      // No Accept header: BLS answers 406 to text/plain for these files.
-      headers: { 'User-Agent': 'kadoa-food-price-monitor/1.0 (adrian@kadoa.com)' },
-      signal: AbortSignal.timeout(120_000),
-    }).then((response) => { if (!response.ok) throw new Error(`BLS ${path} HTTP ${response.status}`); return response.text(); }));
-  }
-  return blsFiles.get(path);
-}
 // Overall inflation over the same months, for the reference line in the staples ranking: CPI-U, all items, U.S. city
 // average, not seasonally adjusted (CUUR0000SA0), from the BLS flat files the dataset's average prices come from.
 // It is context, not a price, so a failure is a named degraded state: logged, and the ranking shows no line and says
@@ -284,22 +296,10 @@ try {
 } catch (error) {
   console.error(JSON.stringify({ step: 'candy', status: 'unavailable', error: error.message }));
 }
-// Halloween candy: NRF's planned candy spending per person celebrating (data/halloween, typed in from NRF's yearly
-// releases) against the same BLS candy and all-items series each September, plus one day of retailer prices collected
-// with Kadoa. BLS is the part that can fail, so it degrades like the candy block: logged, and the page says so.
-let halloween = null;
-try {
-  const [food, allItems] = await Promise.all([blsText('cu/cu.data.11.USFoodBeverage'), blsText('cu/cu.data.1.AllItems')]);
-  halloween = buildHalloween({ spend: nrf.values, candy: parseBls(food, [CANDY_SERIES.candy]).get(CANDY_SERIES.candy), all: parseBls(allItems, [CANDY_SERIES.all]).get(CANDY_SERIES.all), shop });
-  await writeFile(join(data, 'downloads', 'halloween-candy.csv.gz'), gzipSync(halloweenCsv(halloween.rows)));
-  console.error(JSON.stringify({ step: 'halloween', status: 'ok', ...halloween.figures }));
-} catch (error) {
-  console.error(JSON.stringify({ step: 'halloween', status: 'unavailable', error: error.message }));
-}
 // Insights: one page per analysis, newest first, so a link (Reddit, a newsletter) opens the chart with its own title.
 // Each page carries only the data its own view needs.
 const INSIGHTS = [
-  { slug: 'halloween-candy', title: halloween ? halloweenHeadline(halloween.figures) : 'Halloween candy budgets against candy prices', summary: halloween ? `Planned candy spending rose from $${Math.round(halloween.figures.spendFrom)} to $${Math.round(halloween.figures.spendTo)} a person, and candy prices rose just as fast.` : 'Planned Halloween candy spending against candy prices since 2010.', data: { halloween } },
+  { slug: 'halloween-candy', title: halloween ? halloweenHeadline(halloween.figures) : 'Halloween candy budgets against candy prices', summary: halloween ? `Since ${halloween.since}, candy prices rose ${Math.round(halloween.figures.since.candy)}% and planned candy spending per person ${Math.round(halloween.figures.since.spend)}%.` : 'Planned Halloween candy spending against candy prices since 2010.', data: { halloween } },
   { slug: 'candy-prices', title: candy ? candyHeadline(candy.longRun) : 'Candy prices against inflation', summary: 'Candy matched inflation from 1997 to 2022, then pulled ahead.', data: { candy } },
 ];
 await mkdir(join(data, 'insights'), { recursive: true });

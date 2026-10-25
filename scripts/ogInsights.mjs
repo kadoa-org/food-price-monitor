@@ -19,8 +19,8 @@ const builders = {
     const h = page.halloween, f = h.figures;
     return {
       title: page.title, source: 'NRF Halloween survey; BLS consumer price index',
-      key: `Change from ${h.from} to ${h.to}: planned candy spending per person celebrating, and prices in September.`,
-      figures: [{ value: pct(f.spend), label: 'Candy budget', colour: ORANGE }, { value: pct(f.candy), label: 'Candy prices', colour: BLUE }, { value: pct(f.all), label: 'All prices', colour: GREY }],
+      key: `Change from September ${h.since} to ${h.to}: candy prices, planned candy spending per person celebrating, and all prices.`,
+      figures: [{ value: pct(f.since.candy), label: 'Candy prices', colour: BLUE }, { value: pct(f.since.spend), label: 'Candy budget', colour: ORANGE }, { value: pct(f.since.all), label: 'All prices', colour: GREY }],
     };
   },
   'candy-prices': (page) => {
