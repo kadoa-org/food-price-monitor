@@ -9,7 +9,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .skip-link{position:absolute;top:-100px;left:15px;background:var(--dk-focus);color:var(--dk-ink);padding:10px;z-index:20}.skip-link:focus{top:8px}
 .main{padding-top:40px;padding-bottom:60px;min-height:65vh}
 .hero{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:40px}.hero>div{max-width:760px}
-/* The lede is the kit's lead paragraph (.dk-lede): 24px, 21px on phones, in the text colour, in the heading's column. */
+/* The lede is the kit's lead paragraph (.dk-lede): 24px, 21px on phones, in the text colour, in the 720px text column. */
 .lede{font-size:24px;line-height:30px;color:var(--dk-ink,#0b0c0c);margin-bottom:0;max-width:var(--dk-text-column,720px);text-wrap:pretty}@media (max-width:640px){.lede{font-size:21px;line-height:25px}}.detail-hero .dk-hint{margin:10px 0 0}
 
 .dk-btn{text-decoration:none;min-height:36px;height:auto;padding-top:7px;padding-bottom:7px}
