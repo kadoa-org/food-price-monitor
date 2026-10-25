@@ -128,9 +128,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .change-tag .change-tag__main+*{font-weight:400}
 
 /* Chart card: grey container, title, italic description, date, tabs */
-/* Chart card: 20px padding, header and tabs 24px apart. */
+/* Chart card: 25px padding, heading and tabs 30px apart (15px and 20px on a phone). */
 .chart-panel-card{background:var(--gov-grey-bg);padding:25px;margin:0 0 60px;min-width:0;display:flex;flex-direction:column;gap:30px}
-/* Kit spacing: heading, tabs and source 24px apart (20px on a phone), whatever the heading holds. */
+/* The same 30px between heading, tabs and source (20px on a phone), whatever the heading holds. */
 .chart-panel-card__head>:last-child{margin-bottom:0}.chart-panel-card__head--hidden{position:absolute}
 .chart-panel-card__footer{margin-top:-10px}.chart-panel-card__footer>.chart-note:first-child{margin-top:0}
 .chart-panel-card__title{font-size:24px;line-height:30px;font-weight:700;margin:0 0 8px}
