@@ -106,3 +106,73 @@ export function CandyYears({ years, month, limit }) {
     <p className="ranking__key">Bars are candy and chewing gum. The dashed mark on each row is all consumer prices over the same twelve months.</p>
   </div>;
 }
+
+// The Halloween insight's chart: one point a year (September), change since the first year, one line per series.
+// `lines` is [{ key, label, colour, dashed?, points: [[year, pct]] }]. Yearly data, so each year gets a dot.
+const yearSteps = (from, to, width) => [1, 2, 4, 5, 10].find((s) => width / Math.ceil((to - from + 1) / s) >= 48) ?? 10;
+export function YearLines({ lines, label }) {
+  const canvas = useRef(null);
+  useEffect(() => {
+    if (!canvas.current) return undefined;
+    const years = lines.flatMap((l) => l.points.map((p) => p[0]));
+    const from = Math.min(...years), to = Math.max(...years);
+    const scale = pctScale(lines.flatMap((l) => l.points.map((p) => p[1])), [10, 20, 25, 50]);
+    const chart = new Chart(canvas.current, {
+      type: 'line',
+      data: { datasets: lines.map((l, order) => ({
+        key: l.key, label: l.label, order, colour: l.colour,
+        data: l.points.map(([x, y]) => ({ x, y })), parsing: false,
+        borderColor: l.colour, borderWidth: l.dashed ? 2 : 2.5, borderDash: l.dashed ? [6, 4] : undefined,
+        pointRadius: l.dashed ? 0 : 2.5, pointHoverRadius: 4, pointHitRadius: 12, pointBackgroundColor: l.colour, pointBorderWidth: 0, clip: false,
+      })) },
+      plugins: [endLabels],
+      options: {
+        layout: { padding: (ctx) => ({ top: 12, right: endLabelRoom(ctx), bottom: 2 }) },
+        interaction: { mode: 'index', axis: 'x', intersect: false },
+        scales: {
+          x: {
+            type: 'linear', min: from, max: to,
+            border: { color: BASELINE },
+            grid: { color: RULE, drawTicks: false },
+            ticks: { autoSkip: false, maxRotation: 0, padding: 8, color: AXIS_INK, callback: (v) => String(v) },
+            // A label every year, or every second, fourth or fifth: whatever leaves each about 48 px at this width.
+            afterBuildTicks: (axis) => {
+              const step = yearSteps(from, to, axis.width || canvas.current?.clientWidth || 600);
+              const ticks = []; for (let y = to; y >= from; y -= step) ticks.unshift({ value: y });
+              axis.ticks = ticks;
+            },
+          },
+          y: {
+            min: scale.min, max: scale.max,
+            border: { display: false },
+            grid: { color: (c) => (c.tick?.value === 0 ? BASELINE : RULE), lineWidth: (c) => (c.tick?.value === 0 ? 1.25 : 1), drawTicks: false },
+            afterBuildTicks: (axis) => { axis.ticks = scale.ticks.map((value) => ({ value })); },
+            ticks: { padding: 8, color: AXIS_INK, callback: (v) => (v === 0 ? '0%' : signedPct(v)) },
+          },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: PAPER, titleColor: LABEL_INK, bodyColor: LABEL_INK,
+            borderColor: RULE, borderWidth: 1, cornerRadius: 0, boxPadding: 4,
+            padding: 10, titleFont: { size: 13, weight: '600' }, bodyFont: { size: 12 },
+            callbacks: {
+              title: (items) => `September ${items[0].raw.x}`,
+              label: (item) => `${item.dataset.label}: ${signedPct(item.parsed.y)}`,
+              labelColor: (item) => ({ borderColor: item.dataset.colour, backgroundColor: item.dataset.colour }),
+            },
+          },
+        },
+      },
+    });
+    return () => chart.destroy();
+  });
+  return <div className="chart chart--candy"><div className="chart__canvas"><canvas ref={canvas} role="img" aria-label={label} /></div></div>;
+}
+
+// The key above YearLines: a swatch per line, dashed for a dashed line.
+export function YearLegend({ lines }) {
+  return <div className="chart-legend" aria-hidden="true">{lines.map((l) => <span className="chart-legend__item" key={l.key}>
+    <span className={`chart-legend__swatch${l.dashed ? ' chart-legend__swatch--inflation' : ''}`} style={l.dashed ? undefined : { background: l.colour }} />{l.label}
+  </span>)}</div>;
+}

@@ -9,12 +9,20 @@ const root = resolve(import.meta.dirname, '..');
 const data = join(root, 'public/data');
 const load = (name) => JSON.parse(readFileSync(join(data, `${name}.json`), 'utf8'));
 // The candy chart's colours (CANDY_COLOURS in CandyChart.jsx).
-const ORANGE = '#f46a25', GREY = '#505a5f';
+const ORANGE = '#f46a25', BLUE = '#12436d', GREY = '#505a5f';
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const month = (ym) => `${MONTHS[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
 const pct = (v) => `${v > 0 ? '+' : ''}${Math.round(v)}%`;
 
 const builders = {
+  'halloween-candy': (page) => {
+    const h = page.halloween, f = h.figures;
+    return {
+      title: page.title, source: 'NRF Halloween survey; BLS consumer price index',
+      key: `Change from ${h.from} to ${h.to}: planned candy spending per person celebrating, and prices in September.`,
+      figures: [{ value: pct(f.spend), label: 'Candy budget', colour: ORANGE }, { value: pct(f.candy), label: 'Candy prices', colour: BLUE }, { value: pct(f.all), label: 'All prices', colour: GREY }],
+    };
+  },
   'candy-prices': (page) => {
     const c = page.candy, l = c.longRun;
     const years = Number(l.split.slice(0, 4)) - Number(l.from.slice(0, 4));

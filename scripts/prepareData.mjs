@@ -7,6 +7,7 @@ import { createGunzip, gzipSync } from 'node:zlib';
 import { buildDiffusion, buildIndex, indexSummary } from '../src/index-calc.mjs';
 import { WEIGHTS, WEIGHTS_SOURCE, stratumOf } from '../src/cpi-weights.mjs';
 import { CANDY_SERIES, buildCandy, candyCsv, candyHeadline, parseBls } from '../src/candy.mjs';
+import { buildHalloween, halloweenBanner, halloweenCsv, halloweenHeadline } from '../src/halloween.mjs';
 import { BASE, addDays, curated, familyFor, marketKey, newsFamilies, groupSeries, markonNews, movers, nearest, pickBenchmark, priced, reports, summarize, usdaNews, isRetail, quote, unitLabel, quoteShort } from '../src/model.mjs';
 import { existsSync } from 'node:fs';
 
@@ -69,6 +70,15 @@ const lastDate = rows.map((r) => r.date).sort().at(-1);
 const firstDate = rows.map((r) => r.date).sort()[0];
 const newsCutoff = addDays(lastDate, -90);
 const common = { generatedAt: manifest.generatedAt, sourceRun: manifest.runId, lastDate, firstDate, totalRows: rows.length, datasetRows: manifest.rows, news: { markon: newsFile ? { fetchedAt: newsFile.fetchedAt, articles: markonItems.length, latest: markonItems[0]?.date ?? null } : null, since: newsCutoff } };
+// Inputs of the Halloween candy insight, typed in from NRF's yearly releases and collected from Target with Kadoa.
+const nrf = JSON.parse(await readFile(join(root, 'data/halloween/nrf-candy.json'), 'utf8'));
+const target = JSON.parse(await readFile(join(root, 'data/halloween/target-2026-10-25.json'), 'utf8'));
+// The newest insight, announced in a banner under the navigation on every other page until the date given, as on the
+// energy monitor. Decided here, before any page is written, so every page and its prerender carry it. The banner has
+// its own text, about 50 characters with the number first, so it fits a phone in one or two lines. Its number comes
+// from NRF alone, so it holds even when BLS cannot be reached.
+const ANNOUNCE = { slug: 'halloween-candy', until: '2026-11-30', text: halloweenBanner(nrf.values) };
+if (new Date().toISOString().slice(0, 10) <= ANNOUNCE.until) common.announce = { key: `insights/${ANNOUNCE.slug}`, href: `${BASE}/insights/${ANNOUNCE.slug}`, title: ANNOUNCE.text };
 
 const featured = [];
 const moverCandidates = [];
@@ -274,12 +284,28 @@ try {
 } catch (error) {
   console.error(JSON.stringify({ step: 'candy', status: 'unavailable', error: error.message }));
 }
-// Insights: one page per analysis, so a link (Reddit, a newsletter) opens the chart with its own title.
-const INSIGHTS = [{ slug: 'candy-prices', title: candy ? candyHeadline(candy.longRun) : 'Candy prices against inflation', summary: 'Candy matched inflation from 1997 to 2022, then pulled ahead.' }];
+// Halloween candy: NRF's planned candy spending per person celebrating (data/halloween, typed in from NRF's yearly
+// releases) against the same BLS candy and all-items series each September, plus one day of Target prices collected
+// with Kadoa. BLS is the part that can fail, so it degrades like the candy block: logged, and the page says so.
+let halloween = null;
+try {
+  const [food, allItems] = await Promise.all([blsText('cu/cu.data.11.USFoodBeverage'), blsText('cu/cu.data.1.AllItems')]);
+  halloween = buildHalloween({ spend: nrf.values, candy: parseBls(food, [CANDY_SERIES.candy]).get(CANDY_SERIES.candy), all: parseBls(allItems, [CANDY_SERIES.all]).get(CANDY_SERIES.all), target });
+  await writeFile(join(data, 'downloads', 'halloween-candy.csv.gz'), gzipSync(halloweenCsv(halloween.rows)));
+  console.error(JSON.stringify({ step: 'halloween', status: 'ok', ...halloween.figures }));
+} catch (error) {
+  console.error(JSON.stringify({ step: 'halloween', status: 'unavailable', error: error.message }));
+}
+// Insights: one page per analysis, newest first, so a link (Reddit, a newsletter) opens the chart with its own title.
+// Each page carries only the data its own view needs.
+const INSIGHTS = [
+  { slug: 'halloween-candy', title: halloween ? halloweenHeadline(halloween.figures) : 'Halloween candy budgets against candy prices', summary: halloween ? `Planned candy spending rose from $${Math.round(halloween.figures.spendFrom)} to $${Math.round(halloween.figures.spendTo)} a person, and candy prices rose just as fast.` : 'Planned Halloween candy spending against candy prices since 2010.', data: { halloween } },
+  { slug: 'candy-prices', title: candy ? candyHeadline(candy.longRun) : 'Candy prices against inflation', summary: 'Candy matched inflation from 1997 to 2022, then pulled ahead.', data: { candy } },
+];
 await mkdir(join(data, 'insights'), { recursive: true });
 await writeFile(join(data, 'candy.json'), JSON.stringify({ kind: 'candy', key: 'candy', title: 'Candy prices', common, candy }));
-await writeFile(join(data, 'insights.json'), JSON.stringify({ kind: 'insights', key: 'insights', title: 'Insights', common, insights: INSIGHTS }));
-for (const i of INSIGHTS) await writeFile(join(data, 'insights', `${i.slug}.json`), JSON.stringify({ kind: 'insight', key: `insights/${i.slug}`, slug: i.slug, title: i.title, common, candy }));
+await writeFile(join(data, 'insights.json'), JSON.stringify({ kind: 'insights', key: 'insights', title: 'Insights', common, insights: INSIGHTS.map(({ data, ...i }) => i) }));
+for (const { data: payload, ...i } of INSIGHTS) await writeFile(join(data, 'insights', `${i.slug}.json`), JSON.stringify({ kind: 'insight', key: `insights/${i.slug}`, slug: i.slug, title: i.title, common, ...payload }));
 // Only foods priced in the latest month are ranked, like the staples, so nothing sits in the ranking with a stale price.
 const ranking = [...rankingRows.values()].filter((r) => r.date === staplesMonth).map(({ date, ...r }) => r).sort((a, b) => b.change - a.change);
 console.error(JSON.stringify({ step: 'ranking', foods: ranking.length, listed: Object.keys(RANKING).length }));
@@ -293,7 +319,7 @@ const { base: indexBase, points: indexPoints } = buildIndex(basket, { weights: W
 const unweightedPoints = buildIndex(basket).points;
 const priceIndex = { base: indexBase, weights: WEIGHTS_SOURCE, summary: indexSummary(indexPoints), points: indexPoints.slice(-105), unweighted: unweightedPoints.slice(-105) };
 console.error(JSON.stringify({ step: 'index', base: indexBase, weeks: indexPoints.length, latest: priceIndex.summary }));
-await writeFile(join(data, 'home.json'), JSON.stringify({ kind: 'home', key: 'home', title: 'US Food Price Monitor', common, breadth, index: priceIndex, candy: candy && { month: candy.month, figures: candy.figures }, featured, movers: movers(moverCandidates, lastDate), retail: { week: retailWeek, rows: currentRetail.filter((r) => r.region === 'National') }, news: sortFeed([...sortFeed(feed.filter((i) => i.source === 'Markon')).slice(0, 3), ...sortFeed(feed.filter((i) => i.source === 'USDA')).slice(0, 3)]).map(({ notes, ...i }) => i) }));
+await writeFile(join(data, 'home.json'), JSON.stringify({ kind: 'home', key: 'home', title: 'US Food Price Monitor', common, breadth, index: priceIndex, featured, movers: movers(moverCandidates, lastDate), retail: { week: retailWeek, rows: currentRetail.filter((r) => r.region === 'National') }, news: sortFeed([...sortFeed(feed.filter((i) => i.source === 'Markon')).slice(0, 3), ...sortFeed(feed.filter((i) => i.source === 'USDA')).slice(0, 3)]).map(({ notes, ...i }) => i) }));
 await writeFile(join(data, 'retail.json'), JSON.stringify({ kind: 'retail', key: 'retail', title: 'Retail prices', common, week: retailWeek, regions, rows: currentRetail }));
 const sources = manifest.sources.map((s) => ({ ...s, ...(reports[s.source_id] ?? { name: s.source_id, stage: 'Unknown', cadence: 'Unknown' }), reportId: s.source_id.replace('usda-', ''), commodities: s.commodities.length }));
 await writeFile(join(data, 'about.json'), JSON.stringify({ kind: 'about', key: 'about', title: 'About the data', common, sources, commodityCount: families.length, commodities: summaries.filter((c) => c.curated) }));

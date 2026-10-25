@@ -1,0 +1,23 @@
+{
+ "source": "NRF annual Halloween survey, conducted by Prosper Insights & Analytics: average planned spending on candy per person celebrating",
+ "unit": "USD",
+ "values": {
+  "2010": 20.29,
+  "2011": 21.05,
+  "2012": 23.27,
+  "2013": 22.37,
+  "2014": 23.39,
+  "2015": 23.1,
+  "2016": 24.43,
+  "2017": 25.27,
+  "2018": 25.47,
+  "2019": 25.37,
+  "2020": 27.55,
+  "2021": 30.4,
+  "2022": 29.51,
+  "2023": 31.93,
+  "2024": 31.69,
+  "2025": 34.24,
+  "2026": 34.79
+ }
+}

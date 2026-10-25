@@ -1,0 +1,31 @@
+{
+ "retailer": "Target.com",
+ "date": "2026-10-25",
+ "note": "National online prices from Target's Halloween candy section, collected with Kadoa",
+ "products": [
+  {
+   "label": "Reese's Cups",
+   "price": 6.29,
+   "size": "10.5 oz bag",
+   "img": "insights/halloween-candy/reese.jpg"
+  },
+  {
+   "label": "Snickers Fun Size",
+   "price": 6.19,
+   "size": "10.6 oz bag",
+   "img": "insights/halloween-candy/snickers.jpg"
+  },
+  {
+   "label": "M&M's Peanut",
+   "price": 5.89,
+   "size": "10 oz bag",
+   "img": "insights/halloween-candy/mms.jpg"
+  },
+  {
+   "label": "Mars variety bag",
+   "price": 25.99,
+   "size": "200 pieces, 13\u00a2 each",
+   "img": "insights/halloween-candy/mars.jpg"
+  }
+ ]
+}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, DataTable, GitHubButton, LiveBadge, NavBar, SearchInput, Section, SiteFooter, SiteHeader, Tag } from './kit';
+import { Button, DataTable, GitHubButton, LiveBadge, NavBar, PhaseBanner, SearchInput, Section, SiteFooter, SiteHeader, Tag } from './kit';
 import CommandPalette from './CommandPalette';
 import { BASE, HOME, addDays, midpoint, dataPath, seriesUrl, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, quote, reports, shortMarket, summarize, unitLabel } from './model.mjs';
 import PriceChart from './PriceChart';
@@ -9,7 +9,7 @@ import BandChart from './BandChart';
 import { StapleChart, StapleRanking, monthTime, stapleScales } from './StaplesChart';
 import EvidenceDialog from './EvidenceDialog';
 import AboutPage from './AboutPage';
-import { CandyLegend, CandyLines, CandyYears, monthName } from './CandyChart';
+import { CANDY_COLOURS, CandyLegend, CandyLines, CandyYears, YearLegend, YearLines, monthName } from './CandyChart';
 import { HORIZONS, horizonStart, rebase } from './candy.mjs';
 
 const url = (slug) => `${BASE}/commodity/${slug}`;
@@ -18,12 +18,15 @@ const url = (slug) => `${BASE}/commodity/${slug}`;
 function Download({ slug, common, children = 'Download CSV (gzip)' }) { return <a className="dk-btn" href={`${dataPath(common)}/downloads/${slug}.csv.gz`} download>{children}</a>; }
 export function Shell({ page, children }) {
   const kind = page?.kind;
+  const announce = page?.common?.announce;
   const [search, setSearch] = useState(false);
   useEffect(() => { const onKey = (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearch((o) => !o); } }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey); }, []);
   return <><a className="skip-link" href="#main-content">Skip to content</a>
     <SiteHeader brand="🥕 US Food Price Monitor" brandHref={HOME} brandSuffix={<a href="https://www.kadoa.com" target="_blank" rel="noreferrer" className="dk-header-link">by Kadoa</a>} right={<span className="header-right"><LiveBadge>Updated daily</LiveBadge><GitHubButton repo="kadoa-org/food-price-monitor" /><Button inverse onClick={() => setSearch(true)} aria-label="Search (Cmd+K)">Search <kbd className="header-kbd">⌘K</kbd></Button></span>} />
     <CommandPalette open={search} onClose={() => setSearch(false)} dataPath={dataPath(page?.common)} />
     <NavBar collapse items={[{ href: HOME, label: 'Overview', active: kind === 'home' }, { href: `${BASE}/commodities`, label: 'Commodities', active: kind === 'commodity' || kind === 'commodities' }, { href: `${BASE}/retail`, label: 'Retail prices', active: kind === 'retail' }, { href: `${BASE}/insights`, label: 'Insights', active: kind === 'insights' || kind === 'insight' || kind === 'candy' }, { href: `${BASE}/about`, label: 'About the data', end: true, active: kind === 'about' }]} />
+    {/* The newest insight, on every page but its own; the data build decides what and until when. */}
+    {announce && page.key !== announce.key && <PhaseBanner tag="New" label="Insight:" href={announce.href}>{announce.title}</PhaseBanner>}
     <main id="main-content" className="dk-container main">{children}</main><SiteFooter current="food-prices" /></>;
 }
 export function Loading({ error = false }) {
@@ -133,7 +136,6 @@ function Overview({ page }) {
   return <>
     <div className="title-block"><h1 className="dk-h1">US Food Price Monitor</h1><p className="lede">Daily US food prices, wholesale and retail, from USDA and BLS.</p></div>
     <HomeHeadlines breadth={page.breadth} />
-    {page.candy && <p className="candy-teaser"><a href={`${BASE}/candy`}>Candy prices</a> are up {Math.round(page.candy.figures.candySince)}% since 2019, against {Math.round(page.candy.figures.allSince)}% for all prices.</p>}
     <Staples staples={page.breadth?.staples} />
     <section className="benchmarks">
       <SectionHeading description="Daily wholesale quotes for one benchmark product per food, each against a year earlier, from USDA." date={`Up to and including ${dateLabel(common.lastDate)}`}>Wholesale benchmarks</SectionHeading>
@@ -438,7 +440,11 @@ function InsightsIndex({ page }) {
     <ul className="insight-cards">{page.insights.map((i) => <li className="insight-card" key={i.slug}><h2 className="insight-card__title"><a href={`${BASE}/insights/${i.slug}`}>{i.title}</a></h2><p className="insight-card__desc">{i.summary}</p></li>)}</ul>
   </>;
 }
+// Each insight page has its own view; the data build gives each only the data it needs.
 function Insight({ page }) {
+  return page.slug === 'halloween-candy' ? <HalloweenInsight page={page} /> : <CandyInsight page={page} />;
+}
+function CandyInsight({ page }) {
   const c = page.candy;
   // Opens on the site's base month, August 2019, like the candy page and the grocery staples; the full range since 1997,
   // which the lede describes, is one choice away.
@@ -488,6 +494,81 @@ function CandyAbout() {
       <li><strong>Protected US sugar.</strong> World sugar is well below its peak, but <a href="https://www.ers.usda.gov/topics/crops/sugar-and-sweeteners/policy">US import limits</a> keep US sugar near its record: $1.02 a pound in September 2026.</li>
       <li><strong>Real price rises, not trading up.</strong> BLS <a href="https://www.bls.gov/cpi/questions-and-answers.htm">prices the same products every month</a> and adjusts for smaller packs. The rise is not people buying pricier brands; the same candy costs more.</li>
       <li>Candy is the BLS consumer price index for candy and chewing gum, all prices the index for all items, both not seasonally adjusted.</li>
+    </ul>
+  </section>;
+}
+// ── Halloween candy: NRF's planned candy spending per person against BLS candy prices since 2010, and what a bag costs
+// at Target this week, against an estimate of its price at 2010 candy prices.
+const HALLOWEEN_LINES = [
+  { key: 'spend', label: 'Candy budget per person', colour: CANDY_COLOURS.candy },
+  { key: 'candy', label: 'Candy prices', colour: CANDY_COLOURS.wages },
+  { key: 'all', label: 'All prices', colour: CANDY_COLOURS.all, dashed: true },
+];
+const usd = (v) => `$${v.toFixed(2)}`;
+const external = (href, text) => <a href={href} target="_blank" rel="noreferrer">{text}</a>;
+function HalloweenInsight({ page }) {
+  const h = page.halloween;
+  const head = (lede) => <div className="title-block"><h1 className="dk-h1">{page.title}</h1>{lede && <p className="lede">{lede}</p>}</div>;
+  if (!h) return <>{head()}<p role="alert">Candy prices could not be loaded from BLS in this update.</p><HalloweenAbout /></>;
+  const f = h.figures;
+  const lines = HALLOWEEN_LINES.map((l) => ({ ...l, points: h.rows.map((r) => [r.year, r[`${l.key}Change`]]) }));
+  const rows = [...h.rows].reverse();
+  const day = dateLabel(h.date);
+  return <>
+    {head(`Planned candy spending per person celebrating rose from $${Math.round(f.spendFrom)} in ${h.from} to $${Math.round(f.spendTo)} this year. Candy prices rose just as fast, so the bigger budget buys about the same candy.`)}
+    <ChartCard
+      id="halloween-since-title"
+      title={`Candy budget and candy prices since ${h.from}`}
+      description={`Change since ${h.from}, September of each year.`}
+      tabs={[
+        { label: 'Chart', content: <>
+          <YearLegend lines={lines} />
+          <YearLines lines={lines} label={`Since ${h.from}, planned candy spending per person rose ${pctLabel(f.spend)}, candy prices ${pctLabel(f.candy)} and all prices ${pctLabel(f.all)}.`} />
+        </> },
+        { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={rows} rowKey={(r) => r.year} columns={[
+          { key: 'year', header: 'Year', render: (r) => r.year },
+          { key: 'spend', header: 'Budget', align: 'right', render: (r) => usd(r.spend) },
+          { key: 'spendChange', header: 'Change', align: 'right', render: (r) => pctLabel(r.spendChange) },
+          { key: 'candyChange', header: <span className="th-wrap">Candy prices</span>, align: 'right', render: (r) => pctLabel(r.candyChange) },
+          { key: 'allChange', header: 'All prices', align: 'right', hideBelow: 'sm', render: (r) => pctLabel(r.allChange) },
+        ]} /> },
+        { label: 'Download', content: <><p className="download-intro">Each year since {h.from}: planned candy spending per person, the candy and all-items price indexes for September, and the change since {h.from}, as a gzipped CSV.</p><a className="dk-btn" href={`${dataPath(page.common)}/downloads/halloween-candy.csv.gz`} download>Download CSV (gzip)</a></> },
+      ]}
+      footer={<p className="chart-note">Source: {external('https://nrf.com/research-insights/holiday-data-and-trends/halloween', 'NRF Halloween survey')}; BLS {external('https://www.bls.gov/cpi/', 'consumer price index')}.</p>}
+    />
+    <ChartCard
+      id="halloween-target-title"
+      title="What a bag costs at Target this week"
+      tabs={[
+        { label: 'Products', content: <ul className="candy-bags">{h.products.map((p) => <li className="candy-bag" key={p.label}>
+          <div className="candy-bag__img"><img src={`${BASE}/${p.img}`} alt="" width="600" height="600" loading="lazy" /></div>
+          <h3 className="candy-bag__name">{p.label}</h3>
+          <p className="candy-bag__price">{usd(p.price)}</p>
+          <p className="candy-bag__size">{p.size}</p>
+          <p className="candy-bag__then">{usd(p.then)} at {h.from} candy prices</p>
+        </li>)}</ul> },
+        { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={h.products} rowKey={(r) => r.label} columns={[
+          { key: 'label', header: 'Product', render: (r) => r.label },
+          { key: 'size', header: 'Size', hideBelow: 'sm', render: (r) => r.size },
+          { key: 'price', header: 'Price', align: 'right', render: (r) => usd(r.price) },
+          { key: 'then', header: `At ${h.from} prices`, align: 'right', render: (r) => usd(r.then) },
+        ]} /> },
+      ]}
+      footer={<p className="chart-note">Source: Target.com national online prices, {day}, collected with {external('https://www.kadoa.com', 'Kadoa')}.</p>}
+    />
+    <HalloweenAbout h={h} />
+  </>;
+}
+function HalloweenAbout({ h }) {
+  const rise = h ? `${Math.round(h.figures.candy)}%` : 'rise';
+  return <section className="insight-notes">
+    <SectionHeading>About the data</SectionHeading>
+    <ul>
+      <li><strong>Why candy got pricier.</strong> Hershey raised prices in 2022, citing sugar, dairy, packaging and labor costs ({external('https://ktvz.com/money/cnn-business-consumer/2022/02/03/everything-hershey-makes-is-going-to-get-more-expensive/', 'CNN Business')}). Then cocoa hit a record of about $12,900 a metric ton in December 2024 ({external('https://tradingeconomics.com/commodity/cocoa', 'Trading Economics')}, {external('https://www.icco.org/cocoa-market-report-for-december-2024/', 'International Cocoa Organization')}).</li>
+      <li>The NRF figures are what adults celebrating Halloween planned to spend on candy, not what they paid at the till. The 2026 survey asked 7,889 adults from September 1 to 9.</li>
+      <li>Candy prices are the BLS consumer price index for candy and chewing gum in September of each year, not seasonally adjusted. BLS counts a smaller pack at the same price as a price rise.</li>
+      <li>The {h?.from ?? 2010} prices on the cards are estimates. Each is today's price divided by the {rise} rise in candy prices, not a price anyone recorded in {h?.from ?? 2010}.</li>
+      <li>Target prices are national online prices from one day. Store prices and sales can differ.</li>
     </ul>
   </section>;
 }

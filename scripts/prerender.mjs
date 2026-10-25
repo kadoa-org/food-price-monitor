@@ -75,6 +75,14 @@ function seo(page, path) {
     description = `Analysis built on the US Food Price Monitor's USDA and BLS data: ${page.insights.map((i) => i.title.toLowerCase()).join('; ')}.`;
     crumbs.push({ name: 'Insights', url: canonical });
     ld = [{ '@context': 'https://schema.org', '@type': 'ItemList', name: title, url: canonical, numberOfItems: page.insights.length, itemListElement: page.insights.map((i, n) => ({ '@type': 'ListItem', position: n + 1, name: i.title, url: `${SITE}/food-prices/insights/${i.slug}` })) }];
+  } else if (page.kind === 'insight' && page.slug === 'halloween-candy') {
+    const h = page.halloween; const f = h?.figures; const pc = (v) => `${Math.round(v)}%`;
+    title = f ? `Halloween Candy Prices ${h.to}: Candy Budgets Up ${pc(f.spend)} Since ${h.from}, Candy Prices Up ${pc(f.candy)}` : 'Halloween Candy Spending Against Candy Prices';
+    description = f
+      ? `Americans celebrating Halloween planned to spend $${f.spendTo.toFixed(2)} each on candy in ${h.to}, up ${pc(f.spend)} from $${f.spendFrom.toFixed(2)} in ${h.from}. Candy prices rose ${pc(f.candy)} over the same years and all prices ${pc(f.all)}, so the bigger budget buys about the same candy. NRF and BLS data, with this week's Target prices.`
+      : 'Planned Halloween candy spending per person from NRF against the BLS candy price index since 2010.';
+    crumbs.push({ name: 'Insights', url: `${SITE}/food-prices/insights` }, { name: 'Halloween candy', url: canonical });
+    ld = [{ '@context': 'https://schema.org', '@type': 'Article', headline: page.title, description, url: canonical, dateModified: updated, keywords: ['halloween candy prices', 'halloween candy spending', 'candy prices 2026', 'candy inflation'], author: { '@type': 'Organization', name: 'Kadoa', url: SITE }, publisher: { '@type': 'Organization', name: 'Kadoa', url: SITE } }];
   } else if (page.kind === 'insight') {
     const l = page.candy?.longRun;
     title = page.title;

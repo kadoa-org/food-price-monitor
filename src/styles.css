@@ -220,9 +220,18 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 
 /* Candy page and insights. Insight cards follow the energy monitor (the Congress Trading Monitor's card
    layout); candy takes the site's second series colour, orange. */
-.candy-teaser{margin:0 0 40px;padding:12px 16px;border-left:5px solid #f46a25;background:#f3f2f1;font-size:19px;line-height:1.4}
-.candy-teaser a{font-weight:700}
 .candy-more{margin:10px 0 0;font-size:19px}.candy-more a{font-weight:700}
+/* Halloween insight: one card per bag, four across, two on phones. The photo sits on a white tile, then the name, the
+   price large, the pack size and the estimate at 2010 candy prices. */
+.candy-bags{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+.candy-bag{min-width:0}.candy-bag__img{background:#fff;border:1px solid var(--dk-rule-soft);aspect-ratio:1;display:flex;align-items:center;justify-content:center;padding:10px;margin:0 0 10px}
+.candy-bag__img img{display:block;width:100%;height:100%;object-fit:contain}
+.candy-bag__name{font-size:19px;line-height:1.3;margin:0 0 5px}.candy-bag__price{font-size:36px;line-height:1.1;font-weight:700;margin:0 0 5px}
+.candy-bag__size,.candy-bag__then{font-size:16px;line-height:1.35;margin:0;color:var(--dk-muted)}.candy-bag__then{margin-top:5px}
+.govuk-tabs__panel:has(> .candy-bags){min-height:0}
+/* A two-word table heading that may break onto two lines on phones, so a narrow table fits without scrolling. */
+@media (max-width:640px){.th-wrap{white-space:normal;display:inline-block}}
+@media (max-width:640px){.candy-bags{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 15px}.candy-bag__price{font-size:27px}}
 /* Prose on an insight page: GOV.UK's two-thirds reading column, 19px body, a 24px section heading over 19px bold
    subheadings. */
 .insight-prose{max-width:640px;margin:8px 0 40px}
@@ -239,4 +248,4 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .insight-card{background:#f3f2f1;padding:20px 20px 4px;border-top:4px solid #1d70b8}.insight-card__title{font-size:24px;line-height:1.25;margin:0 0 12px}.insight-card__title a{color:#1d70b8}.insight-card__desc{margin:0 0 16px}
 
 /* Running text keeps to the GOV.UK two-thirds column, about 640px, so lines stay short on a wide screen. */
-.title-block .lede,.hero .lede,.candy-teaser,.insight-notes,.key-figures__context,.chart-panel-card__desc,.section-heading__desc{max-width:640px}
+.title-block .lede,.hero .lede,.insight-notes,.key-figures__context,.chart-panel-card__desc,.section-heading__desc{max-width:640px}
