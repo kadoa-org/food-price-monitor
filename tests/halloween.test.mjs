@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { buildHalloween, halloweenBanner, halloweenBudgetBanner, halloweenCsv, halloweenHeadline } from '../src/halloween.mjs';
+import { buildHalloween, halloweenCsv } from '../src/halloween.mjs';
 
 const spend = { 2009: 19, 2010: 20, 2020: 30, 2026: 36 };
 const candy = new Map([['2010-09', 100], ['2010-10', 999], ['2020-09', 120], ['2026-09', 180]]);
@@ -13,14 +13,7 @@ test('compares each September with 2010 and, from 2020, with 2020', () => {
   expect(h.rows[0].spendSince).toBeUndefined();
   expect(h.figures.since).toEqual({ spendFrom: 30, spend: 20, candy: 50, all: 25 });
   expect(h.figures.decade).toEqual({ spend: 50, candy: 20 });
-  expect(halloweenHeadline(h.figures)).toBe('Candy prices are up 50% since\u00a02020, Halloween candy budgets 20%');
-  expect(halloweenBanner(h.figures)).toBe('Candy prices up 50% since 2020, budgets 20%');
-  expect(halloweenBudgetBanner(spend)).toBe('Halloween candy budgets up 20% since 2020');
   expect(halloweenCsv(h.rows).split('\n')[1]).toBe('2010,20,100,200,0,0,0,,,');
-});
-
-test('the headline leads with whichever rose more since 2020', () => {
-  expect(halloweenHeadline({ since: { spend: 40, candy: 30 } })).toBe('Halloween candy budgets are up 40% since\u00a02020, candy prices 30%');
 });
 
 test('a September BLS did not publish fails loudly instead of skipping the year', () => {

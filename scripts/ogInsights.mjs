@@ -16,7 +16,13 @@ const pct = (v) => `${v > 0 ? '+' : ''}${Math.round(v)}%`;
 
 const builders = {
   'halloween-candy': (page) => {
-    const h = page.halloween, f = h.figures;
+    const h = page.halloween, f = h.figures, c = page.costs;
+    // The page asks why candy costs more; the preview shows the answer in two numbers, candy up and cocoa down.
+    if (c) return {
+      title: page.title, source: 'BLS consumer and import price indexes',
+      key: `Change from ${month(`${Number(c.month.slice(0, 4)) - 1}${c.month.slice(4)}`)} to ${month(c.month)}. Cocoa import prices peaked in ${month(c.figures.cocoa.peak.month)}.`,
+      figures: [{ value: pct(c.figures.candy.year), label: 'Candy prices', colour: BLUE }, { value: pct(c.figures.cocoa.year), label: 'Cocoa import prices', colour: '#7b4f2c' }],
+    };
     return {
       title: page.title, source: 'NRF Halloween survey; BLS consumer price index',
       key: `Change from September ${h.since} to ${h.to}: candy prices, planned candy spending per person celebrating, and all prices.`,

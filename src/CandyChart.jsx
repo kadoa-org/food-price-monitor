@@ -12,22 +12,25 @@ export const monthName = (ym) => MONTH_NAMES[Number(ym.slice(5, 7)) - 1];
 const onePlace = (v) => `${v > 0 ? '+' : v < 0 ? '\u2212' : ''}${Math.abs(v).toFixed(1)}%`;
 const time = (ym) => Date.UTC(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)) - 1, 1);
 
-// Percent change since a common month, one line per series. `lines` is [{ key, label, points: [[month, pct|null]] }].
+// Percent change since a common month, one line per series. `lines` is [{ key, label, points: [[month, pct|null]] }],
+// with an optional `colour` and `dashed` for lines outside the candy palette. `value` formats ticks and the tooltip and
+// `steps` the gridline steps, so the same chart can show prices in dollars or cents instead of percent changes.
 // BLS skipped October 2025 in the federal shutdown; a single missing month is joined straight across, as the note
 // under the chart says, and a longer stretch breaks the line.
-export function CandyLines({ lines, label }) {
+export function CandyLines({ lines, label, value = signedPct, steps = [1, 2, 5, 10, 20, 50, 100] }) {
   const canvas = useRef(null);
   useEffect(() => {
     if (!canvas.current) return undefined;
     const months = lines.flatMap((l) => l.points.filter((p) => p[1] !== null).map((p) => p[0])).sort();
     const from = time(months[0]), to = time(months.at(-1)), short = to - from < 3 * 365 * DAY;
     // Whole-percent steps down to 1%, so the past year's single-digit changes get gridlines too.
-    const scale = pctScale(lines.flatMap((l) => l.points.map((p) => p[1]).filter((v) => v !== null)), [1, 2, 5, 10, 20, 50, 100]);
+    const scale = pctScale(lines.flatMap((l) => l.points.map((p) => p[1]).filter((v) => v !== null)), steps);
     const datasets = lines.map((l, order) => ({
       key: l.key, label: l.label, order,
       data: withGaps(l.points.filter((p) => p[1] !== null).map(([m, y]) => ({ x: time(m), y, month: m })), 75),
-      parsing: false, borderColor: CANDY_COLOURS[l.key], borderWidth: l.key === 'candy' ? 2.5 : 2, borderDash: l.key === 'all' ? [6, 4] : undefined,
-      pointRadius: 0, pointHoverRadius: 4, pointHitRadius: 12, pointBackgroundColor: CANDY_COLOURS[l.key], clip: false,
+      colour: l.colour ?? CANDY_COLOURS[l.key],
+      parsing: false, borderColor: l.colour ?? CANDY_COLOURS[l.key], borderWidth: l.key === 'candy' ? 2.5 : 2, borderDash: (l.dashed ?? l.key === 'all') ? [6, 4] : undefined,
+      pointRadius: 0, pointHoverRadius: 4, pointHitRadius: 12, pointBackgroundColor: l.colour ?? CANDY_COLOURS[l.key], clip: false,
     }));
     const chart = new Chart(canvas.current, {
       type: 'line',
@@ -52,7 +55,7 @@ export function CandyLines({ lines, label }) {
             border: { display: false },
             grid: { color: (c) => (c.tick?.value === 0 ? BASELINE : RULE), lineWidth: (c) => (c.tick?.value === 0 ? 1.25 : 1), drawTicks: false },
             afterBuildTicks: (axis) => { axis.ticks = scale.ticks.map((value) => ({ value })); },
-            ticks: { padding: 8, color: AXIS_INK, callback: (v) => (v === 0 ? '0%' : signedPct(v)) },
+            ticks: { padding: 8, color: AXIS_INK, callback: (v) => (v === 0 && value === signedPct ? '0%' : value(v)) },
           },
         },
         plugins: {
@@ -64,8 +67,8 @@ export function CandyLines({ lines, label }) {
             filter: (item) => item.raw?.y !== null,
             callbacks: {
               title: (items) => monthLabel(items[0].raw.month),
-              label: (item) => `${item.dataset.label}: ${signedPct(item.parsed.y)}`,
-              labelColor: (item) => ({ borderColor: CANDY_COLOURS[item.dataset.key], backgroundColor: CANDY_COLOURS[item.dataset.key] }),
+              label: (item) => `${item.dataset.label}: ${value(item.parsed.y)}`,
+              labelColor: (item) => ({ borderColor: item.dataset.colour, backgroundColor: item.dataset.colour }),
             },
           },
         },

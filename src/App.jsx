@@ -497,17 +497,33 @@ function CandyAbout() {
     </ul>
   </section>;
 }
-// ── Halloween candy: NRF's planned candy spending per person against BLS candy prices since 2020 and since 2010, and
-// what a bag costs at a large US retailer this week.
+// ── Halloween candy: why candy costs more this Halloween, then what it costs. The cost chain carries Chart 1 of the BLS
+// Monthly Labor Review article "Why is candy so expensive these days?" (September 2026) past November 2024, where the
+// article's data stops; NRF's candy budgets and one day of retailer bag prices follow.
+const BLS_ARTICLE = 'https://www.bls.gov/opub/mlr/2026/article/why-is-candy-so-expensive-these-days.htm';
 const HALLOWEEN_LINES = [
   { key: 'spend', label: 'Candy budget per person', colour: CANDY_COLOURS.candy },
   { key: 'candy', label: 'Candy prices', colour: CANDY_COLOURS.wages },
   { key: 'all', label: 'All prices', colour: CANDY_COLOURS.all, dashed: true },
 ];
+// From the cocoa bean to the candy aisle: the inputs in browns and the candy prices in blues, store prices in the same
+// dark blue as candy prices in the budget chart above, so the two that fell and the two that kept rising read as groups.
+const COST_LINES = [
+  { key: 'cocoa', label: 'Cocoa imports', colour: '#7b4f2c' },
+  { key: 'materials', label: 'Candy ingredients', colour: '#b9875a' },
+  { key: 'makers', label: "Candy makers' prices", colour: '#6b9bd1' },
+  { key: 'candy', label: 'Candy in stores', colour: CANDY_COLOURS.wages },
+];
+const SUGAR_LINES = [
+  { key: 'us', label: 'US raw sugar', colour: CANDY_COLOURS.wages },
+  { key: 'world', label: 'World raw sugar', colour: CANDY_COLOURS.all, dashed: true },
+];
 const usd = (v) => `$${v.toFixed(2)}`;
+const dollars = (v) => `$${Math.round(v).toLocaleString('en-US')}`;
+const cents = (v) => `${Math.round(v)}¢`;
 const external = (href, text) => <a href={href} target="_blank" rel="noreferrer">{text}</a>;
 function HalloweenInsight({ page }) {
-  const h = page.halloween;
+  const h = page.halloween, c = page.costs;
   const head = (lede) => <div className="title-block"><h1 className="dk-h1">{page.title}</h1>{lede && <p className="lede">{lede}</p>}</div>;
   if (!h) return <>{head()}<p role="alert">Candy prices could not be loaded from BLS in this update.</p><HalloweenAbout /></>;
   const f = h.figures, since = f.since, round = (v) => Math.round(v);
@@ -519,12 +535,23 @@ function HalloweenInsight({ page }) {
     <YearLines lines={lines} label={`Since ${from}, planned candy spending per person rose ${pctLabel(g.spend)}, candy prices ${pctLabel(g.candy)} and all prices ${pctLabel(g.all)}.`} />
   </>;
   const day = dateLabel(h.date);
+  // All prices over the same twelve months as candy, from the Septembers the budget chart already carries.
+  const [prev, last] = h.rows.slice(-2);
+  const allYear = last.year === prev.year + 1 ? (last.allCpi / prev.allCpi - 1) * 100 : null;
+  const one = (v) => `${v.toFixed(1)}%`;
+  // The story in the order of the page: what Halloween candy costs against what people budget, how fast it is still
+  // rising, then why.
+  const opening = `Candy costs ${round(since.candy)}% more than in ${h.since}, while Halloween candy budgets rose ${round(since.spend)}%.`;
+  const lede = c
+    ? `${opening} Prices are still climbing, up ${one(c.figures.candy.year)} in the past year${allYear !== null ? ` against ${one(allYear)} for all prices` : ''}. Cocoa is the main reason. Its price more than quadrupled to a record in early ${c.cocoa.peak.month.slice(0, 4)}. It has fallen by ${round(-c.cocoa.fromPeak)}% since, but candy makers buy cocoa months to two years ahead, so the record costs are reaching the shelves now.`
+    : opening;
+  // The budget chart opens the story; the cost chain, the causes and sugar answer it.
   return <>
-    {head(`Since ${h.since}, candy prices rose ${round(since.candy)}% and planned candy spending per person celebrating ${round(since.spend)}%, from $${round(since.spendFrom)} to $${round(f.spendTo)}. In the 2010s it was the other way round: budgets rose ${round(f.decade.spend)}%, prices ${round(f.decade.candy)}%.`)}
+    {head(lede)}
     <ChartCard
       id="halloween-since-title"
-      title="Candy budget and candy prices"
-      description={`Change since September ${h.since}, or since ${h.from} on the second tab.`}
+      title={`Candy prices rose ${round(since.candy)}% since ${h.since}, Halloween candy budgets ${round(since.spend)}%`}
+      description={`Planned candy spending per person celebrating went from $${round(since.spendFrom)} to $${round(f.spendTo)}. In the 2010s it was the other way round: budgets rose ${round(f.decade.spend)}%, prices ${round(f.decade.candy)}%. Change since September ${h.since}, or since ${h.from} on the second tab.`}
       tabs={[
         { label: `Since ${h.since}`, content: chart(linesFrom('Since', recent), h.since, since) },
         { label: `Since ${h.from}`, content: chart(linesFrom('Change', h.rows), h.from, f) },
@@ -539,6 +566,9 @@ function HalloweenInsight({ page }) {
       ]}
       footer={<p className="chart-note">Source: {external('https://nrf.com/research-insights/holiday-data-and-trends/halloween', 'NRF Halloween survey')}; BLS {external('https://www.bls.gov/cpi/', 'consumer price index')}.</p>}
     />
+    {c && <CostChain c={c} common={page.common} />}
+    {c && <HalloweenWhy c={c} />}
+    {c && <SugarCard c={c} />}
     <ChartCard
       id="halloween-bags-title"
       title="What a bag costs at a large US retailer this week"
@@ -557,17 +587,74 @@ function HalloweenInsight({ page }) {
       ]}
       footer={<p className="chart-note">Source: national online prices from a large US retailer, {day}, collected with {external('https://www.kadoa.com', 'Kadoa')}.</p>}
     />
-    <HalloweenAbout h={h} />
+    <HalloweenAbout h={h} c={c} />
   </>;
 }
-function HalloweenAbout({ h }) {
+// The cost chain, from cocoa imports to candy in stores, as the change since December 2019; the cocoa price since 2000
+// in dollars a ton is the second tab, for the record the lede names.
+function CostChain({ c, common }) {
+  const g = c.figures;
+  const lines = COST_LINES.map((l) => ({ ...l, points: c.rows.map((r) => [r.month, r[l.key]]) }));
+  const cocoa = [{ key: 'cocoa', label: 'Cocoa', colour: COST_LINES[0].colour, points: c.cocoa.rows }];
+  const table = [...c.rows].reverse();
+  return <ChartCard
+    id="candy-costs-title"
+    title="Cocoa costs fell, candy prices kept rising"
+    description="Change since December 2019. The BLS article's version of this chart stops in November 2024."
+    date={`Up to and including ${monthLabel(c.month)}`}
+    tabs={[
+      { label: 'From cocoa to candy', short: 'Cost chain', content: <>
+        <YearLegend lines={COST_LINES} />
+        <CandyLines lines={lines} label={`Since December 2019, cocoa import prices rose ${pctLabel(g.cocoa.since)}, candy ingredients ${pctLabel(g.materials.since)}, candy makers' prices ${pctLabel(g.makers.since)} and candy in stores ${pctLabel(g.candy.since)}. Over the past year cocoa imports changed ${pctLabel(g.cocoa.year)} and candy in stores ${pctLabel(g.candy.year)}.`} />
+      </> },
+      { label: 'Cocoa price since 2000', short: 'Cocoa', content: <>
+        <CandyLines lines={cocoa} value={dollars} steps={[1000, 2000, 2500, 5000]} label={`Cocoa cost ${dollars(c.cocoa.peak.value)} a metric ton in ${monthLabel(c.cocoa.peak.month)}, its record, against at most ${dollars(c.cocoa.before2023)} from 2000 to 2022. In ${monthLabel(c.cocoa.month)} it was ${dollars(c.cocoa.latest)}.`} />
+        <p className="chart-note">Monthly average, US dollars a metric ton. The futures record of $12,565 in December 2024 was a daily price.</p>
+      </> },
+      { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={table} rowKey={(r) => r.month} columns={[
+        { key: 'month', header: 'Month', render: (r) => monthLabel(r.month) },
+        ...COST_LINES.map((l) => ({ key: l.key, header: <span className="th-wrap">{l.label}</span>, align: 'right', hideBelow: l.key === 'materials' ? 'sm' : undefined, render: (r) => (r[l.key] === null ? '–' : pctLabel(r[l.key])) })),
+      ]} /> },
+      { label: 'Download', content: <><p className="download-intro">Each month since December 2019: the change in cocoa import prices, candy ingredient and candy maker prices, and candy prices in stores, as a gzipped CSV.</p><a className="dk-btn" href={`${dataPath(common)}/downloads/candy-costs.csv.gz`} download>Download CSV (gzip)</a></> },
+    ]}
+    footer={<p className="chart-note">Source: BLS {external('https://www.bls.gov/mxp/', 'import price index')} for cocoa and cocoa preparations, {external('https://www.bls.gov/ppi/', 'producer price indexes')} for confectionery materials and end products, and the {external('https://www.bls.gov/cpi/', 'consumer price index')} for candy and chewing gum, all not seasonally adjusted; cocoa price from the {external('https://fred.stlouisfed.org/series/PCOCOUSDM', 'IMF via FRED')}. Carries on Chart 1 of the BLS article {external(BLS_ARTICLE, '“Why is candy so expensive these days?”')}</p>}
+  />;
+}
+function SugarCard({ c }) {
+  const s = c.sugar;
+  const lines = SUGAR_LINES.map((l, i) => ({ ...l, points: s.rows.map((r) => [r[0], r[i + 1]]) }));
+  return <ChartCard
+    id="candy-sugar-title"
+    title={`US sugar costs ${s.ratio.toFixed(1)} times the world price`}
+    description="Raw sugar, US cents a pound, monthly average since 2000."
+    tabs={[{ label: 'Chart', content: <>
+      <YearLegend lines={SUGAR_LINES} />
+      <CandyLines lines={lines} value={cents} steps={[10, 20]} label={`In ${monthLabel(s.month)}, US raw sugar cost ${s.us} cents a pound and world raw sugar ${s.world} cents.`} />
+    </> }]}
+    footer={<p className="chart-note">Source: IMF via FRED, {external('https://fred.stlouisfed.org/series/PSUGAUSAUSDM', 'US (No. 16)')} and {external('https://fred.stlouisfed.org/series/PSUGAISAUSDM', 'world (No. 11)')} raw sugar. The US {external('https://www.ers.usda.gov/topics/crops/sugar-and-sweeteners/policy', 'sugar program')} limits imports, which keeps US prices above the world price.</p>}
+  />;
+}
+// What is behind the chart, one source per point, the BLS article first. External figures carry their dates.
+function HalloweenWhy({ c }) {
+  const g = c.figures;
+  return <section className="insight-notes insight-why">
+    <SectionHeading>Why candy still costs more</SectionHeading>
+    <ul>
+      <li><strong>A cocoa shock.</strong> Côte d'Ivoire and Ghana grow over half the world's cocoa. Heat, drought, then heavy rain and crop disease cut world output by more than 13% in the 2023–24 season, and cocoa futures hit a record of $12,565 a ton in December 2024 ({external(BLS_ARTICLE, 'BLS')}).</li>
+      <li><strong>Bought ahead.</strong> Candy makers lock in cocoa long before it reaches a bar: Hershey buys {external('https://www.sec.gov/Archives/edgar/data/0000047111/000162828026050900/hsy-20260628.htm', '3 to 24 months ahead')}. Cocoa import prices peaked in {monthLabel(g.cocoa.peak.month)} and are down {Math.round(-g.cocoa.fromPeak)}% since, but what candy makers charge is close to its highest and up {g.makers.year.toFixed(1)}% on a year ago.</li>
+      <li><strong>Protected sugar.</strong> The US sugar program limits imports, so US sugar costs about twice the world price. A drought in Mexico, the largest supplier, cut its shipments to the US in 2023–24 ({external(BLS_ARTICLE, 'BLS')}).</li>
+      <li><strong>Smaller packs count as price rises.</strong> BLS adjusts for package size. Downsizing added 2.1% to candy and gum prices from January 2019 to October 2023 ({external(BLS_ARTICLE, 'BLS')}).</li>
+    </ul>
+  </section>;
+}
+function HalloweenAbout({ h, c }) {
   return <section className="insight-notes">
     <SectionHeading>About the data</SectionHeading>
     <ul>
-      <li><strong>Why candy got pricier.</strong> Hershey raised prices in 2022, citing sugar, dairy, packaging and labor costs ({external('https://ktvz.com/money/cnn-business-consumer/2022/02/03/everything-hershey-makes-is-going-to-get-more-expensive/', 'CNN Business')}). Then cocoa hit a record of about $12,900 a metric ton in December 2024 ({external('https://tradingeconomics.com/commodity/cocoa', 'Trading Economics')}, {external('https://www.icco.org/cocoa-market-report-for-december-2024/', 'International Cocoa Organization')}).</li>
-      {h && <li>The headline starts in September {h.since}, the last year before the price surge. From {h.from} both rose about the same, budgets {Math.round(h.figures.spend)}% and prices {Math.round(h.figures.candy)}%: budgets grew faster in the 2010s and prices caught up after {h.since}. Starting in 2019 or 2021 shows the same gap.</li>}
+      <li>The cost chain follows the BLS Monthly Labor Review article {external(BLS_ARTICLE, '“Why is candy so expensive these days?”')} by Natalie Ho (September 2026), which charts the same four indexes from December 2019 to November 2024.{c && ` Here they run to ${monthLabel(c.month)}.`} Cocoa imports is the import price index for cocoa and cocoa preparations; candy ingredients the producer price index for confectionery materials, such as cocoa products and sweeteners; candy makers' prices the one for confectionery end products. All are not seasonally adjusted.</li>
+      {h && <li>The budget chart starts in September {h.since}, the last year before the price surge. From {h.from} both rose about the same, budgets {Math.round(h.figures.spend)}% and prices {Math.round(h.figures.candy)}%: budgets grew faster in the 2010s and prices caught up after {h.since}. Starting in 2019 or 2021 shows the same gap.</li>}
       <li>The NRF figures are what adults celebrating Halloween planned to spend on candy, not what they paid at the till. The 2026 survey asked 7,889 adults from September 1 to 9.</li>
-      <li>Candy prices are the BLS consumer price index for candy and chewing gum in September of each year, not seasonally adjusted. BLS counts a smaller pack at the same price as a price rise.</li>
+      <li>Candy prices are the BLS consumer price index for candy and chewing gum, not seasonally adjusted. BLS counts a smaller pack at the same price as a price rise.</li>
       <li>Bag prices are national online prices from one day. Store prices and sales can differ.</li>
     </ul>
   </section>;

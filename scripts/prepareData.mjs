@@ -7,7 +7,8 @@ import { createGunzip, gzipSync } from 'node:zlib';
 import { buildDiffusion, buildIndex, indexSummary } from '../src/index-calc.mjs';
 import { WEIGHTS, WEIGHTS_SOURCE, stratumOf } from '../src/cpi-weights.mjs';
 import { CANDY_SERIES, buildCandy, candyCsv, candyHeadline, parseBls } from '../src/candy.mjs';
-import { buildHalloween, halloweenBanner, halloweenBudgetBanner, halloweenCsv, halloweenHeadline } from '../src/halloween.mjs';
+import { HALLOWEEN_TITLE, buildHalloween, halloweenCsv } from '../src/halloween.mjs';
+import { COST_FILES, FRED_SERIES, buildCandyCosts, candyCostsCsv, parseFred } from '../src/candyCosts.mjs';
 import { BASE, addDays, curated, familyFor, marketKey, newsFamilies, groupSeries, markonNews, movers, nearest, pickBenchmark, priced, reports, summarize, usdaNews, isRetail, quote, unitLabel, quoteShort } from '../src/model.mjs';
 import { existsSync } from 'node:fs';
 
@@ -98,11 +99,28 @@ try {
 } catch (error) {
   console.error(JSON.stringify({ step: 'halloween', status: 'unavailable', error: error.message }));
 }
+// Why candy costs more, for the same insight: BLS's cost chain from cocoa imports to candy on the shelf, and IMF cocoa
+// and sugar prices from FRED. Both sources sit outside the dataset, so like BLS above a failure is logged and the page
+// drops those charts rather than failing the publish.
+let costs = null;
+try {
+  const files = [...new Set(Object.values(COST_FILES))];
+  const [texts, fred] = await Promise.all([
+    Promise.all(files.map(blsText)),
+    fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=${Object.values(FRED_SERIES).join(',')}`, { headers: { 'User-Agent': 'kadoa-food-price-monitor/1.0 (+https://www.kadoa.com)' }, signal: AbortSignal.timeout(60_000) })
+      .then((response) => { if (!response.ok) throw new Error(`FRED HTTP ${response.status}`); return response.text(); }),
+  ]);
+  const bls = new Map(files.flatMap((f, i) => [...parseBls(texts[i], Object.keys(COST_FILES).filter((id) => COST_FILES[id] === f))]));
+  costs = buildCandyCosts({ bls, fred: parseFred(fred, Object.values(FRED_SERIES)) });
+  await writeFile(join(data, 'downloads', 'candy-costs.csv.gz'), gzipSync(candyCostsCsv(costs.rows)));
+  console.error(JSON.stringify({ step: 'candy-costs', status: 'ok', month: costs.month, cocoa: costs.cocoa.month, sugar: costs.sugar.month, candyYear: costs.figures.candy.year, cocoaYear: costs.figures.cocoa.year }));
+} catch (error) {
+  console.error(JSON.stringify({ step: 'candy-costs', status: 'unavailable', error: error.message }));
+}
 // The newest insight, announced in a banner under the navigation on every other page until the date given, as on the
-// energy monitor. Decided here, before any page is written, so every page and its prerender carry it. The banner has
-// its own text, about 50 characters with the number first, so it fits a phone in one or two lines. Without BLS it
-// falls back to the NRF budget alone.
-const ANNOUNCE = { slug: 'halloween-candy', until: '2026-11-30', text: halloween ? halloweenBanner(halloween.figures) : halloweenBudgetBanner(nrf.values) };
+// energy monitor. Decided here, before any page is written, so every page and its prerender carry it. The banner shows
+// the insight's own title, so the link reads the same as the page it opens; at 41 characters it fits a phone on one line.
+const ANNOUNCE = { slug: 'halloween-candy', until: '2026-11-30', text: HALLOWEEN_TITLE };
 if (new Date().toISOString().slice(0, 10) <= ANNOUNCE.until) common.announce = { key: `insights/${ANNOUNCE.slug}`, href: `${BASE}/insights/${ANNOUNCE.slug}`, title: ANNOUNCE.text };
 
 const featured = [];
@@ -299,7 +317,8 @@ try {
 // Insights: one page per analysis, newest first, so a link (Reddit, a newsletter) opens the chart with its own title.
 // Each page carries only the data its own view needs.
 const INSIGHTS = [
-  { slug: 'halloween-candy', title: halloween ? halloweenHeadline(halloween.figures) : 'Halloween candy budgets against candy prices', summary: halloween ? `Since ${halloween.since}, candy prices rose ${Math.round(halloween.figures.since.candy)}% and planned candy spending per person ${Math.round(halloween.figures.since.spend)}%.` : 'Planned Halloween candy spending against candy prices since 2010.', data: { halloween } },
+  // The slug stays, so links already shared keep working; the page now answers the question in its title.
+  { slug: 'halloween-candy', title: HALLOWEEN_TITLE, summary: costs ? `Cocoa costs have fallen since early 2025, yet candy prices are up ${costs.figures.candy.year.toFixed(1)}% on a year ago. Here is why.` : halloween ? `Since ${halloween.since}, candy prices rose ${Math.round(halloween.figures.since.candy)}% and planned candy spending per person ${Math.round(halloween.figures.since.spend)}%.` : 'Planned Halloween candy spending against candy prices since 2010.', data: { halloween, costs } },
   { slug: 'candy-prices', title: candy ? candyHeadline(candy.longRun) : 'Candy prices against inflation', summary: 'Candy matched inflation from 1997 to 2022, then pulled ahead.', data: { candy } },
 ];
 await mkdir(join(data, 'insights'), { recursive: true });

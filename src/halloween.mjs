@@ -40,22 +40,9 @@ export function buildHalloween({ spend, candy, all, shop }) {
   };
 }
 
-// Price first while prices lead; if budgets catch up, the order flips so the sentence stays true.
-export function halloweenHeadline(f) {
-  const c = Math.round(f.since.candy), b = Math.round(f.since.spend);
-  // A no-break space keeps "since 2020" on one line when the heading wraps.
-  return c > b ? `Candy prices are up ${c}% since\u00a0${HALLOWEEN_SINCE}, Halloween candy budgets ${b}%` : `Halloween candy budgets are up ${b}% since\u00a0${HALLOWEEN_SINCE}, candy prices ${c}%`;
-}
-
-// The site banner's text, about 50 characters with the number first. Without BLS it falls back to NRF alone.
-export function halloweenBanner(f) {
-  return `Candy prices up ${Math.round(f.since.candy)}% since ${HALLOWEEN_SINCE}, budgets ${Math.round(f.since.spend)}%`;
-}
-export function halloweenBudgetBanner(spend) {
-  const last = Math.max(...Object.keys(spend).map(Number));
-  if (!spend[HALLOWEEN_SINCE] || !spend[last]) throw new Error(`NRF spending has no value for ${HALLOWEEN_SINCE}`);
-  return `Halloween candy budgets up ${Math.round(pct(spend[last], spend[HALLOWEEN_SINCE]))}% since ${HALLOWEEN_SINCE}`;
-}
+// The page asks the question people search for and answers it in the lede and charts; the site banner and the
+// insights list use the same words.
+export const HALLOWEEN_TITLE = 'Why is candy so expensive this Halloween?';
 
 export const halloweenCsv = (rows) => ['year,nrf_planned_candy_spend_usd,candy_cpi_september,all_items_cpi_september,spend_change_since_2010_pct,candy_price_change_since_2010_pct,all_prices_change_since_2010_pct,spend_change_since_2020_pct,candy_price_change_since_2020_pct,all_prices_change_since_2020_pct',
   ...rows.map((r) => [r.year, r.spend, r.candyCpi, r.allCpi, r.spendChange, r.candyChange, r.allChange, r.spendSince ?? '', r.candySince ?? '', r.allSince ?? ''].join(','))].join('\n') + '\n';
