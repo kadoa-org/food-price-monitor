@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button, DataTable, GitHubButton, LiveBadge, NavBar, PhaseBanner, SearchInput, Section, SiteFooter, SiteHeader, Tag } from './kit';
 import CommandPalette from './CommandPalette';
-import { BASE, HOME, addDays, midpoint, dataPath, seriesUrl, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, quote, reports, shortMarket, summarize, unitLabel } from './model.mjs';
+import { BASE, HOME, addDays, midpoint, download, fileUrl, seriesUrl, dateLabel, families, gapNote, marketKey, money, monthLabel, number, pctLabel, quote, reports, shortMarket, summarize, unitLabel } from './model.mjs';
 import PriceChart from './PriceChart';
 import ComparisonChart, { COMPARISON_COLOURS } from './ComparisonChart';
 import { ChangeTag, ChartCard, FilterSelect, KeyFigures, SectionHeading, ShowMore } from './Figures';
@@ -16,7 +16,7 @@ import { longMonth } from './groceries.mjs';
 const url = (slug) => `${BASE}/commodity/${slug}`;
 // The file is gzipped: a full history runs to tens of megabytes as plain CSV, and compressing it is what keeps a
 // daily publish to minutes rather than a gigabyte of upload. The label says so rather than surprising anyone.
-function Download({ slug, common, children = 'Download CSV (gzip)' }) { return <a className="dk-btn" href={`${dataPath(common)}/downloads/${slug}.csv.gz`} download>{children}</a>; }
+function Download({ slug, common, children = 'Download CSV (gzip)' }) { return <a className="dk-btn" href={fileUrl(common, download(slug))} download>{children}</a>; }
 export function Shell({ page, children }) {
   const kind = page?.kind;
   const announce = page?.common?.announce;
@@ -24,7 +24,7 @@ export function Shell({ page, children }) {
   useEffect(() => { const onKey = (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearch((o) => !o); } }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey); }, []);
   return <><a className="skip-link" href="#main-content">Skip to content</a>
     <SiteHeader brand="🥕 US Food Price Monitor" brandHref={HOME} brandSuffix={<a href="https://www.kadoa.com" target="_blank" rel="noreferrer" className="dk-header-link">by Kadoa</a>} right={<span className="header-right"><LiveBadge>Updated daily</LiveBadge><GitHubButton repo="kadoa-org/food-price-monitor" /><Button inverse onClick={() => setSearch(true)} aria-label="Search (Cmd+K)">Search <kbd className="header-kbd">⌘K</kbd></Button></span>} />
-    <CommandPalette open={search} onClose={() => setSearch(false)} dataPath={dataPath(page?.common)} />
+    <CommandPalette open={search} onClose={() => setSearch(false)} url={fileUrl(page?.common, 'commodities.json')} />
     <NavBar collapse items={[{ href: HOME, label: 'Overview', active: kind === 'home' }, { href: `${BASE}/commodities`, label: 'Commodities', active: kind === 'commodity' || kind === 'commodities' }, { href: `${BASE}/retail`, label: 'Retail prices', active: kind === 'retail' }, { href: `${BASE}/insights`, label: 'Insights', active: kind === 'insights' || kind === 'insight' || kind === 'candy' }, { href: `${BASE}/about`, label: 'About the data', end: true, active: kind === 'about' }]} />
     {/* The newest insight, on every page but its own; the data build decides what and until when. */}
     {announce && page.key !== announce.key && <PhaseBanner tag="New" label="Insight:" href={announce.href}>{announce.title}</PhaseBanner>}
@@ -186,7 +186,7 @@ function Commodity({ page }) {
   const [history, setHistory] = useState({ id: initial.id, rows: page.initialObservations, dimensions: page.initialDimensions, reportTitle: page.initialReportTitle, error: false });
   // The page ships only the products of the initial market; the full list arrives after first paint.
   const [allSeries, setAllSeries] = useState(page.series);
-  useEffect(() => { if (page.seriesTotal <= page.series.length) return; const controller = new AbortController(); fetch(`${dataPath(page.common)}/commodity/${page.summary.slug}.series.json`, { signal: controller.signal }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))).then(setAllSeries).catch(() => {}); return () => controller.abort(); }, [page]);
+  useEffect(() => { if (page.seriesTotal <= page.series.length) return; const controller = new AbortController(); fetch(fileUrl(page.common, `commodity/${page.summary.slug}.series.json`), { signal: controller.signal }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))).then(setAllSeries).catch(() => {}); return () => controller.abort(); }, [page]);
   // The requested series may sit in a market the page did not ship up front; select it once the full list arrives.
   useEffect(() => {
     if (!requested || seriesId === requested) return;
@@ -203,7 +203,7 @@ function Commodity({ page }) {
   // Store prices (BLS, monthly) get a dashed comparison: the first price on the chart grown with all consumer prices,
   // so it moves with the period chosen. A month without a CPI figure (BLS skipped October 2025) takes the month before.
   const [cpi, setCpi] = useState(null);
-  useEffect(() => { if (!monthly || cpi) return undefined; const controller = new AbortController(); fetch(`${dataPath(page.common)}/cpi.json`, { signal: controller.signal }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))).then((f) => setCpi(new Map(f.months))).catch(() => {}); return () => controller.abort(); }, [monthly, cpi]);
+  useEffect(() => { if (!monthly || cpi) return undefined; const controller = new AbortController(); fetch(fileUrl(page.common, 'cpi.json'), { signal: controller.signal }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))).then((f) => setCpi(new Map(f.months))).catch(() => {}); return () => controller.abort(); }, [monthly, cpi]);
   const retail = selected.stage === 'Retail promotion' || (!pending && history.rows.length > 0 && history.rows.every((r) => r.low === null && r.high === null));
   const series = { ...selected, observations: history.rows };
   const summary = pending || !history.rows.length ? null : summarize(series);
@@ -363,7 +363,7 @@ function Retail({ page }) {
 const CANDY_LABELS = { candy: 'Candy and gum', all: 'All prices', wages: 'Hourly pay' };
 // One plain line: readers who want the series ids find them in the download.
 const CandySource = ({ pay = true }) => <p className="chart-note">Source: BLS <a href="https://www.bls.gov/cpi/" target="_blank" rel="noreferrer">consumer price index</a>{pay ? <> and <a href="https://www.bls.gov/ces/" target="_blank" rel="noreferrer">average hourly earnings</a></> : ''}, not seasonally adjusted.</p>;
-const candyDownload = (common) => <><p className="download-intro">Every month since December 1997: the candy and all-items price indexes and, from 2006, average hourly pay, as a gzipped CSV.</p><a className="dk-btn" href={`${dataPath(common)}/downloads/candy-prices.csv.gz`} download>Download CSV (gzip)</a></>;
+const candyDownload = (common) => <><p className="download-intro">Every month since December 1997: the candy and all-items price indexes and, from 2006, average hourly pay, as a gzipped CSV.</p><a className="dk-btn" href={fileUrl(common, download('candy-prices'))} download>Download CSV (gzip)</a></>;
 const Unavailable = () => <p role="alert">Candy prices could not be loaded from BLS in this update.</p>;
 // Year-on-year change for each calendar year, as a chart card; the candy page and the insight share it.
 function CandyYearsCard({ c }) {
@@ -474,7 +474,7 @@ function GroceryInsight({ page }) {
           { key: 'name', header: 'Food', render: (r) => (r.total ? <strong>{r.name}</strong> : r.name) },
           { key: 'change', header: `${prev} to ${month}`, align: 'right', render: (r) => <Change value={r.change} /> },
         ]} /> },
-        { label: 'Download', content: <><p className="download-intro">The month's change for each food index, and the ten foods' prices in {longMonth(g.month)}, {longMonth(g.prev)}, {longMonth(g.compare)} and since {longMonth(g.from)}, as a gzipped CSV.</p><a className="dk-btn" href={`${dataPath(page.common)}/downloads/grocery-prices-october-2026.csv.gz`} download>Download CSV (gzip)</a></> },
+        { label: 'Download', content: <><p className="download-intro">The month's change for each food index, and the ten foods' prices in {longMonth(g.month)}, {longMonth(g.prev)}, {longMonth(g.compare)} and since {longMonth(g.from)}, as a gzipped CSV.</p><a className="dk-btn" href={fileUrl(page.common, download('grocery-prices-october-2026'))} download>Download CSV (gzip)</a></> },
       ]}
     />
     <ChartCard
@@ -640,7 +640,7 @@ function HalloweenInsight({ page }) {
           { key: 'candySince', header: <span className="th-wrap">{`Candy prices since ${h.since}`}</span>, align: 'right', render: (r) => (r.candySince == null ? '–' : pctLabel(r.candySince)) },
           { key: 'candyChange', header: <span className="th-wrap">{`Candy prices since ${h.from}`}</span>, align: 'right', hideBelow: 'sm', render: (r) => pctLabel(r.candyChange) },
         ]} /> },
-        { label: 'Download', content: <><p className="download-intro">Each year since {h.from}: planned candy spending per person, the candy and all-items price indexes for September, and the change since {h.from} and since {h.since}, as a gzipped CSV.</p><a className="dk-btn" href={`${dataPath(page.common)}/downloads/halloween-candy.csv.gz`} download>Download CSV (gzip)</a></> },
+        { label: 'Download', content: <><p className="download-intro">Each year since {h.from}: planned candy spending per person, the candy and all-items price indexes for September, and the change since {h.from} and since {h.since}, as a gzipped CSV.</p><a className="dk-btn" href={fileUrl(page.common, download('halloween-candy'))} download>Download CSV (gzip)</a></> },
       ]}
       footer={<p className="chart-note">Source: {external('https://nrf.com/research-insights/holiday-data-and-trends/halloween', 'NRF Halloween survey')}; BLS {external('https://www.bls.gov/cpi/', 'consumer price index')}.</p>}
     />
@@ -693,7 +693,7 @@ function CostChain({ c, common }) {
         { key: 'month', header: 'Month', render: (r) => monthLabel(r.month) },
         ...COST_LINES.map((l) => ({ key: l.key, header: <span className="th-wrap">{l.label}</span>, align: 'right', hideBelow: l.key === 'materials' ? 'sm' : undefined, render: (r) => (r[l.key] === null ? '–' : pctLabel(r[l.key])) })),
       ]} /> },
-      { label: 'Download', content: <><p className="download-intro">Each month since December 2019: the change in cocoa import prices, candy ingredient and candy maker prices, and candy prices in stores, as a gzipped CSV.</p><a className="dk-btn" href={`${dataPath(common)}/downloads/candy-costs.csv.gz`} download>Download CSV (gzip)</a></> },
+      { label: 'Download', content: <><p className="download-intro">Each month since December 2019: the change in cocoa import prices, candy ingredient and candy maker prices, and candy prices in stores, as a gzipped CSV.</p><a className="dk-btn" href={fileUrl(common, download('candy-costs'))} download>Download CSV (gzip)</a></> },
     ]}
     footer={<p className="chart-note">Source: BLS {external('https://www.bls.gov/mxp/', 'import price index')} for cocoa and cocoa preparations, {external('https://www.bls.gov/ppi/', 'producer price indexes')} for confectionery materials and end products, and the {external('https://www.bls.gov/cpi/', 'consumer price index')} for candy and chewing gum, all not seasonally adjusted; cocoa price from the {external('https://fred.stlouisfed.org/series/PCOCOUSDM', 'IMF via FRED')}. Carries on Chart 1 of the BLS article {external(BLS_ARTICLE, '“Why is candy so expensive these days?”')}</p>}
   />;

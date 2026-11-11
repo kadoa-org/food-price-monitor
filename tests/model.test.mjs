@@ -1,6 +1,6 @@
 import { withGaps } from '../src/chartSetup.mjs';
 import { expect, test } from 'bun:test';
-import { autoFamily, shortMarket, dateLabel, familyFor, findingSentence, gapNote, groupSeries, markonTitle, newsFamilies, slugify, titleCase, usdaNews, longestGap, nearest, pageKey, pctChange, pctLabel, pickBenchmark, quote, summarize, unitLabel, yearEarlier } from '../src/model.mjs';
+import { autoFamily, download, fileUrl, pageFiles, shortMarket, dateLabel, familyFor, findingSentence, gapNote, groupSeries, markonTitle, newsFamilies, slugify, titleCase, usdaNews, longestGap, nearest, pageKey, pctChange, pctLabel, pickBenchmark, quote, summarize, unitLabel, yearEarlier } from '../src/model.mjs';
 const row = { id: 'a', series_id: 'red-25lb', date: '2026-09-18', commodity: 'Onions, Dry', market: 'Market', market_stage: 'Shipping Point', package: '25 lb sacks', low: 9, high: 11, mostly_low: null, mostly_high: null, advertised_average: null, comment: null, dimensions: { organic: 'N', var: 'RED' } };
 test('formats dates and quotes as day month year and "to" ranges without locale data', () => {
   expect(dateLabel('2026-09-18')).toBe('18 Sep 2026');
@@ -142,4 +142,11 @@ test('terminal market news groups by market, not by produce origin', () => {
   const items = usdaNews(rows, { slug: 'onions', name: 'Onions' }, '2026-09-01', () => 'u');
   expect(items.length).toBe(1);
   expect(items[0].title).toBe('Onions, Atlanta Terminal Market: slightly lower');
+});
+test('a published page resolves its data files through its index, a local one by name', () => {
+  const page = { kind: 'commodity', summary: { slug: 'eggs' } };
+  expect(pageFiles(page)).toEqual(['commodities.json', 'og-image.png', 'commodity/eggs.series.json', 'downloads/eggs.csv.gz', 'cpi.json']);
+  expect(pageFiles({ kind: 'insight', slug: 'halloween-candy' })).toEqual(['commodities.json', 'og-halloween-candy.png', 'downloads/halloween-candy.csv.gz', 'downloads/candy-costs.csv.gz']);
+  expect(fileUrl({ files: { 'cpi.json': 'https://cdn/x/cpi.json' } }, 'cpi.json')).toBe('https://cdn/x/cpi.json');
+  expect(fileUrl(undefined, download('eggs'))).toBe('/food-prices/data/downloads/eggs.csv.gz');
 });

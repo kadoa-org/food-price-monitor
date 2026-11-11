@@ -6,18 +6,20 @@ const redirect = (req, res, next) => {
 };
 
 // DATA_SOURCE=cdn serves the site against the published data instead of a local public/data, so the frontend runs
-// without the dataset pipeline. The pointer names the current run; page files come from that run's folder and series
-// files from the shared folder, exactly as the production build wires them.
+// without the dataset pipeline. The pointer names the current run; its index maps each file to its content-addressed
+// path, and series files come from the shared folder, exactly as the production build wires them.
 const CDN = process.env.BUNNY_CDN_BASE || 'https://kadoa-datasets.b-cdn.net';
+const json = (url) => fetch(url, { headers: { 'Cache-Control': 'no-cache' } }).then((r) => { if (!r.ok) throw new Error(`Cannot read ${url}: HTTP ${r.status}`); return r.json(); });
 let pointerPromise;
-const pointer = () => (pointerPromise ??= fetch(`${CDN}/food-prices/latest.json?v=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } }).then((r) => { if (!r.ok) throw new Error(`Cannot read data pointer: HTTP ${r.status}`); return r.json(); }));
+const pointer = () => (pointerPromise ??= json(`${CDN}/food-prices/latest.json?v=${Date.now()}`).then(async (p) => ({ ...p, files: (await json(`${CDN}${p.index}`)).files })));
 const cdnData = async (req, res, next) => {
   const prefix = '/food-prices/data/';
   if (!req.url.startsWith(prefix)) return next();
   try {
     const p = await pointer();
     const rel = req.url.slice(prefix.length).split('?')[0];
-    const upstream = rel.startsWith('series/') ? `${CDN}${p.shared ?? p.base}/${rel}` : `${CDN}${p.base}/${rel}`;
+    const upstream = rel.startsWith('series/') ? `${CDN}${p.shared}/${rel}` : p.files[rel] ? `${CDN}${p.files[rel]}` : null;
+    if (!upstream) { res.writeHead(404, { 'Content-Type': 'text/plain' }); res.end(`Run ${p.runId} has no ${rel}`); return; }
     const r = await fetch(upstream);
     res.writeHead(r.status, { 'Content-Type': r.headers.get('content-type') ?? 'application/octet-stream', 'Cache-Control': 'no-store' });
     res.end(Buffer.from(await r.arrayBuffer()));

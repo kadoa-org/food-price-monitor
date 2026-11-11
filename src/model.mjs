@@ -6,6 +6,21 @@ export const dataPath = (common) => common?.dataPath ?? `${BASE}/data`;
 // Series files sit at fixed paths shared across runs, named by content version; page files belong to one run.
 export const sharedPath = (common) => common?.sharedPath ?? dataPath(common);
 export const seriesUrl = (common, s) => `${sharedPath(common)}/series/${s.id}.${s.v}.json`;
+// A published run keeps every other data file at a content-addressed path, listed per page in common.files; locally
+// they sit under the data folder by name.
+export const fileUrl = (common, rel) => common?.files?.[rel] ?? `${dataPath(common)}/${rel}`;
+export const download = (slug) => `downloads/${slug}.csv.gz`;
+// The data files a page links to or fetches after load, besides its own page file and series files. The build maps
+// exactly these into common.files and fails on one the run does not have, so a file missing here breaks the build
+// rather than a link.
+const INSIGHT_DOWNLOADS = { 'halloween-candy': ['halloween-candy', 'candy-costs'] };
+export function pageFiles(page) {
+  const files = ['commodities.json', page.kind === 'insight' ? `og-${page.slug}.png` : 'og-image.png'];
+  if (page.kind === 'commodity') files.push(`commodity/${page.summary.slug}.series.json`, download(page.summary.slug), 'cpi.json');
+  if (page.kind === 'candy') files.push(download('candy-prices'));
+  if (page.kind === 'insight') files.push(...(INSIGHT_DOWNLOADS[page.slug] ?? [page.slug]).map(download));
+  return files;
+}
 export const DAY = 86400000;
 export const curated = [
   { slug: 'onions', name: 'Onions', singular: 'Onion', emoji: '🧅', news: /\bonions?\b/i, matches: ['Onions, Dry'], description: 'Dry onions by variety, size, origin and package.' },

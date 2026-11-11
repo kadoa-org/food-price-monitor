@@ -2,13 +2,14 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { createServer } from 'vite';
+import { download, fileUrl, pageFiles } from '../src/model.mjs';
 const root = resolve(import.meta.dirname, '..'); const dist = join(root, 'dist/food-prices');
 const SITE = 'https://www.kadoa.com';
 const template = await readFile(join(dist, 'index.html'), 'utf8');
 // Data comes from the local pipeline output when present, otherwise from the published run on the CDN (Vercel builds).
 const CDN = process.env.BUNNY_CDN_BASE || 'https://kadoa-datasets.b-cdn.net';
 const local = join(root, 'public/data');
-let dataPath = '/food-prices/data'; let sharedPath = dataPath; let load;
+let dataPath = '/food-prices/data'; let sharedPath = dataPath; let load; let fileOf = null;
 if (process.env.DATA_SOURCE !== 'cdn' && existsSync(join(local, 'routes.json'))) {
   load = async (name) => JSON.parse(await readFile(join(local, `${name}.json`), 'utf8'));
 } else {
@@ -22,7 +23,10 @@ if (process.env.DATA_SOURCE !== 'cdn' && existsSync(join(local, 'routes.json')))
   if (!res.ok) throw new Error(`Cannot read data pointer (${storageKey ? 'storage' : 'CDN'}): HTTP ${res.status}`);
   const pointer = await res.json(); dataPath = `${CDN}${pointer.base}`; sharedPath = `${CDN}${pointer.shared ?? pointer.base}`;
   console.log(`Building from published run ${pointer.runId} (${pointer.lastDate}) via ${storageKey ? 'storage' : 'CDN'} pointer`);
-  load = async (name) => { const r = await fetch(`${CDN}${pointer.base}/${name}.json`); if (!r.ok) throw new Error(`Cannot read ${name}: HTTP ${r.status}`); return r.json(); };
+  // The run folder holds only the run's index: every file it published, by name, to its content-addressed path.
+  const index = await fetch(`${CDN}${pointer.index}`).then((r) => { if (!r.ok) throw new Error(`Cannot read run index: HTTP ${r.status}`); return r.json(); });
+  fileOf = (rel) => { if (!index.files[rel]) throw new Error(`Run ${pointer.runId} has no ${rel}`); return `${CDN}${index.files[rel]}`; };
+  load = async (name) => { const r = await fetch(fileOf(`${name}.json`)); if (!r.ok) throw new Error(`Cannot read ${name}: HTTP ${r.status}`); return r.json(); };
 }
 const routes = await load('routes');
 const server = await createServer({ root, server: { middlewareMode: true }, appType: 'custom' });
@@ -50,7 +54,7 @@ function seo(page, path) {
       ? `${short} prices today: ${b ? `${quoteText(b.latest)} ${unit(b.package)}, ${b.market.toLowerCase()} average` : 'latest USDA figure'}. Weekly prices advertised in US supermarket ads from ${day(s.firstDate)} to ${day(s.lastDate)}, ${fmt(s.seriesCount)} products by region from USDA's grocery ad survey, with a price chart, year-on-year change and free CSV download.`
       : `${short} prices today: ${b ? `${quoteText(b.latest)} ${unit(b.package)} at ${b.market}` : 'latest USDA quote'}. Daily USDA wholesale and shipping point prices from ${day(s.firstDate)} to ${day(s.lastDate)}, ${fmt(s.seriesCount)} products in ${s.markets} markets, with a price chart, year-on-year change and free CSV download.`;
     crumbs.push({ name: 'Commodities', url: `${SITE}/food-prices/commodities` }, { name: s.name, url: canonical });
-    ld = [{ '@context': 'https://schema.org', '@type': 'Dataset', name: s.retailOnly ? `${s.name} prices, USDA grocery ad survey` : `${s.name} prices, USDA wholesale and shipping point quotes`, description, url: canonical, keywords: [`${s.name.toLowerCase()} prices`, `${s.name.toLowerCase()} prices today`, `${s.name.toLowerCase()} price chart`, s.retailOnly ? 'grocery ad prices' : 'wholesale produce prices', 'USDA market news'], temporalCoverage: `${s.firstDate}/${s.lastDate}`, spatialCoverage: 'United States', license: 'https://www.usa.gov/government-works', isBasedOn: 'https://mymarketnews.ams.usda.gov/', creator: { '@type': 'Organization', name: 'Kadoa', url: SITE }, dateModified: updated, distribution: [{ '@type': 'DataDownload', encodingFormat: 'text/csv', contentUrl: `${dataPath.startsWith('http') ? dataPath : SITE + dataPath}/downloads/${s.slug}.csv` }] }];
+    ld = [{ '@context': 'https://schema.org', '@type': 'Dataset', name: s.retailOnly ? `${s.name} prices, USDA grocery ad survey` : `${s.name} prices, USDA wholesale and shipping point quotes`, description, url: canonical, keywords: [`${s.name.toLowerCase()} prices`, `${s.name.toLowerCase()} prices today`, `${s.name.toLowerCase()} price chart`, s.retailOnly ? 'grocery ad prices' : 'wholesale produce prices', 'USDA market news'], temporalCoverage: `${s.firstDate}/${s.lastDate}`, spatialCoverage: 'United States', license: 'https://www.usa.gov/government-works', isBasedOn: 'https://mymarketnews.ams.usda.gov/', creator: { '@type': 'Organization', name: 'Kadoa', url: SITE }, dateModified: updated, distribution: [{ '@type': 'DataDownload', encodingFormat: 'text/csv', contentUrl: absolute(fileUrl(page.common, download(s.slug))) }] }];
   } else if (page.kind === 'commodities') {
     title = `Produce Prices Today: ${fmt(page.items.length)} Fruits and Vegetables Tracked from USDA Reports`;
     description = `Produce prices today for ${fmt(page.items.length)} fruits and vegetables at US wholesale markets and shipping points, from USDA reports: latest quote, change against a year earlier and a price history chart for each.`;
@@ -113,13 +117,14 @@ try {
   const lastmod = {};
   for (const route of routes) {
     const page = await load(route.key); page.common = { ...page.common, dataPath, sharedPath };
+    if (fileOf) page.common.files = Object.fromEntries(pageFiles(page).map((rel) => [rel, fileOf(rel)]));
     if (page.kind === 'about') page.commodityCount ??= routes.filter((r) => r.key.startsWith('commodity/')).length;
     const body = render(page);
     const { title, description, canonical, ld } = seo(page, route.path);
     const fullTitle = `${title} | US Food Price Monitor`;
-    // Every insight has its own link preview from scripts/ogInsights.mjs, published beside its page data; other pages
-    // share the site card.
-    const image = page.kind === 'insight' ? `${absolute(dataPath)}/og-${page.slug}.png` : dataPath === '/food-prices/data' ? `${SITE}/food-prices/og-image.png` : `${absolute(dataPath)}/og-image.png`;
+    // Every insight has its own link preview from scripts/ogInsights.mjs; other pages share the site card, which a
+    // published run carries and a local build takes from public/.
+    const image = page.kind !== 'insight' && !fileOf ? `${SITE}/food-prices/og-image.png` : absolute(fileUrl(page.common, page.kind === 'insight' ? `og-${page.slug}.png` : 'og-image.png'));
     const head = `<meta property="og:type" content="website"/><meta property="og:site_name" content="US Food Price Monitor"/><meta property="og:title" content="${esc(title)}"/><meta property="og:description" content="${esc(description)}"/><meta property="og:url" content="${canonical}"/><meta property="og:image" content="${image}"/><meta property="og:image:width" content="1200"/><meta property="og:image:height" content="630"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="${esc(title)}"/><meta name="twitter:description" content="${esc(description)}"/><meta name="twitter:image" content="${image}"/><meta name="robots" content="index,follow,max-image-preview:large"/>${ld.map((o) => `<script type="application/ld+json">${JSON.stringify(o).replaceAll('<', '\\u003c')}</script>`).join('')}`;
     const html = template.replace(/<title>.*?<\/title>/, `<title>${esc(fullTitle)}</title>`).replace(/<meta name="description" content="[^"]*"\s*\/>/, `<meta name="description" content="${esc(description)}"/>`).replace(/<link rel="canonical" href="[^"]*"\s*\/>/, `<link rel="canonical" href="${canonical}"/>`).replace('</head>', `${head}</head>`).replace('<div id="root"></div>', `<div id="root">${body}</div><script id="page-data" type="application/json">${JSON.stringify(page).replaceAll('<', '\\u003c')}</script>`);
     const dir = join(dist, route.path.replace(/^\/food-prices\/?/, '')); await mkdir(dir, { recursive: true }); await writeFile(join(dir, 'index.html'), html); if (route.key !== 'home') await writeFile(dir + '.html', html);

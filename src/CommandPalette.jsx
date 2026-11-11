@@ -11,11 +11,11 @@ const PAGES = [
 ];
 // Cmd+K palette from the congress site, restyled with the kit and driven by the commodities index. Pages are full
 // navigations, so picking an item sets the location instead of routing in place.
-export default function CommandPalette({ open, onClose, dataPath = `${BASE}/data` }) {
+export default function CommandPalette({ open, onClose, url = `${BASE}/data/commodities.json` }) {
   const [q, setQ] = useState(''); const [idx, setIdx] = useState(0); const [commodities, setCommodities] = useState(null);
   const inputRef = useRef(null); const listRef = useRef(null);
   useEffect(() => { if (!open) return; setQ(''); setIdx(0); const t = setTimeout(() => inputRef.current?.focus(), 10); return () => clearTimeout(t); }, [open]);
-  useEffect(() => { if (!open || commodities) return; fetch(`${dataPath}/commodities.json`).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))).then((page) => setCommodities(page.items)).catch(() => setCommodities([])); }, [open, commodities]);
+  useEffect(() => { if (!open || commodities) return; fetch(url).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))).then((page) => setCommodities(page.items)).catch(() => setCommodities([])); }, [open, commodities]);
   const items = useMemo(() => {
     const query = q.trim().toLowerCase();
     const out = PAGES.filter((p) => !query || p.label.toLowerCase().includes(query));
