@@ -218,7 +218,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .ranking__key{margin:14px 0 0;font-size:14px;color:var(--gov-secondary)}
 /* October grocery insight: rises red, falls green, from a zero line. */
 .ranking__bar--up{background:#d4351c}.ranking__bar--down{background:#00703c}.ranking__zero{position:absolute;top:-3px;bottom:-3px;border-left:1px solid #0b0c0c}.staples__name{font-weight:700}
-.ranking__bar--cut{-webkit-mask:linear-gradient(90deg,transparent 0 6px,#000 6px 10px,transparent 10px 14px,#000 14px);mask:linear-gradient(90deg,transparent 0 6px,#000 6px 10px,transparent 10px 14px,#000 14px)}.govuk-tabs__panel:has(> .grocery-ranking){min-height:0}
+.govuk-tabs__panel:has(> .grocery-ranking){min-height:0}
 /* The month's food indexes have longer names than the staples; on wider screens they fit on one line. */
 @media (min-width:641px){.grocery-ranking .ranking__row{grid-template-columns:220px minmax(0,1fr) 56px}}
 @media (max-width:640px){.ranking__row{grid-template-columns:112px minmax(0,1fr) 48px;gap:8px}}

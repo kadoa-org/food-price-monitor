@@ -476,7 +476,6 @@ function GroceryInsight({ page }) {
         ]} /> },
         { label: 'Download', content: <><p className="download-intro">The month's change for each food index, and the ten foods' prices in {longMonth(g.month)}, {longMonth(g.prev)}, {longMonth(g.compare)} and since {longMonth(g.from)}, as a gzipped CSV.</p><a className="dk-btn" href={`${dataPath(page.common)}/downloads/grocery-prices-october-2026.csv.gz`} download>Download CSV (gzip)</a></> },
       ]}
-      footer={<p className="chart-note">Source: BLS {external(BLS_RELEASE, 'consumer price index')}, US city average. Fast food and takeout is not seasonally adjusted, as in the release.</p>}
     />
     <ChartCard
       id="groceries-since-title"
@@ -491,32 +490,26 @@ function GroceryInsight({ page }) {
           <StapleChart item={r} scale={scales.get(r.name)} from={from} to={to} />
         </li>)}
       </ul> }]}
-      footer={<p className="chart-note">Source: BLS {external(BLS_PRICES, 'average prices')}, US city average, not seasonally adjusted. Coffee from October 2019, its first month. Eggs on their own scale. October 2025 was not priced and is joined straight across.</p>}
+      footer={<p className="chart-note">Coffee from October 2019, its first month. Eggs on their own scale. October 2025 was not priced and is joined straight across.</p>}
     />
     <GroceryAbout />
   </>;
 }
-// The month's categories on one scale, rises in red and falls in green; the totals in bold. A change more than twice
-// the next largest (lettuce, up 8% in October) would shrink every other bar to a sliver, so its bar is cut at one and
-// a half times that and ends in a break; its figure is still the full change.
+// The month's categories on one scale, rises in red and falls in green; the totals in bold.
 function GroceryRanking({ ranking }) {
-  const sizes = ranking.map((r) => Math.abs(r.change)).sort((a, b) => b - a);
-  const cap = sizes[0] > 2 * sizes[1] ? sizes[1] * 1.5 : Infinity;
-  const clip = (v) => Math.max(-cap, Math.min(cap, v));
-  const values = [...ranking.map((r) => clip(r.change)), 0];
+  const values = [...ranking.map((r) => r.change), 0];
   const min = Math.min(...values), max = Math.max(...values), span = max - min || 1;
   const at = (v) => `${((v - min) / span) * 100}%`;
-  const cut = ranking.find((r) => clip(r.change) !== r.change);
-  return <><ol className="ranking__list grocery-ranking">
+  return <ol className="ranking__list grocery-ranking">
     {ranking.map((r) => <li className={`ranking__row${r.total ? ' ranking__row--staple' : ''}`} key={r.name}>
       <span className="ranking__name">{r.name}</span>
       <span className="ranking__track">
-        <span className={`ranking__bar ranking__bar--${r.change > 0 ? 'up' : 'down'}${clip(r.change) !== r.change ? ' ranking__bar--cut' : ''}`} style={{ left: at(Math.min(0, clip(r.change))), width: `${(Math.abs(clip(r.change)) / span) * 100}%` }} />
+        <span className={`ranking__bar ranking__bar--${r.change > 0 ? 'up' : 'down'}`} style={{ left: at(Math.min(0, r.change)), width: `${(Math.abs(r.change) / span) * 100}%` }} />
         <span className="ranking__zero" style={{ left: at(0) }} aria-hidden="true" />
       </span>
       <span className="ranking__value">{pctLabel(r.change)}</span>
     </li>)}
-  </ol>{cut && <p className="ranking__key">The bar for {cut.name.toLowerCase()} is cut short to fit; the figure is the full change.</p>}</>;
+  </ol>;
 }
 function GroceryAbout() {
   return <section className="insight-notes">
