@@ -454,13 +454,13 @@ function GroceryInsight({ page }) {
   const g = page.groceries;
   if (!g) return <><div className="title-block"><h1 className="dk-h1">{page.title}</h1></div><p role="alert">Food prices could not be loaded from BLS in this update.</p><GroceryAbout /></>;
   const cat = (name) => g.categories.find((c) => c.name === name).change;
-  const food = (name) => g.foods.find((f) => f.name === name).change;
   const one = (v) => `${Math.abs(v).toFixed(1)}%`;
   const [month, prev] = [longMonth(g.month).split(' ')[0], longMonth(g.prev).split(' ')[0]];
   const items = g.foods.map((f) => ({ ...f, change: f.since, baseDate: f.baseMonth }));
   const scales = stapleScales(items);
   const from = monthTime(g.from), to = monthTime(g.month);
-  const lede = `Groceries rose ${one(cat('Groceries'))} over the month and eating out ${one(cat('Eating out'))}. Beef rose ${one(cat('Beef'))} and fresh vegetables ${one(cat('Fresh vegetables'))}, while coffee fell ${one(cat('Coffee'))}. Over 13 months, since ${longMonth(g.compare)}, ground beef is up ${one(food('Ground beef'))} and eggs are down ${Math.round(-food('Eggs'))}%.`;
+  // Pinned to the October 2026 release, like the page: September's flat food index is its starting point.
+  const lede = `After a flat September, food got pricier in October, at the store and at restaurants alike. Coffee was the exception, down ${one(cat('Coffee'))}.`;
   return <>
     <div className="title-block"><h1 className="dk-h1">{page.title}</h1><p className="lede">{lede}</p></div>
     <ChartCard
