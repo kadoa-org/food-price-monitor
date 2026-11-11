@@ -75,6 +75,14 @@ function seo(page, path) {
     description = `Analysis built on the US Food Price Monitor's USDA and BLS data: ${page.insights.map((i) => i.title.toLowerCase()).join('; ')}.`;
     crumbs.push({ name: 'Insights', url: canonical });
     ld = [{ '@context': 'https://schema.org', '@type': 'ItemList', name: title, url: canonical, numberOfItems: page.insights.length, itemListElement: page.insights.map((i, n) => ({ '@type': 'ListItem', position: n + 1, name: i.title, url: `${SITE}/food-prices/insights/${i.slug}` })) }];
+  } else if (page.kind === 'insight' && page.slug === 'grocery-prices-october-2026') {
+    const g = page.groceries; const food = (n) => g.foods.find((f) => f.name === n); const pc = (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
+    title = page.title;
+    description = g
+      ? `US grocery prices in October 2026 against September 2025, from BLS: eggs ${pc(food('Eggs').change)}, milk ${pc(food('Milk').change)}, bread ${pc(food('Bread').change)}, ground beef ${pc(food('Ground beef').change)}, eating out ${pc(g.indexes.eatingOut.change)} and all groceries ${pc(g.indexes.groceries.change)}. BLS has no October 2025 prices. Charts and a free CSV download.`
+      : 'US grocery prices in October 2026 from BLS average prices.';
+    crumbs.push({ name: 'Insights', url: `${SITE}/food-prices/insights` }, { name: 'Grocery prices, October 2026', url: canonical });
+    ld = [{ '@context': 'https://schema.org', '@type': 'Article', headline: title, description, url: canonical, dateModified: updated, keywords: ['grocery prices october 2026', 'egg prices', 'beef prices', 'food inflation', 'cpi food'], author: { '@type': 'Organization', name: 'Kadoa', url: SITE }, publisher: { '@type': 'Organization', name: 'Kadoa', url: SITE } }];
   } else if (page.kind === 'insight' && page.slug === 'halloween-candy') {
     const h = page.halloween; const f = h?.figures; const c = page.costs; const pc = (v) => `${Math.round(v)}%`;
     title = c ? `Why Is Candy So Expensive This Halloween? Candy Prices Up ${c.figures.candy.year.toFixed(1)}% in a Year` : 'Why Is Candy So Expensive This Halloween?';

@@ -9,6 +9,7 @@ import { WEIGHTS, WEIGHTS_SOURCE, stratumOf } from '../src/cpi-weights.mjs';
 import { CANDY_SERIES, buildCandy, candyCsv, candyHeadline, parseBls } from '../src/candy.mjs';
 import { HALLOWEEN_TITLE, buildHalloween, halloweenCsv } from '../src/halloween.mjs';
 import { COST_FILES, FRED_SERIES, buildCandyCosts, candyCostsCsv, parseFred } from '../src/candyCosts.mjs';
+import { GROCERY_FILES, GROCERY_FOODS, GROCERY_INDEXES, buildGroceries, groceriesCsv, groceryHeadline, longMonth } from '../src/groceries.mjs';
 import { BASE, addDays, curated, familyFor, marketKey, newsFamilies, groupSeries, markonNews, movers, nearest, pickBenchmark, priced, reports, summarize, usdaNews, isRetail, quote, unitLabel, quoteShort } from '../src/model.mjs';
 import { existsSync } from 'node:fs';
 
@@ -117,10 +118,24 @@ try {
 } catch (error) {
   console.error(JSON.stringify({ step: 'candy-costs', status: 'unavailable', error: error.message }));
 }
+// October 2026 grocery prices, for its insight: the ten staples straight from the BLS average price file, which BLS
+// updates on CPI day, and the food at home and away from home indexes. Like the candy blocks, a failure is logged and
+// the page says the figures could not be loaded, rather than failing the daily publish.
+let groceries = null;
+try {
+  const [prices, indexes] = await Promise.all([blsText(GROCERY_FILES.prices), blsText(GROCERY_FILES.indexes)]);
+  groceries = buildGroceries({ prices: parseBls(prices, GROCERY_FOODS.map((f) => f.id)), indexes: parseBls(indexes, GROCERY_INDEXES.map((i) => i.id)) });
+  await writeFile(join(data, 'downloads', 'grocery-prices-october-2026.csv.gz'), gzipSync(groceriesCsv(groceries)));
+  console.error(JSON.stringify({ step: 'groceries', status: 'ok', month: groceries.month, compare: groceries.compare, ranking: groceries.ranking.map((r) => `${r.name} ${r.change}`) }));
+} catch (error) {
+  console.error(JSON.stringify({ step: 'groceries', status: 'unavailable', error: error.message }));
+}
+const GROCERY_SLUG = 'grocery-prices-october-2026';
+const groceryTitle = groceries ? groceryHeadline(groceries) : 'US grocery prices in October 2026';
 // The newest insight, announced in a banner under the navigation on every other page until the date given, as on the
 // energy monitor. Decided here, before any page is written, so every page and its prerender carry it. The banner shows
 // the insight's own title, so the link reads the same as the page it opens; at 41 characters it fits a phone on one line.
-const ANNOUNCE = { slug: 'halloween-candy', until: '2026-11-30', text: HALLOWEEN_TITLE };
+const ANNOUNCE = { slug: GROCERY_SLUG, until: '2026-12-15', text: groceryTitle };
 if (new Date().toISOString().slice(0, 10) <= ANNOUNCE.until) common.announce = { key: `insights/${ANNOUNCE.slug}`, href: `${BASE}/insights/${ANNOUNCE.slug}`, title: ANNOUNCE.text };
 
 const featured = [];
@@ -317,6 +332,7 @@ try {
 // Insights: one page per analysis, newest first, so a link (Reddit, a newsletter) opens the chart with its own title.
 // Each page carries only the data its own view needs.
 const INSIGHTS = [
+  { slug: GROCERY_SLUG, title: groceryTitle, summary: groceries ? `Since ${longMonth(groceries.compare)}, eggs fell ${Math.round(-groceries.foods.find((f) => f.name === 'Eggs').change)}% while ground beef rose ${groceries.foods.find((f) => f.name === 'Ground beef').change.toFixed(1)}% and eating out ${groceries.indexes.eatingOut.change.toFixed(1)}%.` : 'October 2026 grocery prices from BLS.', data: { groceries } },
   // The slug stays, so links already shared keep working; the page now answers the question in its title.
   { slug: 'halloween-candy', title: HALLOWEEN_TITLE, summary: costs ? `Cocoa costs have fallen since early 2025, yet candy prices are up ${costs.figures.candy.year.toFixed(1)}% on a year ago. Here is why.` : halloween ? `Since ${halloween.since}, candy prices rose ${Math.round(halloween.figures.since.candy)}% and planned candy spending per person ${Math.round(halloween.figures.since.spend)}%.` : 'Planned Halloween candy spending against candy prices since 2010.', data: { halloween, costs } },
   { slug: 'candy-prices', title: candy ? candyHeadline(candy.longRun) : 'Candy prices against inflation', summary: 'Candy matched inflation from 1997 to 2022, then pulled ahead.', data: { candy } },
