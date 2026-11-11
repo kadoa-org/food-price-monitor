@@ -446,59 +446,59 @@ function Insight({ page }) {
   if (page.slug === 'grocery-prices-october-2026') return <GroceryInsight page={page} />;
   return page.slug === 'halloween-candy' ? <HalloweenInsight page={page} /> : <CandyInsight page={page} />;
 }
-// ── October 2026 grocery prices: what changed since September 2025, the last month BLS priced before the shutdown,
-// then the same ten staples as the home page since August 2019.
+// ── October 2026 food prices: the month's change in the CPI release's food indexes, then the same ten staples as the
+// home page since August 2019, each with its own change over the month.
 const BLS_PRICES = 'https://www.bls.gov/cpi/factsheets/average-prices.htm';
+const BLS_RELEASE = 'https://www.bls.gov/news.release/cpi.nr0.htm';
 function GroceryInsight({ page }) {
   const g = page.groceries;
-  if (!g) return <><div className="title-block"><h1 className="dk-h1">{page.title}</h1></div><p role="alert">Grocery prices could not be loaded from BLS in this update.</p><GroceryAbout /></>;
-  const food = (name) => g.foods.find((f) => f.name === name);
+  if (!g) return <><div className="title-block"><h1 className="dk-h1">{page.title}</h1></div><p role="alert">Food prices could not be loaded from BLS in this update.</p><GroceryAbout /></>;
+  const cat = (name) => g.categories.find((c) => c.name === name).change;
+  const food = (name) => g.foods.find((f) => f.name === name).change;
   const one = (v) => `${Math.abs(v).toFixed(1)}%`;
-  const since = longMonth(g.compare);
-  const [top, bottom] = [g.foods.reduce((a, f) => (f.change > a.change ? f : a)), g.foods.reduce((a, f) => (f.change < a.change ? f : a))];
-  const lede = `Since ${since}, eggs got ${Math.round(-food('Eggs').change)}% cheaper and milk, bread and chicken cost about the same. Ground beef is up ${one(food('Ground beef').change)} and beef steaks ${one(food('Beef steaks').change)}. Eating out rose ${one(g.indexes.eatingOut.change)}, faster than groceries as a whole at ${one(g.indexes.groceries.change)}.`;
+  const [month, prev] = [longMonth(g.month).split(' ')[0], longMonth(g.prev).split(' ')[0]];
   const items = g.foods.map((f) => ({ ...f, change: f.since, baseDate: f.baseMonth }));
   const scales = stapleScales(items);
   const from = monthTime(g.from), to = monthTime(g.month);
+  const lede = `Groceries rose ${one(cat('Groceries'))} over the month and eating out ${one(cat('Eating out'))}. Beef rose ${one(cat('Beef'))} and fresh vegetables ${one(cat('Fresh vegetables'))}, while coffee fell ${one(cat('Coffee'))}. Over 13 months, since ${longMonth(g.compare)}, ground beef is up ${one(food('Ground beef'))} and eggs are down ${Math.round(-food('Eggs'))}%.`;
   return <>
     <div className="title-block"><h1 className="dk-h1">{page.title}</h1><p className="lede">{lede}</p></div>
     <ChartCard
-      id="groceries-change-title"
-      title={`${top.name} rose most, ${bottom.name.toLowerCase()} fell ${Math.round(-bottom.change)}%`}
-      description={`Change in average US store prices from ${since} to ${longMonth(g.month)}, with the price indexes for all groceries and eating out. BLS has no October 2025 prices, so this is 13 months, not 12.`}
+      id="groceries-month-title"
+      title={`What changed in ${month}`}
+      description={`Change in US food prices from ${prev} to ${month} ${g.month.slice(0, 4)}, seasonally adjusted, for the food indexes in the BLS release. Totals in bold.`}
       date={`Up to and including ${longMonth(g.month)}`}
       tabs={[
-        { label: 'Chart', content: <GroceryRanking ranking={g.ranking} /> },
-        { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={g.foods} rowKey={(r) => r.name} columns={[
-          { key: 'name', header: 'Food', render: (r) => r.name },
-          { key: 'comparePrice', header: monthLabel(g.compare), align: 'right', render: (r) => usd(r.comparePrice) },
-          { key: 'price', header: monthLabel(g.month), align: 'right', render: (r) => usd(r.price) },
-          { key: 'change', header: 'Change', align: 'right', render: (r) => <Change value={r.change} /> },
+        { label: 'Chart', content: <GroceryRanking ranking={g.categories} /> },
+        { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={g.categories} rowKey={(r) => r.name} columns={[
+          { key: 'name', header: 'Food', render: (r) => (r.total ? <strong>{r.name}</strong> : r.name) },
+          { key: 'change', header: `${prev} to ${month}`, align: 'right', render: (r) => <Change value={r.change} /> },
         ]} /> },
-        { label: 'Download', content: <><p className="download-intro">The ten foods' prices in {since} and {longMonth(g.month)} and since {longMonth(g.from)}, and the change in the two price indexes, as a gzipped CSV.</p><a className="dk-btn" href={`${dataPath(page.common)}/downloads/grocery-prices-october-2026.csv.gz`} download>Download CSV (gzip)</a></> },
+        { label: 'Download', content: <><p className="download-intro">The month's change for each food index, and the ten foods' prices in {longMonth(g.month)}, {longMonth(g.prev)}, {longMonth(g.compare)} and since {longMonth(g.from)}, as a gzipped CSV.</p><a className="dk-btn" href={`${dataPath(page.common)}/downloads/grocery-prices-october-2026.csv.gz`} download>Download CSV (gzip)</a></> },
       ]}
-      footer={<p className="chart-note">Source: BLS {external(BLS_PRICES, 'average prices')} and {external('https://www.bls.gov/cpi/', 'consumer price index')} (food at home, food away from home), US city average, not seasonally adjusted.</p>}
+      footer={<p className="chart-note">Source: BLS {external(BLS_RELEASE, 'consumer price index')}, US city average. Fast food and takeout is not seasonally adjusted, as in the release.</p>}
     />
     <ChartCard
       id="groceries-since-title"
       title={`Grocery prices since ${g.from.slice(0, 4)}`}
-      description={`Percent change in average US store prices since ${longMonth(g.from)}, for the 10 foods with the largest weight in the Consumer Price Index.`}
+      description={`Percent change in average US store prices since ${longMonth(g.from)}, for the 10 foods with the largest weight in the Consumer Price Index, and each price's change in ${month}.`}
       date={`Up to and including ${longMonth(g.month)}`}
       tabs={[{ label: 'Chart', content: <ul className="staples__grid">
         {items.map((r) => <li className="staples__item" key={r.name}>
           <div className="staples__head"><span className="staples__name">{r.name}</span><ChangeTag value={r.since} size="small" /></div>
           <span className="staples__price">{usd(r.price)} <span className="staples__unit">a {r.unit}, from {usd(r.basePrice)} in {monthLabel(r.baseMonth)}</span></span>
+          <span className="staples__month">{pctLabel(r.monthChange)} in {month}</span>
           <StapleChart item={r} scale={scales.get(r.name)} from={from} to={to} />
         </li>)}
       </ul> }]}
-      footer={<p className="chart-note">Source: BLS {external(BLS_PRICES, 'average prices')}, US city average. Coffee from October 2019, its first month. Eggs on their own scale. October 2025 was not priced and is joined straight across.</p>}
+      footer={<p className="chart-note">Source: BLS {external(BLS_PRICES, 'average prices')}, US city average, not seasonally adjusted. Coffee from October 2019, its first month. Eggs on their own scale. October 2025 was not priced and is joined straight across.</p>}
     />
     <GroceryAbout />
   </>;
 }
-// Every food and the two indexes on one scale, rises in red and falls in green; the two indexes in bold, as context.
-// A change more than twice the next largest (eggs, down a third) would shrink every other bar to a sliver, so its bar
-// is cut at one and a half times that and ends in a break; its figure is still the full change.
+// The month's categories on one scale, rises in red and falls in green; the totals in bold. A change more than twice
+// the next largest (lettuce, up 8% in October) would shrink every other bar to a sliver, so its bar is cut at one and
+// a half times that and ends in a break; its figure is still the full change.
 function GroceryRanking({ ranking }) {
   const sizes = ranking.map((r) => Math.abs(r.change)).sort((a, b) => b - a);
   const cap = sizes[0] > 2 * sizes[1] ? sizes[1] * 1.5 : Infinity;
@@ -508,7 +508,7 @@ function GroceryRanking({ ranking }) {
   const at = (v) => `${((v - min) / span) * 100}%`;
   const cut = ranking.find((r) => clip(r.change) !== r.change);
   return <><ol className="ranking__list grocery-ranking">
-    {ranking.map((r) => <li className={`ranking__row${r.index ? ' ranking__row--staple' : ''}`} key={r.name}>
+    {ranking.map((r) => <li className={`ranking__row${r.total ? ' ranking__row--staple' : ''}`} key={r.name}>
       <span className="ranking__name">{r.name}</span>
       <span className="ranking__track">
         <span className={`ranking__bar ranking__bar--${r.change > 0 ? 'up' : 'down'}${clip(r.change) !== r.change ? ' ranking__bar--cut' : ''}`} style={{ left: at(Math.min(0, clip(r.change))), width: `${(Math.abs(clip(r.change)) / span) * 100}%` }} />
@@ -522,9 +522,9 @@ function GroceryAbout() {
   return <section className="insight-notes">
     <SectionHeading>About the data</SectionHeading>
     <ul>
-      <li>BLS collected no prices in October 2025, during the federal shutdown, so it publishes no 12-month change for October 2026. Every change here is from September 2025, 13 months.</li>
-      <li>Food prices are BLS {external(BLS_PRICES, 'average prices')} for the US city average, the same ten foods as the home page: the ones with the largest weight in the Consumer Price Index that BLS also prices on its own. Chicken is whole chicken; cheese is cheddar.</li>
-      <li>All groceries is the BLS consumer price index for food at home, eating out the one for food away from home. Both are not seasonally adjusted.</li>
+      <li>The month's changes are from the BLS {external(BLS_RELEASE, 'consumer price index')} release for October 2026: the food indexes, seasonally adjusted, as BLS reports changes over a month. BLS does not adjust limited service meals (fast food and takeout).</li>
+      <li>Food prices are BLS {external(BLS_PRICES, 'average prices')} for the US city average, the same ten foods as the home page: the ones with the largest weight in the Consumer Price Index that BLS also prices on its own. They are not seasonally adjusted, so a price's change in the month can differ from its index. Chicken is whole chicken; cheese is cheddar.</li>
+      <li>BLS collected no prices in October 2025, during the federal shutdown, so it publishes no 12-month change for October 2026. The longer view compares with September 2025, 13 months.</li>
       <li>Prices are not adjusted for inflation.</li>
     </ul>
   </section>;

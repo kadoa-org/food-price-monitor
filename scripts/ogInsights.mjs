@@ -16,13 +16,13 @@ const pct = (v) => `${v > 0 ? '+' : ''}${Math.round(v)}%`;
 
 const builders = {
   'grocery-prices-october-2026': (page) => {
-    const g = page.groceries, food = (n) => g.foods.find((f) => f.name === n);
+    const g = page.groceries, cat = (n) => g.categories.find((c) => c.name === n);
     const one = (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
-    // Three figures fit the card: the fall and the two rises the headline names.
+    // Three figures fit the card: all food, and the two rises the headline names.
     return {
-      title: page.title, source: 'BLS average prices and consumer price index',
-      key: `Change from ${month(g.compare)} to ${month(g.month)}. BLS has no October 2025 prices.`,
-      figures: [{ value: pct(food('Eggs').change), label: 'Eggs', colour: '#00703c' }, { value: one(food('Ground beef').change), label: 'Ground beef', colour: '#d4351c' }, { value: one(g.indexes.eatingOut.change), label: 'Eating out', colour: '#d4351c' }],
+      title: page.title, source: 'BLS consumer price index',
+      key: `Change from ${month(g.prev)} to ${month(g.month)}, seasonally adjusted.`,
+      figures: [{ value: one(cat('All food').change), label: 'All food', colour: GREY }, { value: one(cat('Beef').change), label: 'Beef', colour: '#d4351c' }, { value: one(cat('Fresh vegetables').change), label: 'Fresh vegetables', colour: '#d4351c' }],
     };
   },
   'halloween-candy': (page) => {

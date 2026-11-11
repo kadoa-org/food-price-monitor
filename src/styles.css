@@ -192,6 +192,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .staples__item{display:flex;flex-direction:column;gap:2px;min-width:0}
 .staples__head{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .staples__head a{font-weight:700}.staples__price{font-size:16px;font-variant-numeric:tabular-nums}.staples__unit{font-size:16px;color:var(--gov-secondary)}
+.staples__month{display:block;font-size:14px;color:var(--gov-secondary);font-variant-numeric:tabular-nums}
 @media (max-width:900px){.staples__grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:640px){.staples__grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 14px}}
 /* Phones: one staple per row, so names and their change tags stay on one line at 19px. */
@@ -218,6 +219,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 /* October grocery insight: rises red, falls green, from a zero line. */
 .ranking__bar--up{background:#d4351c}.ranking__bar--down{background:#00703c}.ranking__zero{position:absolute;top:-3px;bottom:-3px;border-left:1px solid #0b0c0c}.staples__name{font-weight:700}
 .ranking__bar--cut{-webkit-mask:linear-gradient(90deg,transparent 0 6px,#000 6px 10px,transparent 10px 14px,#000 14px);mask:linear-gradient(90deg,transparent 0 6px,#000 6px 10px,transparent 10px 14px,#000 14px)}.govuk-tabs__panel:has(> .grocery-ranking){min-height:0}
+/* The month's food indexes have longer names than the staples; on wider screens they fit on one line. */
+@media (min-width:641px){.grocery-ranking .ranking__row{grid-template-columns:220px minmax(0,1fr) 56px}}
 @media (max-width:640px){.ranking__row{grid-template-columns:112px minmax(0,1fr) 48px;gap:8px}}
 .chart-legend__swatch--inflation{height:0;border-top:2px dashed #505a5f;background:none}
 

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { GROCERY_FOODS, GROCERY_INDEXES, buildGroceries, groceriesCsv, groceryHeadline } from '../src/groceries.mjs';
+import { GROCERY_CATEGORIES, GROCERY_FOODS, GROCERY_INDEXES, buildGroceries, category, groceriesCsv, groceryHeadline } from '../src/groceries.mjs';
 
 // Every food at 2.00 in August 2019 and 2.20 in September 2025, so the October 2026 price alone sets each change. No
 // series has October 2025, as in the real files.
@@ -8,8 +8,16 @@ const prices = new Map(GROCERY_FOODS.map((f) => [f.id, series(2.2)]));
 prices.set('APU0000703112', series(2.2 * 1.068));
 prices.set('APU0000708111', series(2.2 * 0.665));
 // Coffee starts in October 2019.
-prices.set('APU0000717311', new Map([['2019-10', 4], ['2025-09', 4.4], ['2026-10', 4.4]]));
-const indexes = new Map([['CUUR0000SAF11', new Map([['2025-09', 100], ['2026-10', 102.2]])], ['CUUR0000SEFV', new Map([['2025-09', 100], ['2026-10', 104]])]]);
+prices.set('APU0000717311', new Map([['2019-10', 4], ['2025-09', 4.4], ['2026-09', 4.4], ['2026-10', 4.4]]));
+// Every month's category at 100 in September 2026 and 100.4 in October, with beef and fresh vegetables faster and coffee
+// falling, as in the October 2026 release.
+const month = (oct) => new Map([['2026-09', 100], ['2026-10', oct]]);
+const indexes = new Map([['CUUR0000SAF11', new Map([['2025-09', 100], ['2026-10', 102.2]])], ['CUUR0000SEFV', new Map([['2025-09', 100], ['2026-10', 104]])],
+  ...GROCERY_CATEGORIES.map((c) => [c.id, month(100.4)])]);
+indexes.set('CUSR0000SAF1', month(100.47));
+indexes.set('CUSR0000SEFC', month(100.92));
+indexes.set('CUSR0000SEFL', month(102.16));
+indexes.set('CUSR0000SEFP01', month(96.41));
 
 test('October 2026 compares with September 2025, the latest month every series has before the shutdown gap', () => {
   const g = buildGroceries({ prices, indexes });
@@ -18,22 +26,33 @@ test('October 2026 compares with September 2025, the latest month every series h
   expect(beef).toMatchObject({ change: 6.8, baseMonth: '2019-08', basePrice: 2, since: 17.48 });
   expect(g.foods.find((f) => f.name === 'Coffee')).toMatchObject({ baseMonth: '2019-10', since: 10, change: 0 });
   expect(g.indexes).toEqual({ groceries: { id: 'CUUR0000SAF11', key: 'groceries', name: 'All groceries', change: 2.2 }, eatingOut: { id: 'CUUR0000SEFV', key: 'eatingOut', name: 'Eating out', change: 4 } });
-  expect(g.ranking.slice(0, 3).map((r) => r.name)).toEqual(['Ground beef', 'Eating out', 'All groceries']);
-  expect(g.ranking.at(-1)).toEqual({ name: 'Eggs', change: -33.5, index: false });
 });
 
-test('the headline holds only while eating out outpaces groceries and beef leads', () => {
-  expect(groceryHeadline(buildGroceries({ prices, indexes }))).toBe('Beef and eating out got pricier. Eggs got a third cheaper.');
-  const flat = new Map(indexes); flat.set('CUUR0000SEFV', new Map([['2025-09', 100], ['2026-10', 101]]));
-  expect(groceryHeadline(buildGroceries({ prices, indexes: flat }))).toBe('US grocery prices in October 2026');
+test("the month's categories run from September to October 2026, biggest rise first, with the totals marked", () => {
+  const g = buildGroceries({ prices, indexes });
+  expect(g.prev).toBe('2026-09');
+  expect(g.categories.slice(0, 3).map((c) => c.name)).toEqual(['Fresh vegetables', 'Beef', 'All food']);
+  expect(category(g, 'All food').change).toBe(0.5);
+  expect(g.categories.at(-1)).toEqual({ id: 'CUSR0000SEFP01', name: 'Coffee', total: false, change: -3.6 });
+  expect(category(g, 'Groceries')).toMatchObject({ total: true, change: 0.4 });
+  expect(g.foods.find((f) => f.name === 'Ground beef').monthChange).toBe(0);
+});
+
+test('the headline holds only while food rose and beef and vegetables outpaced groceries', () => {
+  expect(groceryHeadline(buildGroceries({ prices, indexes }))).toBe('Food prices rose 0.5% in October as beef and vegetables got pricier');
+  const flat = new Map(indexes); flat.set('CUSR0000SEFC', month(100.3));
+  expect(groceryHeadline(buildGroceries({ prices, indexes: flat }))).toBe('US food prices in October 2026');
 });
 
 test('a missing month fails loudly, and the CSV carries both comparisons', () => {
   const gap = new Map(prices); gap.set('APU0000702111', new Map([['2019-08', 2], ['2025-09', 2.2]]));
   expect(() => buildGroceries({ prices: gap, indexes })).toThrow('APU0000702111 has no value for 2026-10');
+  const noSep = new Map(indexes); noSep.set('CUSR0000SEFC', new Map([['2026-10', 101]]));
+  expect(() => buildGroceries({ prices, indexes: noSep })).toThrow('CUSR0000SEFC has no value for 2026-09');
   const far = new Map(indexes); far.set(GROCERY_INDEXES[0].id, new Map([['2025-05', 100], ['2026-10', 102]]));
   expect(() => buildGroceries({ prices, indexes: far })).toThrow('No month near 2025-10 has every series');
   const csv = groceriesCsv(buildGroceries({ prices, indexes })).split('\n');
-  expect(csv[0]).toBe('food,unit,price_2026-10,price_2025-09,change_since_2025-09_pct,base_month,base_price,change_since_base_pct');
-  expect(csv).toContain('Eating out (CPI CUUR0000SEFV),index,,,4,,,');
+  expect(csv[0]).toBe('item,series,unit,change_2026-09_to_2026-10_pct,price_2026-10,price_2025-09,change_since_2025-09_pct,base_month,base_price,change_since_base_pct');
+  expect(csv).toContain('Beef,CUSR0000SEFC,index,0.9,,,,,,');
+  expect(csv).toContain('Eating out,CUUR0000SEFV,index,,,,4,,,');
 });
