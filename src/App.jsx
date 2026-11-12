@@ -448,65 +448,94 @@ function Insight({ page }) {
   if (page.slug === 'grocery-prices-october-2026') return <GroceryInsight page={page} />;
   return page.slug === 'halloween-candy' ? <HalloweenInsight page={page} /> : <CandyInsight page={page} />;
 }
-// ── Every food's price since October 2019 against overall inflation: one ranking, the foods that rose faster than
-// inflation first, with the dashed line where inflation sits. Nothing got cheaper in dollars, so every bar starts at zero.
+// ── Grocery prices since October 2019 against overall inflation. First the whole basket over time, then every one of
+// the 53 food categories in it with its share of grocery spending, so a count of categories is never the measure,
+// then the average prices of single foods in dollars, with each food counted once.
 function FoodInflationInsight({ page }) {
   const f = page.foodInflation;
   if (!f) return <><div className="title-block"><h1 className="dk-h1">{page.title}</h1></div><p role="alert">Food prices could not be loaded from BLS in this update.</p><FoodInflationAbout /></>;
   const [from, to] = [longMonth(f.from), longMonth(f.to)];
-  const butter = f.foods.find((x) => x.name === 'Butter'), coffee = f.foods[0];
-  const lede = `Butter costs what it did in ${f.from.slice(0, 4)}, ${usd(butter.to)} a pound. ${coffee.name} more than doubled. Overall inflation was ${Math.round(f.inflation)}%.`;
+  // Beef's four categories lead the ranking; the three slowest close it. Both read from the data, as the page is pinned.
+  const beef = f.strata.filter((s) => /beef/i.test(s.name)).map((s) => s.change), low = f.strata.slice(-3);
+  const lede = `Groceries as a whole rose a little faster than prices in general. Beef rose most, ${Math.round(Math.min(...beef))}% to ${Math.round(Math.max(...beef))}% depending on the cut; ${low.map((s) => s.name.toLowerCase()).reverse().join(', ').replace(/, ([^,]*)$/, ' and $1')} rose least. Nothing BLS prices got cheaper in dollars.`;
   return <>
     <div className="title-block"><h1 className="dk-h1">{page.title}</h1><p className="lede">{lede}</p></div>
     <ChartCard
-      id="food-inflation-title"
-      title="Price change of every food, against inflation"
-      description={`Change in US average prices from ${from} to ${to} for all ${f.foods.length} foods BLS priced in both months. ${f.faster} rose faster than overall inflation, ${f.foods.length - f.faster} slower.`}
+      id="food-inflation-path-title"
+      title="Groceries against all prices"
+      description={`Change since ${from} in the CPI for food at home, the whole grocery basket, and for all items.`}
+      date={`Up to and including ${to}`}
+      tabs={[{ label: 'Chart', content: <CandyLines lines={[
+        { key: 'food', label: 'Groceries', colour: '#d4351c', points: f.path.map((r) => [r[0], r[1]]) },
+        { key: 'all', label: 'All prices', points: f.path.map((r) => [r[0], r[2]]) },
+      ]} label={`Since ${from}, grocery prices rose ${f.foodAtHome.toFixed(1)}% and all prices ${f.inflation.toFixed(1)}%.`} /> }]}
+      footer={<p className="chart-note">Grocery prices jumped in spring 2020 and in 2022, opening a gap of 7 points by late 2022. Since 2023 they have risen more slowly than all prices, and the gap has narrowed to 2 points. October 2025 was not priced and is joined straight across.</p>}
+    />
+    <ChartCard
+      id="food-inflation-strata-title"
+      title="Every grocery category, with its share of spending"
+      description={`Change from ${from} to ${to} for all ${f.strata.length} food categories in the CPI's grocery basket. The ${f.fasterCount} that rose faster than overall inflation make up ${Math.round(f.fasterShare)}% of grocery spending.`}
       date={`Up to and including ${to}`}
       tabs={[
-        { label: 'Chart', content: <FoodInflationRanking f={f} /> },
+        { label: 'Chart', content: <InflationRanking rows={f.strata} inflation={f.inflation} share key="strata" note="Red bars rose faster than overall inflation, blue bars slower. The share is each category's part of grocery spending, from BLS weights for 2026." /> },
+        { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={f.strata} rowKey={(r) => r.id} columns={[
+          { key: 'name', header: 'Category' },
+          { key: 'share', header: 'Share of spending', align: 'right', render: (r) => `${r.share.toFixed(1)}%` },
+          { key: 'change', header: `${from} to ${to}`, align: 'right', render: (r) => inflationPct(r.change, f.inflation) },
+        ]} /> },
+        { label: 'Download', content: <><p className="download-intro">Each category's change and share of spending, food at home, and each food's average price in {from} and {to}, as a gzipped CSV.</p><a className="dk-btn" href={fileUrl(page.common, download(FOOD_INFLATION_SLUG))} download>Download CSV (gzip)</a></> },
+      ]}
+    />
+    <ChartCard
+      id="food-inflation-prices-title"
+      title="Average prices of single foods"
+      description={`US average prices in ${from} and ${to} for the ${f.foods.length} foods BLS priced in both months. ${f.foodsFaster} rose faster than overall inflation. Butter was the only one that did not rise.`}
+      date={`Up to and including ${to}`}
+      tabs={[
+        { label: 'Chart', content: <InflationRanking rows={f.foods} inflation={f.inflation} key="foods" note="Beef is ground beef and all steaks, BLS's totals across cuts. Your store and brand will differ from these national averages." /> },
         { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={f.foods} rowKey={(r) => r.id} columns={[
           { key: 'name', header: 'Food' },
           { key: 'from', header: from, align: 'right', render: (r) => `${usd(r.from)} a ${r.unit}` },
           { key: 'to', header: to, align: 'right', render: (r) => usd(r.to) },
           { key: 'change', header: 'Change', align: 'right', render: (r) => inflationPct(r.change, f.inflation) },
         ]} /> },
-        { label: 'Download', content: <><p className="download-intro">Each food's price in {from} and {to}, its change and overall inflation, as a gzipped CSV.</p><a className="dk-btn" href={fileUrl(page.common, download(FOOD_INFLATION_SLUG))} download>Download CSV (gzip)</a></> },
       ]}
     />
     <FoodInflationAbout />
   </>;
 }
-// One decimal where rounding would put a food on the wrong side of the line (whole milk +31.5% against +31.2%).
+// One decimal where rounding would put a row on the wrong side of the line (whole milk +31.5% against +31.2%).
 const inflationPct = (v, inflation) => (Math.round(v) === 0 ? '0%' : `+${Math.abs(v - inflation) < 1.5 ? v.toFixed(1) : Math.round(v)}%`);
-function FoodInflationRanking({ f }) {
-  const max = Math.max(...f.foods.map((x) => x.change), f.inflation);
+// Rows of { id, name, change, share? } on one scale from zero, with the dashed line at overall inflation.
+function InflationRanking({ rows, inflation, share = false, note }) {
+  const max = Math.max(...rows.map((x) => x.change), inflation);
   const at = (v) => `${(Math.max(v, 0) / max) * 100}%`;
   return <div className="ranking">
     <div className="ranking__row ranking__row--label" aria-hidden="true">
-      <span /><span className="ranking__track"><span className="ranking__cpi-label" style={{ left: at(f.inflation) }}>Overall inflation {inflationPct(f.inflation, f.inflation)}</span></span><span />
+      <span /><span className="ranking__track"><span className="ranking__cpi-label" style={{ left: at(inflation) }}>Overall inflation {inflationPct(inflation, inflation)}</span></span><span />
     </div>
     <ol className="ranking__list grocery-ranking">
-      {f.foods.map((r) => <li className="ranking__row" key={r.id}>
-        <span className="ranking__name">{r.name}</span>
+      {rows.map((r) => <li className="ranking__row" key={r.id}>
+        <span className="ranking__name">{r.name}{share && <span className="ranking__share"> {r.share < 0.1 ? 'under 0.1' : r.share.toFixed(1)}%</span>}</span>
         <span className="ranking__track">
-          <span className={`ranking__bar ranking__bar--${r.change > f.inflation ? 'faster' : 'slower'}`} style={{ left: 0, width: at(r.change) }} />
-          <span className="ranking__cpi" style={{ left: at(f.inflation) }} aria-hidden="true" />
+          <span className={`ranking__bar ranking__bar--${r.change > inflation ? 'faster' : 'slower'}`} style={{ left: 0, width: at(r.change) }} />
+          <span className="ranking__cpi" style={{ left: at(inflation) }} aria-hidden="true" />
         </span>
-        <span className="ranking__value">{inflationPct(r.change, f.inflation)}<span className="govuk-visually-hidden">{r.change > f.inflation ? ', faster than overall inflation' : ', slower than overall inflation'}</span></span>
+        <span className="ranking__value">{inflationPct(r.change, inflation)}<span className="govuk-visually-hidden">{r.change > inflation ? ', faster than overall inflation' : ', slower than overall inflation'}</span></span>
       </li>)}
     </ol>
-    <p className="ranking__key">Red bars rose faster than overall inflation, blue bars slower. Overall inflation is the rise in all consumer prices (CPI-U, all items) over the same months.</p>
+    <p className="ranking__key">{note}</p>
   </div>;
 }
 function FoodInflationAbout() {
   return <section className="insight-notes">
     <SectionHeading>About the data</SectionHeading>
     <ul>
-      <li>Prices are BLS {external(BLS_PRICES, 'average prices')} for the US city average, not seasonally adjusted, in October 2019 and October 2026. The same month in both years keeps seasonal foods comparable.</li>
-      <li>Every food BLS priced in both months is shown. BLS also publishes category totals, such as all steaks or all ham, which overlap the single foods, so those are left out.</li>
-      <li>Prices are not adjusted for inflation. The dashed line is overall inflation over the same months, so a food left of it got cheaper in real terms although its price rose.</li>
-      <li>Butter was $3.979 a pound in October 2019 and $3.977 in October 2026, the only food that did not rise.</li>
+      <li>Grocery prices are the CPI for food at home, which BLS builds from 53 food categories, each weighted by what households spend on it. That weighting is why the count of categories above or below inflation matters less than their share of spending.</li>
+      <li>Shares of spending are from the BLS table of relative importance for December 2025, the weights for 2026. Weights change each year, so over seven years the index gives slightly different weights than these.</li>
+      <li>Single foods are BLS {external(BLS_PRICES, 'average prices')} for the US city average, every food priced in both October 2019 and October 2026. BLS does not publish average prices for some foods, apples and oranges among them, in both months; their categories are in the chart above. Beef is shown as ground beef and all steaks, BLS's totals across the nine cuts it prices.</li>
+      <li>Overall inflation is the CPI for all items over the same months. A food that rose less than inflation got cheaper in real terms, although its price went up. All figures are before adjusting for inflation and not seasonally adjusted; October is compared with October to keep seasonal foods comparable.</li>
+      <li>These are national averages. Prices differ by region, store and brand, so a price in one store can be well above the average.</li>
     </ul>
   </section>;
 }

@@ -9,7 +9,7 @@ import { WEIGHTS, WEIGHTS_SOURCE, stratumOf } from '../src/cpi-weights.mjs';
 import { CANDY_SERIES, buildCandy, candyCsv, candyHeadline, parseBls } from '../src/candy.mjs';
 import { HALLOWEEN_TITLE, buildHalloween, halloweenCsv } from '../src/halloween.mjs';
 import { COST_FILES, FRED_SERIES, buildCandyCosts, candyCostsCsv, parseFred } from '../src/candyCosts.mjs';
-import { ALL_ITEMS, FOOD_INFLATION_FOODS, FOOD_INFLATION_SLUG, buildFoodInflation, foodInflationCsv, foodInflationHeadline } from '../src/foodInflation.mjs';
+import { ALL_ITEMS, FOOD_AT_HOME, FOOD_INFLATION_FILES, FOOD_INFLATION_FOODS, FOOD_INFLATION_SLUG, GROCERY_STRATA, buildFoodInflation, foodInflationCsv, foodInflationHeadline } from '../src/foodInflation.mjs';
 import { GROCERY_CATEGORIES, GROCERY_FILES, GROCERY_FOODS, GROCERY_INDEXES, buildGroceries, category, groceriesCsv, groceryHeadline, longMonth } from '../src/groceries.mjs';
 import { BASE, addDays, curated, familyFor, marketKey, newsFamilies, groupSeries, markonNews, movers, nearest, pickBenchmark, priced, reports, summarize, usdaNews, isRetail, quote, unitLabel, quoteShort } from '../src/model.mjs';
 import { existsSync } from 'node:fs';
@@ -132,14 +132,16 @@ try {
 } catch (error) {
   console.error(JSON.stringify({ step: 'groceries', status: 'unavailable', error: error.message }));
 }
-// Every food's price since October 2019 against overall inflation, for its insight: the same BLS average price file
-// and the all-items index, both fetched once for the run. A failure is logged and the page says so.
+// Grocery prices since October 2019 against overall inflation, for its insight: the food categories of the CPI, the
+// food at home and all-items indexes, and the BLS average prices, each file fetched once for the run. A failure is
+// logged and the page says so.
 let foodInflation = null;
 try {
-  const [prices, allItems] = await Promise.all([blsText(GROCERY_FILES.prices), blsText('cu/cu.data.1.AllItems')]);
-  foodInflation = buildFoodInflation({ prices: parseBls(prices, FOOD_INFLATION_FOODS.map((f) => f.id)), allItems: parseBls(allItems, [ALL_ITEMS]) });
+  const [prices, food, all] = await Promise.all([FOOD_INFLATION_FILES.prices, FOOD_INFLATION_FILES.food, FOOD_INFLATION_FILES.all].map(blsText));
+  const indexes = new Map([...parseBls(food, [FOOD_AT_HOME, ...GROCERY_STRATA.map((s) => s.id)]), ...parseBls(all, [ALL_ITEMS])]);
+  foodInflation = buildFoodInflation({ prices: parseBls(prices, FOOD_INFLATION_FOODS.map((f) => f.id)), indexes });
   await writeFile(join(data, 'downloads', `${FOOD_INFLATION_SLUG}.csv.gz`), gzipSync(foodInflationCsv(foodInflation)));
-  console.error(JSON.stringify({ step: 'food-inflation', status: 'ok', foods: foodInflation.foods.length, faster: foodInflation.faster, inflation: foodInflation.inflation.toFixed(2) }));
+  console.error(JSON.stringify({ step: 'food-inflation', status: 'ok', foodAtHome: foodInflation.foodAtHome.toFixed(2), inflation: foodInflation.inflation.toFixed(2), strata: foodInflation.strata.length, fasterCount: foodInflation.fasterCount, fasterShare: foodInflation.fasterShare.toFixed(1), foods: foodInflation.foods.length }));
 } catch (error) {
   console.error(JSON.stringify({ step: 'food-inflation', status: 'unavailable', error: error.message }));
 }
@@ -345,7 +347,7 @@ try {
 // Insights: one page per analysis, newest first, so a link (Reddit, a newsletter) opens the chart with its own title.
 // Each page carries only the data its own view needs.
 const INSIGHTS = [
-  { slug: FOOD_INFLATION_SLUG, title: foodInflation ? foodInflationHeadline(foodInflation) : 'US food prices since 2019, against inflation', summary: foodInflation ? `Prices of ${foodInflation.foods.length} foods since October 2019 against overall inflation of ${Math.round(foodInflation.inflation)}%. Coffee more than doubled; butter cost the same.` : 'Prices of every food BLS tracks since October 2019, against overall inflation.', data: { foodInflation } },
+  { slug: FOOD_INFLATION_SLUG, title: foodInflation ? foodInflationHeadline(foodInflation) : 'Grocery prices since 2019, against inflation', summary: foodInflation ? `Food categories making up ${Math.round(foodInflation.fasterShare)}% of grocery spending rose faster than inflation; ${foodInflation.strata.slice(-3).reverse().map((c) => c.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1')} rose least.` : 'All 53 grocery categories in the CPI since October 2019, against overall inflation.', data: { foodInflation } },
   { slug: GROCERY_SLUG, title: groceryTitle, summary: groceries ? `Over the month, beef rose ${category(groceries, 'Beef').change.toFixed(1)}%, fresh vegetables ${category(groceries, 'Fresh vegetables').change.toFixed(1)}% and eating out ${category(groceries, 'Eating out').change.toFixed(1)}%.` : 'October 2026 food prices from BLS.', data: { groceries } },
   // The slug stays, so links already shared keep working; the page now answers the question in its title.
   { slug: 'halloween-candy', title: HALLOWEEN_TITLE, summary: costs ? `Cocoa costs have fallen since early 2025, yet candy prices are up ${costs.figures.candy.year.toFixed(1)}% on a year ago. Here is why.` : halloween ? `Since ${halloween.since}, candy prices rose ${Math.round(halloween.figures.since.candy)}% and planned candy spending per person ${Math.round(halloween.figures.since.spend)}%.` : 'Planned Halloween candy spending against candy prices since 2010.', data: { halloween, costs } },

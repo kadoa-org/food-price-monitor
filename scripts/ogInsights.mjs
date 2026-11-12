@@ -16,12 +16,12 @@ const pct = (v) => `${v > 0 ? '+' : ''}${Math.round(v)}%`;
 
 const builders = {
   'food-prices-against-inflation-since-2019': (page) => {
-    const f = page.foodInflation, coffee = f.foods[0], butter = f.foods.find((x) => x.name === 'Butter');
-    // The two ends of the ranking and the line between them.
+    const f = page.foodInflation;
+    // The basket against all prices, and how much of grocery spending ran ahead of inflation.
     return {
-      title: page.title, source: 'BLS average prices and consumer price index',
-      key: `Change in US average prices from ${month(f.from)} to ${month(f.to)}.`,
-      figures: [{ value: pct(coffee.change), label: coffee.name, colour: '#d4351c' }, { value: pct(f.inflation), label: 'Overall inflation', colour: GREY }, { value: pct(butter.change), label: butter.name, colour: '#12436d' }],
+      title: page.title, source: 'BLS consumer price index',
+      key: `Change from ${month(f.from)} to ${month(f.to)}. Share of grocery spending in categories that rose faster than inflation.`,
+      figures: [{ value: pct(f.foodAtHome), label: 'Groceries', colour: '#d4351c' }, { value: pct(f.inflation), label: 'All prices', colour: GREY }, { value: `${Math.round(f.fasterShare)}%`, label: 'Spending above inflation', colour: '#0b0c0c' }],
     };
   },
   'grocery-prices-october-2026': (page) => {
