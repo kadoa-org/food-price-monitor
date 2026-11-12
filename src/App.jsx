@@ -457,6 +457,8 @@ function FoodInflationInsight({ page }) {
   const [from, to] = [longMonth(f.from), longMonth(f.to)];
   // Beef's four categories lead the ranking; the three slowest close it. Both read from the data, as the page is pinned.
   const beef = f.strata.filter((s) => /beef/i.test(s.name)).map((s) => s.change), low = f.strata.slice(-3);
+  // Coffee shows the gap between the two measures most: its average price against its CPI category.
+  const coffeePrice = f.foods.find((x) => x.name === 'Coffee'), coffeeIndex = f.strata.find((x) => x.name === 'Coffee');
   const lede = `Grocery prices rose ${Math.round(f.foodAtHome)}% since ${from}, a little more than all prices at ${Math.round(f.inflation)}%. Beef rose most, ${Math.round(Math.min(...beef))}% to ${Math.round(Math.max(...beef))}% depending on the cut; ${low.map((s) => s.name.toLowerCase()).reverse().join(', ').replace(/, ([^,]*)$/, ' and $1')} rose least. Nothing BLS prices got cheaper in dollars.`;
   return <>
     <div className="title-block"><h1 className="dk-h1">{page.title}</h1><p className="lede">{lede}</p></div>
@@ -492,7 +494,7 @@ function FoodInflationInsight({ page }) {
       description={`US average prices in ${from} and ${to} for the ${f.foods.length} foods BLS priced in both months. ${f.foodsFaster} rose faster than overall inflation. Butter was the only one that did not rise.`}
       date={`Up to and including ${to}`}
       tabs={[
-        { label: 'Chart', content: <InflationRanking rows={f.foods} inflation={f.inflation} key="foods" note="Beef is ground beef and all steaks, BLS's totals across cuts. Your store and brand will differ from these national averages." /> },
+        { label: 'Chart', content: <InflationRanking rows={f.foods} inflation={f.inflation} key="foods" note={`Average prices can rise faster than the matching CPI category: coffee's average price rose ${Math.round(coffeePrice.change)}%, the CPI for coffee ${Math.round(coffeeIndex.change)}%. Beef is ground beef and all steaks, BLS's totals across cuts. Your store and brand will differ from these national averages.`} /> },
         { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={f.foods} rowKey={(r) => r.id} columns={[
           { key: 'name', header: 'Food' },
           { key: 'from', header: from, align: 'right', render: (r) => `${usd(r.from)} a ${r.unit}` },
@@ -534,6 +536,7 @@ function FoodInflationAbout() {
       <li>Grocery prices are the CPI for food at home, which BLS builds from 53 food categories, each weighted by what households spend on it. That weighting is why the count of categories above or below inflation matters less than their share of spending.</li>
       <li>Shares of spending are from the BLS table of relative importance for December 2025, the weights for 2026. Weights change each year, so over seven years the index gives slightly different weights than these.</li>
       <li>Single foods are BLS {external(BLS_PRICES, 'average prices')} for the US city average, every food priced in both October 2019 and October 2026. BLS does not publish average prices for some foods, apples and oranges among them, in both months; their categories are in the chart above. Beef is shown as ground beef and all steaks, BLS's totals across the nine cuts it prices.</li>
+      <li>An average price and a CPI category can tell different stories. The CPI follows the same products in the same stores over time and adjusts when one is replaced, so a shift in what is on the shelf does not move it. An average price is the plain average of what BLS priced that month, so a move toward pricier brands, smaller packages or specialty products raises it on top of real price changes. That is why coffee's average price more than doubled while the CPI for coffee rose by about half. BLS cautions against reading average prices as a replacement for the index.</li>
       <li>Overall inflation is the CPI for all items over the same months. A food that rose less than inflation got cheaper in real terms, although its price went up. All figures are before adjusting for inflation and not seasonally adjusted; October is compared with October to keep seasonal foods comparable.</li>
       <li>These are national averages. Prices differ by region, store and brand, so a price in one store can be well above the average.</li>
     </ul>
