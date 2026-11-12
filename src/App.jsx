@@ -12,6 +12,7 @@ import AboutPage from './AboutPage';
 import { CANDY_COLOURS, CandyLegend, CandyLines, CandyYears, YearLegend, YearLines, monthName } from './CandyChart';
 import { HORIZONS, horizonStart, rebase } from './candy.mjs';
 import { longMonth } from './groceries.mjs';
+import { FOOD_INFLATION_SLUG } from './foodInflation.mjs';
 
 const url = (slug) => `${BASE}/commodity/${slug}`;
 // The file is gzipped: a full history runs to tens of megabytes as plain CSV, and compressing it is what keeps a
@@ -443,8 +444,71 @@ function InsightsIndex({ page }) {
 }
 // Each insight page has its own view; the data build gives each only the data it needs.
 function Insight({ page }) {
+  if (page.slug === FOOD_INFLATION_SLUG) return <FoodInflationInsight page={page} />;
   if (page.slug === 'grocery-prices-october-2026') return <GroceryInsight page={page} />;
   return page.slug === 'halloween-candy' ? <HalloweenInsight page={page} /> : <CandyInsight page={page} />;
+}
+// ── Every food's price since October 2019 against overall inflation: one ranking, the foods that rose faster than
+// inflation first, with the dashed line where inflation sits. Nothing got cheaper in dollars, so every bar starts at zero.
+function FoodInflationInsight({ page }) {
+  const f = page.foodInflation;
+  if (!f) return <><div className="title-block"><h1 className="dk-h1">{page.title}</h1></div><p role="alert">Food prices could not be loaded from BLS in this update.</p><FoodInflationAbout /></>;
+  const [from, to] = [longMonth(f.from), longMonth(f.to)];
+  const butter = f.foods.find((x) => x.name === 'Butter'), coffee = f.foods[0];
+  const lede = `Butter costs what it did in ${f.from.slice(0, 4)}, ${usd(butter.to)} a pound. ${coffee.name} more than doubled. Overall inflation was ${Math.round(f.inflation)}%.`;
+  return <>
+    <div className="title-block"><h1 className="dk-h1">{page.title}</h1><p className="lede">{lede}</p></div>
+    <ChartCard
+      id="food-inflation-title"
+      title="Price change of every food, against inflation"
+      description={`Change in US average prices from ${from} to ${to} for all ${f.foods.length} foods BLS priced in both months. ${f.faster} rose faster than overall inflation, ${f.foods.length - f.faster} slower.`}
+      date={`Up to and including ${to}`}
+      tabs={[
+        { label: 'Chart', content: <FoodInflationRanking f={f} /> },
+        { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={f.foods} rowKey={(r) => r.id} columns={[
+          { key: 'name', header: 'Food' },
+          { key: 'from', header: from, align: 'right', render: (r) => `${usd(r.from)} a ${r.unit}` },
+          { key: 'to', header: to, align: 'right', render: (r) => usd(r.to) },
+          { key: 'change', header: 'Change', align: 'right', render: (r) => inflationPct(r.change, f.inflation) },
+        ]} /> },
+        { label: 'Download', content: <><p className="download-intro">Each food's price in {from} and {to}, its change and overall inflation, as a gzipped CSV.</p><a className="dk-btn" href={fileUrl(page.common, download(FOOD_INFLATION_SLUG))} download>Download CSV (gzip)</a></> },
+      ]}
+    />
+    <FoodInflationAbout />
+  </>;
+}
+// One decimal where rounding would put a food on the wrong side of the line (whole milk +31.5% against +31.2%).
+const inflationPct = (v, inflation) => (Math.round(v) === 0 ? '0%' : `+${Math.abs(v - inflation) < 1.5 ? v.toFixed(1) : Math.round(v)}%`);
+function FoodInflationRanking({ f }) {
+  const max = Math.max(...f.foods.map((x) => x.change), f.inflation);
+  const at = (v) => `${(Math.max(v, 0) / max) * 100}%`;
+  return <div className="ranking">
+    <div className="ranking__row ranking__row--label" aria-hidden="true">
+      <span /><span className="ranking__track"><span className="ranking__cpi-label" style={{ left: at(f.inflation) }}>Overall inflation {inflationPct(f.inflation, f.inflation)}</span></span><span />
+    </div>
+    <ol className="ranking__list grocery-ranking">
+      {f.foods.map((r) => <li className="ranking__row" key={r.id}>
+        <span className="ranking__name">{r.name}</span>
+        <span className="ranking__track">
+          <span className={`ranking__bar ranking__bar--${r.change > f.inflation ? 'faster' : 'slower'}`} style={{ left: 0, width: at(r.change) }} />
+          <span className="ranking__cpi" style={{ left: at(f.inflation) }} aria-hidden="true" />
+        </span>
+        <span className="ranking__value">{inflationPct(r.change, f.inflation)}<span className="govuk-visually-hidden">{r.change > f.inflation ? ', faster than overall inflation' : ', slower than overall inflation'}</span></span>
+      </li>)}
+    </ol>
+    <p className="ranking__key">Red bars rose faster than overall inflation, blue bars slower. Overall inflation is the rise in all consumer prices (CPI-U, all items) over the same months.</p>
+  </div>;
+}
+function FoodInflationAbout() {
+  return <section className="insight-notes">
+    <SectionHeading>About the data</SectionHeading>
+    <ul>
+      <li>Prices are BLS {external(BLS_PRICES, 'average prices')} for the US city average, not seasonally adjusted, in October 2019 and October 2026. The same month in both years keeps seasonal foods comparable.</li>
+      <li>Every food BLS priced in both months is shown. BLS also publishes category totals, such as all steaks or all ham, which overlap the single foods, so those are left out.</li>
+      <li>Prices are not adjusted for inflation. The dashed line is overall inflation over the same months, so a food left of it got cheaper in real terms although its price rose.</li>
+      <li>Butter was $3.979 a pound in October 2019 and $3.977 in October 2026, the only food that did not rise.</li>
+    </ul>
+  </section>;
 }
 // ── October 2026 food prices: the month's change in the CPI release's food indexes, then the same ten staples as the
 // home page since August 2019, each with its own change over the month.

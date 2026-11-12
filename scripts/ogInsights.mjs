@@ -15,6 +15,15 @@ const month = (ym) => `${MONTHS[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
 const pct = (v) => `${v > 0 ? '+' : ''}${Math.round(v)}%`;
 
 const builders = {
+  'food-prices-against-inflation-since-2019': (page) => {
+    const f = page.foodInflation, coffee = f.foods[0], butter = f.foods.find((x) => x.name === 'Butter');
+    // The two ends of the ranking and the line between them.
+    return {
+      title: page.title, source: 'BLS average prices and consumer price index',
+      key: `Change in US average prices from ${month(f.from)} to ${month(f.to)}.`,
+      figures: [{ value: pct(coffee.change), label: coffee.name, colour: '#d4351c' }, { value: pct(f.inflation), label: 'Overall inflation', colour: GREY }, { value: pct(butter.change), label: butter.name, colour: '#12436d' }],
+    };
+  },
   'grocery-prices-october-2026': (page) => {
     const g = page.groceries, cat = (n) => g.categories.find((c) => c.name === n);
     const one = (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
