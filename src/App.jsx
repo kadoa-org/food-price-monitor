@@ -464,8 +464,8 @@ function FoodInflationInsight({ page }) {
     <div className="title-block"><h1 className="dk-h1">{page.title}</h1><p className="lede">{lede}</p></div>
     <ChartCard
       id="food-inflation-path-title"
-      title="Groceries against all prices"
-      description={`Change since ${from} in the CPI for food at home, the whole grocery basket, and for all items.`}
+      title="Groceries and all prices"
+      description={`Price change since ${from}: the CPI for food at home, which covers all groceries, and the CPI for all items.`}
       date={`Up to and including ${to}`}
       tabs={[{ label: 'Chart', content: <CandyLines lines={[
         { key: 'food', label: 'Groceries', colour: '#d4351c', points: f.path.map((r) => [r[0], r[1]]) },
@@ -475,8 +475,8 @@ function FoodInflationInsight({ page }) {
     />
     <ChartCard
       id="food-inflation-strata-title"
-      title="Every grocery category, with its share of spending"
-      description={`Change from ${from} to ${to} for all ${f.strata.length} food categories in the CPI's grocery basket. The ${f.fasterCount} that rose faster than overall inflation make up ${Math.round(f.fasterShare)}% of grocery spending.`}
+      title="Price change by grocery category"
+      description={`Price change from ${from} to ${to} for each of the ${f.strata.length} food categories in the CPI's grocery basket. The figure after each name is its share of grocery spending. The ${f.fasterCount} categories that rose faster than inflation make up ${Math.round(f.fasterShare)}% of spending.`}
       date={`Up to and including ${to}`}
       tabs={[
         { label: 'Chart', content: <InflationRanking rows={f.strata} inflation={f.inflation} share key="strata" note="Red bars rose faster than overall inflation, blue bars slower. The share is each category's part of grocery spending, from BLS weights for 2026." /> },
@@ -490,8 +490,8 @@ function FoodInflationInsight({ page }) {
     />
     <ChartCard
       id="food-inflation-prices-title"
-      title="Average prices of single foods"
-      description={`US average prices in ${from} and ${to} for the ${f.foods.length} foods BLS priced in both months. ${f.foodsFaster} rose faster than overall inflation. Butter was the only one that did not rise.`}
+      title="Price change by food"
+      description={`Change in the US average price of ${f.foods.length} single foods, such as a pound of coffee or a dozen eggs, from ${from} to ${to}. ${f.foodsFaster} rose faster than inflation. Butter did not rise.`}
       date={`Up to and including ${to}`}
       tabs={[
         { label: 'Chart', content: <InflationRanking rows={f.foods} inflation={f.inflation} key="foods" note={`Average prices can rise faster than the matching CPI category: coffee's average price rose ${Math.round(coffeePrice.change)}%, the CPI for coffee ${Math.round(coffeeIndex.change)}%. Beef is ground beef and all steaks, BLS's totals across cuts. Your store and brand will differ from these national averages.`} /> },
@@ -505,8 +505,8 @@ function FoodInflationInsight({ page }) {
     />
     <ChartCard
       id="food-inflation-mix-title"
-      title="Same product, or a different mix?"
-      description={`For ${f.mix.length} foods, the change in the average price set against the CPI for its category, which prices the same products over time. ${f.mix.filter((m) => Math.abs(m.gap) <= 10).length} land within 10 points of each other; the gap is what moved beyond the same-product price: brands, package sizes and specialty versions.`}
+      title="Average price against CPI category"
+      description={`For ${f.mix.length} foods, the change in the average price (red) against the CPI for its category (blue), which prices the same products over time. The gap is the part the same-product price does not explain: brands, package sizes and specialty versions. ${f.mix.filter((m) => Math.abs(m.gap) <= 10).length} are within 10 points.`}
       date={`${from} to ${to}`}
       tabs={[
         { label: 'Chart', content: <MixChart rows={f.mix} /> },
