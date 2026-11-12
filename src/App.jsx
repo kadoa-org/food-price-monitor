@@ -457,7 +457,7 @@ function FoodInflationInsight({ page }) {
   const [from, to] = [longMonth(f.from), longMonth(f.to)];
   // Beef's four categories lead the ranking; the three slowest close it. Both read from the data, as the page is pinned.
   const beef = f.strata.filter((s) => /beef/i.test(s.name)).map((s) => s.change), low = f.strata.slice(-3);
-  const lede = `Groceries as a whole rose a little faster than prices in general. Beef rose most, ${Math.round(Math.min(...beef))}% to ${Math.round(Math.max(...beef))}% depending on the cut; ${low.map((s) => s.name.toLowerCase()).reverse().join(', ').replace(/, ([^,]*)$/, ' and $1')} rose least. Nothing BLS prices got cheaper in dollars.`;
+  const lede = `Grocery prices rose ${Math.round(f.foodAtHome)}% since ${from}, a little more than all prices at ${Math.round(f.inflation)}%. Beef rose most, ${Math.round(Math.min(...beef))}% to ${Math.round(Math.max(...beef))}% depending on the cut; ${low.map((s) => s.name.toLowerCase()).reverse().join(', ').replace(/, ([^,]*)$/, ' and $1')} rose least. Nothing BLS prices got cheaper in dollars.`;
   return <>
     <div className="title-block"><h1 className="dk-h1">{page.title}</h1><p className="lede">{lede}</p></div>
     <ChartCard

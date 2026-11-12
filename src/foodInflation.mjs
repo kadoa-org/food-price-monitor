@@ -76,11 +76,8 @@ export function buildFoodInflation({ prices, indexes, from = FOOD_INFLATION_FROM
   };
 }
 
-// The page's title, checked against the data: groceries as a whole against all prices.
-export function foodInflationHeadline(f) {
-  const [food, all] = [Math.round(f.foodAtHome), Math.round(f.inflation)];
-  return food === all ? `Grocery prices rose ${food}% since ${f.from.slice(0, 4)}, the same as all prices` : `Grocery prices rose ${food}% since ${f.from.slice(0, 4)}, all prices ${all}%`;
-}
+// A neutral title that makes no claim; the lede and charts carry the numbers.
+export const foodInflationHeadline = (f) => `US grocery prices since ${f.from.slice(0, 4)}, compared with inflation`;
 
 export const foodInflationCsv = (f) => [`item,series,kind,share_of_grocery_spending_pct,unit,price_${f.from},price_${f.to},change_pct,inflation_pct`,
   `"Food at home",${FOOD_AT_HOME},index,100,,,,${f.foodAtHome.toFixed(2)},${f.inflation.toFixed(2)}`,

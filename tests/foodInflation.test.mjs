@@ -19,12 +19,12 @@ test('the categories above inflation are counted by their share of grocery spend
   expect(f.strata.reduce((t, s) => t + s.share, 0)).toBeCloseTo(100, 6);
 });
 
-test('the path runs every month, with October 2025 left empty, and the title compares the basket with all prices', () => {
+test('the path runs every month, with October 2025 left empty, and the title is a neutral label', () => {
   const f = buildFoodInflation({ prices, indexes });
   expect(f.path[0]).toEqual(['2019-10', 0, 0]);
   expect(f.path.find((r) => r[0] === '2025-10')).toEqual(['2025-10', null, null]);
   expect(f.path.at(-1)[0]).toBe('2026-10');
-  expect(foodInflationHeadline(f)).toBe('Grocery prices rose 33% since 2019, all prices 31%');
+  expect(foodInflationHeadline(f)).toBe('US grocery prices since 2019, compared with inflation');
 });
 
 test('butter, flat to a fifth of a cent, sorts last and the CSV has one row per category and food', () => {
