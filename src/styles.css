@@ -255,3 +255,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 
 /* Running text keeps to about 640px, so lines stay short on a wide screen. */
 .insight-notes,.key-figures__context,.chart-panel-card__desc,.section-heading__desc{max-width:640px}
+.mix-chart__legend{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:14px}.mix-chart__legend .mix-chart__dot{position:static;transform:none;margin-left:12px}.mix-chart__legend .mix-chart__dot:first-child{margin-left:0}
+.mix-chart__dot{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;transform:translate(-50%,-50%);display:inline-block}.mix-chart__dot--same{background:#12436d}.mix-chart__dot--paid{background:#d4351c}
+.mix-chart__link{position:absolute;top:50%;height:2px;margin-top:-1px;background:#b1b4b6}

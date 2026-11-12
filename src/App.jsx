@@ -503,8 +503,44 @@ function FoodInflationInsight({ page }) {
         ]} /> },
       ]}
     />
+    <ChartCard
+      id="food-inflation-mix-title"
+      title="Same product, or a different mix?"
+      description={`For ${f.mix.length} foods, the change in the average price set against the CPI for its category, which prices the same products over time. ${f.mix.filter((m) => Math.abs(m.gap) <= 10).length} land within 10 points of each other; the gap is what moved beyond the same-product price: brands, package sizes and specialty versions.`}
+      date={`${from} to ${to}`}
+      tabs={[
+        { label: 'Chart', content: <MixChart rows={f.mix} /> },
+        { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={f.mix} rowKey={(r) => r.id} columns={[
+          { key: 'name', header: 'Food', render: (r) => (r.part ? `${r.name} (${r.part})` : r.name) },
+          { key: 'paid', header: 'Average price', align: 'right', render: (r) => pctLabel(r.paid) },
+          { key: 'same', header: 'CPI category', align: 'right', render: (r) => pctLabel(r.same) },
+          { key: 'gap', header: 'Gap', align: 'right', render: (r) => pctLabel(r.gap) },
+        ]} /> },
+      ]}
+    />
     <FoodInflationAbout />
   </>;
+}
+// Each food on one scale from zero: a dot for its CPI category (the same products over time) and one for its average
+// price, joined, biggest gap first. The gap is a ratio, so it is printed rather than read off the line.
+function MixChart({ rows }) {
+  const max = Math.max(...rows.flatMap((r) => [r.paid, r.same]));
+  const at = (v) => `${(Math.max(v, 0) / max) * 100}%`;
+  return <div className="ranking mix-chart">
+    <p className="mix-chart__legend"><span className="mix-chart__dot mix-chart__dot--same" /> CPI category, same products <span className="mix-chart__dot mix-chart__dot--paid" /> Average price</p>
+    <ol className="ranking__list grocery-ranking">
+      {rows.map((r) => <li className="ranking__row" key={`${r.id}${r.name}`}>
+        <span className="ranking__name">{r.name}{r.part && <span className="ranking__share">*</span>}</span>
+        <span className="ranking__track">
+          <span className="mix-chart__link" style={{ left: at(Math.min(r.paid, r.same)), width: `${(Math.abs(r.paid - r.same) / max) * 100}%` }} />
+          <span className="mix-chart__dot mix-chart__dot--same" style={{ left: at(r.same) }} />
+          <span className="mix-chart__dot mix-chart__dot--paid" style={{ left: at(r.paid) }} />
+        </span>
+        <span className="ranking__value">{pctLabel(r.gap)}<span className="govuk-visually-hidden">{`: average price ${pctLabel(r.paid)}, CPI category ${pctLabel(r.same)}`}</span></span>
+      </li>)}
+    </ol>
+    <p className="ranking__key">The figure on the right is the gap: how much more (or less) the average price rose than its CPI category. * The CPI category is wider than the single food; the table names what each one covers.</p>
+  </div>;
 }
 // One decimal where rounding would put a row on the wrong side of the line (whole milk +31.5% against +31.2%).
 const inflationPct = (v, inflation) => (Math.round(v) === 0 ? '0%' : `+${Math.abs(v - inflation) < 1.5 ? v.toFixed(1) : Math.round(v)}%`);
@@ -536,7 +572,7 @@ function FoodInflationAbout() {
       <li>Grocery prices are the CPI for food at home, which BLS builds from 53 food categories, each weighted by what households spend on it. That weighting is why the count of categories above or below inflation matters less than their share of spending.</li>
       <li>Shares of spending are from the BLS table of relative importance for December 2025, the weights for 2026. Weights change each year, so over seven years the index gives slightly different weights than these.</li>
       <li>Single foods are BLS {external(BLS_PRICES, 'average prices')} for the US city average, every food priced in both October 2019 and October 2026. BLS does not publish average prices for some foods, apples and oranges among them, in both months; their categories are in the chart above. Beef is shown as ground beef and all steaks, BLS's totals across the nine cuts it prices.</li>
-      <li>An average price and a CPI category can tell different stories. The CPI follows the same products in the same stores over time and adjusts when one is replaced, so a shift in what is on the shelf does not move it. An average price is the plain average of what BLS priced that month, so a move toward pricier brands, smaller packages or specialty products raises it on top of real price changes. That is why coffee's average price more than doubled while the CPI for coffee rose by about half. BLS cautions against reading average prices as a replacement for the index.</li>
+      <li>An average price and a CPI category can tell different stories. The CPI follows the same products in the same stores over time and adjusts when one is replaced, so a shift in what is on the shelf does not move it. An average price is the plain average of what BLS priced that month, so a move toward pricier brands, smaller packages or specialty products raises it on top of real price changes. That is why coffee's average price more than doubled while the CPI for coffee rose by about half. BLS cautions against reading average prices as a replacement for the index. The last chart splits the two: the average price's rise is the CPI category's rise times a gap, which also includes any difference in what the two cover. Butter and lemons are left out of it, as their CPI categories are mostly margarine and oranges.</li>
       <li>Overall inflation is the CPI for all items over the same months. A food that rose less than inflation got cheaper in real terms, although its price went up. All figures are before adjusting for inflation and not seasonally adjusted; October is compared with October to keep seasonal foods comparable.</li>
       <li>These are national averages. Prices differ by region, store and brand, so a price in one store can be well above the average.</li>
     </ul>

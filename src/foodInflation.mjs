@@ -51,6 +51,23 @@ export const FOOD_INFLATION_FOODS = [
   { id: 'APU0000720311', name: 'Wine', unit: 'liter' }, { id: 'APU0000711211', name: 'Bananas', unit: 'lb' },
   { id: 'APU0000711412', name: 'Lemons', unit: 'lb' }, { id: 'APU0000FS1101', name: 'Butter', unit: 'lb' },
 ];
+// Average prices next to their CPI category, to split what shoppers pay into the price of the same product (the CPI,
+// which follows the same items in the same stores) and the rest (the average price also moves with brands, package
+// sizes and specialty versions). Only pairs where the average-price item is the main item of its category; `part`
+// marks those where the category is wider (all bread, not white bread). Butter (whose category includes margarine) and
+// lemons (citrus is mostly oranges) are left out, as their gap would measure a different product, not the mix.
+export const MIX_PAIRS = [
+  ['APU0000717311', 'CUUR0000SEFP01', 'Coffee', 'ground roast; the category includes instant and pods'], ['APU0000708111', 'CUUR0000SEFH', 'Eggs', null],
+  ['APU0000FC1101', 'CUUR0000SEFC01', 'Ground beef', null], ['APU0000FC3101', 'CUUR0000SEFC03', 'Beef steaks', null], ['APU0000FC2101', 'CUUR0000SEFC02', 'Beef roasts', null],
+  ['APU0000FD2101', 'CUUR0000SEFD02', 'Ham', null], ['APU0000FD3101', 'CUUR0000SEFD03', 'Pork chops', null], ['APU0000704111', 'CUUR0000SEFD01', 'Bacon', 'the category includes breakfast sausage'],
+  ['APU0000706111', 'CUUR0000SEFF01', 'Chicken', 'whole chicken; the category is all chicken'], ['APU0000709112', 'CUUR0000SEFJ01', 'Milk', 'whole milk'],
+  ['APU0000710212', 'CUUR0000SEFJ02', 'Cheese', 'cheddar; the category is all cheese'], ['APU0000710411', 'CUUR0000SEFJ03', 'Ice cream', null], ['APU0000711211', 'CUUR0000SEFK02', 'Bananas', null],
+  ['APU0000712112', 'CUUR0000SEFL01', 'Potatoes', null], ['APU0000712211', 'CUUR0000SEFL02', 'Iceberg lettuce', 'the category includes romaine and others'],
+  ['APU0000FL2101', 'CUUR0000SEFL02', 'Romaine lettuce', 'the category includes iceberg and others'], ['APU0000712311', 'CUUR0000SEFL03', 'Tomatoes', null],
+  ['APU0000701111', 'CUUR0000SEFA01', 'Flour', 'the category includes baking mixes'], ['APU0000715211', 'CUUR0000SEFR01', 'Sugar', null],
+  ['APU0000FN1101', 'CUUR0000SEFN01', 'Soft drinks, 2 liter', 'one size; the category is all soft drinks'], ['APU0000FN1102', 'CUUR0000SEFN01', 'Soft drinks, cans', 'one size; the category is all soft drinks'],
+  ['APU0000702111', 'CUUR0000SEFB01', 'Bread', 'white bread; the category is all bread'],
+].map(([price, index, name, part]) => ({ price, index, name, part }));
 const pct = (to, from) => (to / from - 1) * 100;
 const nextMonth = (ym) => { const [y, m] = ym.split('-').map(Number); return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`; };
 
@@ -66,11 +83,18 @@ export function buildFoodInflation({ prices, indexes, from = FOOD_INFLATION_FROM
   const faster = strata.filter((s) => s.change > inflation);
   const foods = FOOD_INFLATION_FOODS.map(({ id, name, unit }) => { const s = both(prices, id); return { id, name, unit, from: s.get(from), to: s.get(to), change: pct(s.get(to), s.get(from)) }; })
     .sort((a, b) => b.change - a.change);
+  // Each pair's gap: (1 + average-price change) / (1 + CPI change) - 1, the part of the average price's rise that the
+  // same-product price does not explain.
+  const mix = MIX_PAIRS.map(({ price, index, name, part }) => {
+    const p = both(prices, price), c = both(indexes, index);
+    const paid = pct(p.get(to), p.get(from)), same = pct(c.get(to), c.get(from));
+    return { id: price, name, part, paid, same, gap: ((1 + paid / 100) / (1 + same / 100) - 1) * 100 };
+  }).sort((a, b) => b.gap - a.gap);
   // Month by month, so the page shows the path and not only the two ends (eggs, for one, peaked in between).
   const path = [];
   for (let m = from; m <= to; m = nextMonth(m)) path.push([m, food.has(m) ? pct(food.get(m), food.get(from)) : null, all.has(m) ? pct(all.get(m), all.get(from)) : null]);
   return {
-    from, to, inflation, foodAtHome, path, strata, foods,
+    from, to, inflation, foodAtHome, path, strata, foods, mix,
     fasterCount: faster.length, fasterShare: faster.reduce((t, s) => t + s.share, 0),
     foodsFaster: foods.filter((f) => f.change > inflation).length,
   };
@@ -82,4 +106,5 @@ export const foodInflationHeadline = (f) => `US grocery prices since ${f.from.sl
 export const foodInflationCsv = (f) => [`item,series,kind,share_of_grocery_spending_pct,unit,price_${f.from},price_${f.to},change_pct,inflation_pct`,
   `"Food at home",${FOOD_AT_HOME},index,100,,,,${f.foodAtHome.toFixed(2)},${f.inflation.toFixed(2)}`,
   ...f.strata.map((s) => [`"${s.name}"`, s.id, 'index', s.share.toFixed(2), '', '', '', s.change.toFixed(2), f.inflation.toFixed(2)].join(',')),
-  ...f.foods.map((x) => [`"${x.name}"`, x.id, 'average price', '', `"${x.unit}"`, x.from, x.to, x.change.toFixed(2), f.inflation.toFixed(2)].join(','))].join('\n') + '\n';
+  ...f.foods.map((x) => [`"${x.name}"`, x.id, 'average price', '', `"${x.unit}"`, x.from, x.to, x.change.toFixed(2), f.inflation.toFixed(2)].join(',')),
+  ...f.mix.map((x) => [`"${x.name}: average price beyond its CPI category"`, `${x.id}/${MIX_PAIRS.find((m) => m.price === x.id && m.name === x.name).index}`, 'gap', '', '', '', '', x.gap.toFixed(2), ''].join(','))].join('\n') + '\n';

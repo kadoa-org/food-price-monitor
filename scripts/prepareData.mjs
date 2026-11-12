@@ -9,7 +9,7 @@ import { WEIGHTS, WEIGHTS_SOURCE, stratumOf } from '../src/cpi-weights.mjs';
 import { CANDY_SERIES, buildCandy, candyCsv, candyHeadline, parseBls } from '../src/candy.mjs';
 import { HALLOWEEN_TITLE, buildHalloween, halloweenCsv } from '../src/halloween.mjs';
 import { COST_FILES, FRED_SERIES, buildCandyCosts, candyCostsCsv, parseFred } from '../src/candyCosts.mjs';
-import { ALL_ITEMS, FOOD_AT_HOME, FOOD_INFLATION_FILES, FOOD_INFLATION_FOODS, FOOD_INFLATION_SLUG, GROCERY_STRATA, buildFoodInflation, foodInflationCsv, foodInflationHeadline } from '../src/foodInflation.mjs';
+import { ALL_ITEMS, FOOD_AT_HOME, FOOD_INFLATION_FILES, FOOD_INFLATION_FOODS, FOOD_INFLATION_SLUG, GROCERY_STRATA, MIX_PAIRS, buildFoodInflation, foodInflationCsv, foodInflationHeadline } from '../src/foodInflation.mjs';
 import { GROCERY_CATEGORIES, GROCERY_FILES, GROCERY_FOODS, GROCERY_INDEXES, buildGroceries, category, groceriesCsv, groceryHeadline, longMonth } from '../src/groceries.mjs';
 import { BASE, addDays, curated, familyFor, marketKey, newsFamilies, groupSeries, markonNews, movers, nearest, pickBenchmark, priced, reports, summarize, usdaNews, isRetail, quote, unitLabel, quoteShort } from '../src/model.mjs';
 import { existsSync } from 'node:fs';
@@ -139,7 +139,7 @@ let foodInflation = null;
 try {
   const [prices, food, all] = await Promise.all([FOOD_INFLATION_FILES.prices, FOOD_INFLATION_FILES.food, FOOD_INFLATION_FILES.all].map(blsText));
   const indexes = new Map([...parseBls(food, [FOOD_AT_HOME, ...GROCERY_STRATA.map((s) => s.id)]), ...parseBls(all, [ALL_ITEMS])]);
-  foodInflation = buildFoodInflation({ prices: parseBls(prices, FOOD_INFLATION_FOODS.map((f) => f.id)), indexes });
+  foodInflation = buildFoodInflation({ prices: parseBls(prices, [...new Set([...FOOD_INFLATION_FOODS, ...MIX_PAIRS].map((f) => f.id ?? f.price))]), indexes });
   await writeFile(join(data, 'downloads', `${FOOD_INFLATION_SLUG}.csv.gz`), gzipSync(foodInflationCsv(foodInflation)));
   console.error(JSON.stringify({ step: 'food-inflation', status: 'ok', foodAtHome: foodInflation.foodAtHome.toFixed(2), inflation: foodInflation.inflation.toFixed(2), strata: foodInflation.strata.length, fasterCount: foodInflation.fasterCount, fasterShare: foodInflation.fasterShare.toFixed(1), foods: foodInflation.foods.length }));
 } catch (error) {
