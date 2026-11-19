@@ -41,13 +41,19 @@ function peakOf(series, from, month) {
   return peak;
 }
 
+// The Halloween page it feeds is pinned to September 2026, the month before Halloween and the last month BLS had
+// published when it went out. Later months would move its figures, and October 2026 has no year-ago month: BLS
+// collected no prices in October 2025.
+export const COSTS_UNTIL = '2026-09';
+
 // bls: Map of series id to Map('YYYY-MM' -> index); fred: Map of series id to Map('YYYY-MM' -> price).
-export function buildCandyCosts({ bls, fred }) {
+
+export function buildCandyCosts({ bls, fred, until = COSTS_UNTIL }) {
   const keys = Object.keys(COST_SERIES);
   const series = Object.fromEntries(keys.map((k) => [k, bls.get(COST_SERIES[k])]));
   for (const k of keys) if (!series[k]?.has(COST_FROM)) throw new Error(`${COST_SERIES[k]} has no value for ${COST_FROM}`);
   // Every line ends in the latest month all four have, so the chart compares like with like.
-  const month = [...series.candy.keys()].filter((m) => keys.every((k) => series[k].has(m))).sort().at(-1);
+  const month = [...series.candy.keys()].filter((m) => m <= until && keys.every((k) => series[k].has(m))).sort().at(-1);
   const months = [...new Set(keys.flatMap((k) => [...series[k].keys()]))].filter((m) => m >= COST_FROM && m <= month).sort();
   const rows = months.map((m) => ({ month: m, ...Object.fromEntries(keys.map((k) => [k, series[k].has(m) ? pct(series[k].get(m), series[k].get(COST_FROM)) : null])) }));
   const yearAgo = shiftYear(month, -1);
