@@ -33,7 +33,7 @@ export const curated = [
   { slug: 'beef', name: 'Beef', singular: 'Beef', emoji: '🥩', featured: false, news: /\bbeef\b|\bcattle\b/i, matches: ['Beef'], preferSeries: (s) => /^national$/i.test(s.market) && /^Ground Beef 80-89%, Ground, 1-2 Lbs$/.test(s.product), description: 'Beef cuts advertised in US supermarket weekly ads, by region, weighted by store count.' },
   { slug: 'pork', name: 'Pork', singular: 'Pork', emoji: '🥓', featured: false, news: /\bpork\b|\bhogs?\b/i, matches: ['Pork'], preferSeries: (s) => /^national$/i.test(s.market) && /^Sliced Bacon, Processed, 1-2 Lbs$/.test(s.product), description: 'Pork cuts advertised in US supermarket weekly ads, by region, weighted by store count.' },
   { slug: 'chicken', name: 'Chicken', singular: 'Chicken', emoji: '🍗', featured: false, news: /\bchicken\b|\bbroilers?\b/i, matches: ['Chicken'], preferSeries: (s) => /^national$/i.test(s.market) && /^Breast, Boneless\/Skinless/.test(s.product), description: 'Chicken cuts advertised in US supermarket weekly ads, by region, weighted by store count.' },
-  { slug: 'turkey', name: 'Turkey', singular: 'Turkey', emoji: '🦃', featured: false, news: /\bturkeys?\b/i, matches: ['Turkey'], description: 'Turkey cuts advertised in US supermarket weekly ads, by region, weighted by store count.' },
+  { slug: 'turkey', name: 'Turkey', singular: 'Turkey', emoji: '🦃', featured: false, news: /\bturkeys?\b/i, matches: ['Turkey'], description: 'Turkey in US supermarket weekly ads, weighted by store count, and national wholesale turkey prices.' },
 ];
 export const families = curated;
 // Decorative lines USDA quotes alongside food. Never published.
@@ -78,11 +78,12 @@ export const reports = {
   'usda-2868': { name: 'US grocery store pork features', stage: 'Retail - Livestock/Poultry/Egg', cadence: 'Weekly' },
   'usda-2756': { name: 'US grocery store chicken features', stage: 'Retail - Livestock/Poultry/Egg', cadence: 'Weekly' },
   'usda-2867': { name: 'US grocery store turkey features', stage: 'Retail - Livestock/Poultry/Egg', cadence: 'Weekly' },
+  'usda-3647': { name: 'National wholesale turkey', stage: 'Point of Sale - Poultry', cadence: 'Weekly' },
 };
 export const RETAIL = 'Retail - Specialty Crops';
 export const RETAIL_STAGES = new Set(['Retail - Specialty Crops', 'Retail - Livestock/Poultry/Egg']);
 export const isRetail = (stage) => RETAIL_STAGES.has(stage);
-export const stageName = (s) => ({ 'Shipping Point': 'Shipping point', Terminal: 'Wholesale', 'Point of Sale - Eggs': 'Wholesale', 'Retail - Specialty Crops': 'Retail promotion', 'Retail - Livestock/Poultry/Egg': 'Retail promotion', 'Retail - Consumer': 'Store price' }[s] ?? s);
+export const stageName = (s) => ({ 'Shipping Point': 'Shipping point', Terminal: 'Wholesale', 'Point of Sale - Eggs': 'Wholesale', 'Point of Sale - Poultry': 'Wholesale', 'Retail - Specialty Crops': 'Retail promotion', 'Retail - Livestock/Poultry/Egg': 'Retail promotion', 'Retail - Consumer': 'Store price' }[s] ?? s);
 // USDA writes 'N/A' and 'None' for attributes that do not apply; neither is a fact worth showing.
 // Short market caption for dense layouts: "New York wholesale", "Idaho Falls shipping point".
 export const shortMarket = (market, stage) => `${market.replace(/ FOB SC$/, '').replace(/ \(FR\)/, '').replace(/ Terminal Market$/, '')} ${stage.toLowerCase()}`;

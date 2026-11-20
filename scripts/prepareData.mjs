@@ -13,6 +13,7 @@ import { ALL_ITEMS, FOOD_AT_HOME, FOOD_INFLATION_FILES, FOOD_INFLATION_FOODS, FO
 import { GROCERY_CATEGORIES, GROCERY_FILES, GROCERY_FOODS, GROCERY_INDEXES, buildGroceries, category, groceriesCsv, groceryHeadline, longMonth } from '../src/groceries.mjs';
 import { BASE, addDays, curated, familyFor, marketKey, newsFamilies, groupSeries, markonNews, movers, nearest, pickBenchmark, priced, reports, summarize, usdaNews, isRetail, quote, unitLabel, quoteShort } from '../src/model.mjs';
 import { existsSync } from 'node:fs';
+import { THANKSGIVING_SLUG, THANKSGIVING_SOURCES, buildThanksgiving, thanksgivingBanner, thanksgivingCsv, thanksgivingTitle, turkeyNow } from '../src/thanksgiving.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 // The dataset pipeline lives outside this repository; point FOOD_PRICES_DATASET_DIR at its folder (a local .env works).
@@ -24,12 +25,16 @@ const dir = join(dataset, 'exports', pointer.path);
 const manifest = JSON.parse(await readFile(join(dir, 'manifest.json'), 'utf8'));
 // Streams the gzip NDJSON export. Every food commodity becomes a page; the six curated ones are featured.
 const rows = [];
+// The Thanksgiving insight reads three grocery ad reports and the wholesale turkey report whole, including foods that
+// have no commodity page.
+const thanksgivingRows = [];
 const familyByCommodity = new Map();
 let total = 0;
 for await (const line of createInterface({ input: createReadStream(join(dir, manifest.files.ndjson)).pipe(createGunzip()), crlfDelay: Infinity })) {
   if (!line) continue;
   total++;
   const row = JSON.parse(line);
+  if (THANKSGIVING_SOURCES.includes(row.source_id)) thanksgivingRows.push(row);
   if (!familyByCommodity.has(row.commodity)) familyByCommodity.set(row.commodity, familyFor(row.commodity));
   if (familyByCommodity.get(row.commodity)) rows.push(row);
 }
@@ -132,6 +137,17 @@ try {
 } catch (error) {
   console.error(JSON.stringify({ step: 'groceries', status: 'unavailable', error: error.message }));
 }
+// Thanksgiving: wholesale turkey against its price in grocery ads, and the foods on a Thanksgiving table in this week's
+// ads against the same week before Thanksgiving last year. Built from this run's export, so a week too thin to compare drops the insight for the run rather than
+// failing the build.
+let turkey = null;
+try {
+  turkey = buildThanksgiving(thanksgivingRows);
+  await writeFile(join(data, 'downloads', `${THANKSGIVING_SLUG}.csv.gz`), gzipSync(thanksgivingCsv(turkey)));
+  console.error(JSON.stringify({ step: 'thanksgiving', status: 'ok', week: turkey.latest, against: turkey.previous, turkey: turkeyNow(turkey), dropped: turkey.dropped, foods: turkey.foods.map((f) => `${f.name} ${f.change}%`) }));
+} catch (error) {
+  console.error(JSON.stringify({ step: 'thanksgiving', status: 'unavailable', error: error.message }));
+}
 // Grocery prices since October 2019 against overall inflation, for its insight: the food categories of the CPI, the
 // food at home and all-items indexes, and the BLS average prices, each file fetched once for the run. A failure is
 // logged and the page says so.
@@ -150,7 +166,9 @@ const groceryTitle = groceries ? groceryHeadline(groceries) : 'US food prices in
 // The newest insight, announced in a banner under the navigation on every other page until the date given, as on the
 // energy monitor. Decided here, before any page is written, so every page and its prerender carry it. The banner shows
 // the insight's own title, so the link reads the same as the page it opens; at 41 characters it fits a phone on one line.
-const ANNOUNCE = { slug: GROCERY_SLUG, until: '2026-12-15', text: groceryTitle };
+const ANNOUNCE = turkey
+  ? { slug: THANKSGIVING_SLUG, until: '2026-11-30', text: thanksgivingBanner(turkey) }
+  : { slug: GROCERY_SLUG, until: '2026-12-15', text: groceryTitle };
 if (new Date().toISOString().slice(0, 10) <= ANNOUNCE.until) common.announce = { key: `insights/${ANNOUNCE.slug}`, href: `${BASE}/insights/${ANNOUNCE.slug}`, title: ANNOUNCE.text };
 
 const featured = [];
@@ -347,6 +365,7 @@ try {
 // Insights: one page per analysis, newest first, so a link (Reddit, a newsletter) opens the chart with its own title.
 // Each page carries only the data its own view needs.
 const INSIGHTS = [
+  ...(turkey ? [{ slug: THANKSGIVING_SLUG, title: thanksgivingTitle(turkey), summary: `The wholesale price of a frozen turkey against its price in US grocery ads, week by week, and the rest of the Thanksgiving table against last year, from USDA reports.`, data: { turkey } }] : []),
   { slug: FOOD_INFLATION_SLUG, title: foodInflation ? foodInflationHeadline(foodInflation) : 'US grocery prices since 2019, compared with inflation', summary: foodInflation ? `Food categories making up ${Math.round(foodInflation.fasterShare)}% of grocery spending rose faster than inflation; ${foodInflation.strata.slice(-3).reverse().map((c) => c.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1')} rose least.` : 'All 53 grocery categories in the CPI since October 2019, against overall inflation.', data: { foodInflation } },
   { slug: GROCERY_SLUG, title: groceryTitle, summary: groceries ? `Over the month, beef rose ${category(groceries, 'Beef').change.toFixed(1)}%, fresh vegetables ${category(groceries, 'Fresh vegetables').change.toFixed(1)}% and eating out ${category(groceries, 'Eating out').change.toFixed(1)}%.` : 'October 2026 food prices from BLS.', data: { groceries } },
   // The slug stays, so links already shared keep working; the page now answers the question in its title.

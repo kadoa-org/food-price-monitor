@@ -13,6 +13,8 @@ import { CANDY_COLOURS, CandyLegend, CandyLines, CandyYears, YearLegend, YearLin
 import { HORIZONS, horizonStart, rebase } from './candy.mjs';
 import { longMonth } from './groceries.mjs';
 import { FOOD_INFLATION_SLUG } from './foodInflation.mjs';
+import { MIN_TURKEY_STORES, THANKSGIVING_SLUG, WHOLESALE_WEEKS } from './thanksgiving.mjs';
+import TurkeyChart, { TurkeyLegend } from './TurkeyChart';
 
 const url = (slug) => `${BASE}/commodity/${slug}`;
 // The file is gzipped: a full history runs to tens of megabytes as plain CSV, and compressing it is what keeps a
@@ -444,9 +446,69 @@ function InsightsIndex({ page }) {
 }
 // Each insight page has its own view; the data build gives each only the data it needs.
 function Insight({ page }) {
+  if (page.slug === THANKSGIVING_SLUG) return <TurkeyInsight page={page} />;
   if (page.slug === FOOD_INFLATION_SLUG) return <FoodInflationInsight page={page} />;
   if (page.slug === 'grocery-prices-october-2026') return <GroceryInsight page={page} />;
   return page.slug === 'halloween-candy' ? <HalloweenInsight page={page} /> : <CandyInsight page={page} />;
+}
+// ── Thanksgiving: what a frozen turkey costs wholesale against what grocery ads sell it for, week by week, then the
+// foods on a Thanksgiving table in this week's ads against the same week before Thanksgiving last year.
+const AD_REPORTS = [['https://mymarketnews.ams.usda.gov/viewReport/2867', 'turkey'], ['https://mymarketnews.ams.usda.gov/viewReport/2868', 'pork'], ['https://mymarketnews.ams.usda.gov/viewReport/3324', 'fruit and vegetables']];
+const perUnit = (v) => (v < 1 ? `${Math.round(v * 100)}¢` : `$${v.toFixed(2)}`);
+const longDay = (d) => new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' });
+const listWords = (items) => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`);
+function TurkeyInsight({ page }) {
+  const t = page.turkey;
+  const now = t.years.at(-1), first = t.years[0], earlier = t.years.slice(0, -1);
+  const weeksOut = Math.round(-t.day / 7);
+  const same = earlier.every((y) => Math.abs(y.ad - now.ad) < 0.03);
+  const words = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six'];
+  const matched = Math.abs(first.ad - first.wholesale) < 0.03;
+  const lede = `${words[weeksOut] ?? weeksOut} ${weeksOut === 1 ? 'week' : 'weeks'} before Thanksgiving, US grocery ads priced a frozen whole turkey at ${perUnit(now.ad)} a pound${same ? `, as in ${listWords(earlier.map((y) => y.year))}` : ''}. ${matched ? `In ${first.year} that matched the wholesale price of a frozen turkey hen. Now the hen costs ${perUnit(now.wholesale)} wholesale` : `A frozen turkey hen costs ${perUnit(now.wholesale)} wholesale, up from ${perUnit(first.wholesale)} in ${first.year}`}, so ads price the bird at ${Math.abs(now.ad / now.wholesale - 0.5) < 0.06 ? "about half that" : `${Math.round((now.ad / now.wholesale) * 100)}% of that`}.`;
+  return <>
+    <div className="title-block"><h1 className="dk-h1">{page.title}</h1><p className="lede">{lede}</p></div>
+    <ChartCard
+      id="thanksgiving-turkey-title"
+      title="Frozen turkey per pound, wholesale and in grocery ads, by week"
+      tabs={[
+        { label: 'Chart', content: <><TurkeyLegend /><TurkeyChart weeks={t.weeks} label="Wholesale price of a frozen hen and advertised price of a frozen whole turkey, per pound, by week, with each Thanksgiving marked" /></> },
+        { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={[...t.weeks].reverse()} rowKey={(r) => r.date} columns={[
+          { key: 'date', header: 'Week ending', render: (r) => `${longDay(r.date)}, ${r.date.slice(0, 4)}` },
+          { key: 'wholesale', header: 'Wholesale', align: 'right', render: (r) => (r.wholesale === null ? 'No trades' : `$${r.wholesale.toFixed(2)}`) },
+          { key: 'ad', header: 'In ads', align: 'right', render: (r) => (r.ad === null ? 'Too few ads' : `$${r.ad.toFixed(2)}`) },
+          { key: 'stores', header: 'Stores advertising', align: 'right', hideBelow: 'sm', render: (r) => number(r.stores) },
+        ]} /> },
+        { label: 'Download', content: <><p className="download-intro">Every week's wholesale and advertised turkey price, and each Thanksgiving food's advertised price in both years, as a gzipped CSV.</p><a className="dk-btn" href={fileUrl(page.common, download(THANKSGIVING_SLUG))} download>Download CSV (gzip)</a></> },
+      ]}
+    />
+    <ChartCard
+      id="thanksgiving-foods-title"
+      title="Thanksgiving foods in grocery ads, change on the same week last year"
+      description={`Week ending ${longDay(t.latest)}, ${t.year}, against the same week before Thanksgiving in ${t.previousYear}.`}
+      tabs={[
+        { label: 'Chart', content: <GroceryRanking ranking={t.foods.map((f) => ({ name: `${f.name}, ${f.unit === 'lb' ? 'per lb' : f.unit}`, change: f.change }))} /> },
+        { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={t.foods} rowKey={(r) => r.key} columns={[
+          { key: 'name', header: 'Food', render: (r) => r.name },
+          { key: 'unit', header: 'Price for', render: (r) => (r.unit === 'lb' ? '1 lb' : r.unit) },
+          { key: 'previous', header: String(t.previousYear), align: 'right', render: (r) => `$${r.previous.toFixed(2)}` },
+          { key: 'price', header: String(t.year), align: 'right', render: (r) => `$${r.price.toFixed(2)}` },
+          { key: 'change', header: 'Change', align: 'right', render: (r) => pctLabel(r.change) },
+          { key: 'stores', header: 'Stores advertising', align: 'right', hideBelow: 'sm', render: (r) => number(r.stores) },
+        ]} /> },
+      ]}
+    />
+    <section className="insight-notes">
+      <SectionHeading>About the data</SectionHeading>
+      <ul>
+        <li>Sources: USDA's {external('https://mymarketnews.ams.usda.gov/viewReport/3647', 'national turkey report')} and its grocery ad surveys for {AD_REPORTS.map(([href, name], i) => <React.Fragment key={name}>{i ? (i === AD_REPORTS.length - 1 ? ' and ' : ', ') : ''}{external(href, name)}</React.Fragment>)}.</li>
+        <li>Wholesale is a frozen Grade A turkey hen of 8 to 16 lb at the plant, before freight, which would widen the gap; toms of 16 to 24 lb trade within a few cents of it.</li>
+        <li>The chart shows each week's price; the headline's wholesale figure averages the weeks with trades in the {WHOLESALE_WEEKS} weeks to the compared week.</li>
+        <li>The wholesale report covers negotiated trades only; much turkey is sold under contract, so a store's own cost can differ.</li>
+        <li>Ad prices are store-weighted averages of advertised prices, not shelf prices; gaps are weeks with fewer than {number(MIN_TURKEY_STORES)} stores advertising frozen turkey, or with no wholesale trades.</li>
+        <li>Each food in the second chart is one product, the same pack in both years, compared at the same number of days before Thanksgiving; our data starts in September 2024.</li>
+      </ul>
+    </section>
+  </>;
 }
 // ── Grocery prices since October 2019 against overall inflation. First the whole basket over time, then every one of
 // the 53 food categories in it with its share of grocery spending, so a count of categories is never the measure,

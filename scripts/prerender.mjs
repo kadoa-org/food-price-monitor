@@ -87,6 +87,12 @@ function seo(page, path) {
       : 'US food prices in October 2026 from the BLS consumer price index.';
     crumbs.push({ name: 'Insights', url: `${SITE}/food-prices/insights` }, { name: 'Food prices, October 2026', url: canonical });
     ld = [{ '@context': 'https://schema.org', '@type': 'Article', headline: title, description, url: canonical, dateModified: updated, keywords: ['food prices october 2026', 'cpi october 2026 food', 'beef prices', 'food inflation', 'grocery prices'], author: { '@type': 'Organization', name: 'Kadoa', url: SITE }, publisher: { '@type': 'Organization', name: 'Kadoa', url: SITE } }];
+  } else if (page.kind === 'insight' && page.slug === 'thanksgiving-prices') {
+    const t = page.turkey; const n = t.years.at(-1), first = t.years[0];
+    title = page.title;
+    description = `Thanksgiving turkey prices ${t.year}: a frozen turkey hen costs $${n.wholesale.toFixed(2)} a pound wholesale, up from $${first.wholesale.toFixed(2)} in ${first.year}, while US grocery ads price frozen turkey at $${n.ad.toFixed(2)}. Weekly USDA data, plus ${t.foods.length} Thanksgiving foods against last year.`;
+    crumbs.push({ name: 'Insights', url: `${SITE}/food-prices/insights` }, { name: 'Thanksgiving prices', url: canonical });
+    ld = [{ '@context': 'https://schema.org', '@type': 'Article', headline: title, description, url: canonical, dateModified: updated, keywords: ['turkey prices 2026', 'wholesale turkey price', 'thanksgiving turkey price per pound', 'thanksgiving food prices', 'turkey loss leader'], author: { '@type': 'Organization', name: 'Kadoa', url: SITE }, publisher: { '@type': 'Organization', name: 'Kadoa', url: SITE } }];
   } else if (page.kind === 'insight' && page.slug === 'halloween-candy') {
     const h = page.halloween; const f = h?.figures; const c = page.costs; const pc = (v) => `${Math.round(v)}%`;
     title = c ? `Why Is Candy So Expensive This Halloween? Candy Prices Up ${c.figures.candy.year.toFixed(1)}% in a Year` : 'Why Is Candy So Expensive This Halloween?';

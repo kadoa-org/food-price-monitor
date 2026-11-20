@@ -15,6 +15,17 @@ const month = (ym) => `${MONTHS[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
 const pct = (v) => `${v > 0 ? '+' : ''}${Math.round(v)}%`;
 
 const builders = {
+  'thanksgiving-prices': (page) => {
+    const t = page.turkey, n = t.years.at(-1);
+    const day = new Date(n.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+    const cents = (v) => (v < 1 ? `${Math.round(v * 100)}¢` : `$${v.toFixed(2)}`);
+    // The two prices the headline sets against each other.
+    return {
+      title: page.title, source: 'USDA turkey report and grocery ad surveys',
+      key: `Frozen turkey per pound, week ending ${day}.`,
+      figures: [{ value: cents(n.wholesale), label: 'Wholesale, frozen turkey hen', colour: '#12436d' }, { value: cents(n.ad), label: 'Grocery ads, frozen turkey', colour: '#f46a25' }],
+    };
+  },
   'food-prices-against-inflation-since-2019': (page) => {
     const f = page.foodInflation;
     // The basket against all prices, and how much of grocery spending ran ahead of inflation.
