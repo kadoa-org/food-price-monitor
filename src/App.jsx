@@ -14,7 +14,7 @@ import { HORIZONS, horizonStart, rebase } from './candy.mjs';
 import { longMonth } from './groceries.mjs';
 import { FOOD_INFLATION_SLUG } from './foodInflation.mjs';
 import { MIN_TURKEY_STORES, THANKSGIVING_SLUG, WHOLESALE_WEEKS } from './thanksgiving.mjs';
-import TurkeyChart, { TurkeyLegend } from './TurkeyChart';
+import TurkeyChart from './TurkeyChart';
 
 const url = (slug) => `${BASE}/commodity/${slug}`;
 // The file is gzipped: a full history runs to tens of megabytes as plain CSV, and compressing it is what keeps a
@@ -469,9 +469,9 @@ function TurkeyInsight({ page }) {
     <div className="title-block"><h1 className="dk-h1">{page.title}</h1><p className="lede">{lede}</p></div>
     <ChartCard
       id="thanksgiving-turkey-title"
-      title="Frozen turkey per pound, wholesale and in grocery ads, by week"
+      title="Frozen turkey per pound two weeks before Thanksgiving, in grocery ads and wholesale"
       tabs={[
-        { label: 'Chart', content: <><TurkeyLegend /><TurkeyChart weeks={t.weeks} label="Wholesale price of a frozen hen and advertised price of a frozen whole turkey, per pound, by week, with each Thanksgiving marked" /></> },
+        { label: 'Chart', content: <TurkeyChart years={t.years} label="Price per pound of frozen turkey two weeks before each Thanksgiving: in grocery ads and wholesale" /> },
         { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={[...t.weeks].reverse()} rowKey={(r) => r.date} columns={[
           { key: 'date', header: 'Week ending', render: (r) => `${longDay(r.date)}, ${r.date.slice(0, 4)}` },
           { key: 'wholesale', header: 'Wholesale', align: 'right', render: (r) => (r.wholesale === null ? 'No trades' : `$${r.wholesale.toFixed(2)}`) },
@@ -501,10 +501,10 @@ function TurkeyInsight({ page }) {
       <SectionHeading>About the data</SectionHeading>
       <ul>
         <li>Sources: USDA's {external('https://mymarketnews.ams.usda.gov/viewReport/3647', 'national turkey report')} and its grocery ad surveys for {AD_REPORTS.map(([href, name], i) => <React.Fragment key={name}>{i ? (i === AD_REPORTS.length - 1 ? ' and ' : ', ') : ''}{external(href, name)}</React.Fragment>)}.</li>
-        <li>Wholesale is a frozen Grade A turkey hen of 8 to 16 lb at the plant, before freight, which would widen the gap; toms of 16 to 24 lb trade within a few cents of it.</li>
-        <li>The chart shows each week's price; the headline's wholesale figure averages the weeks with trades in the {WHOLESALE_WEEKS} weeks to the compared week.</li>
+        <li>Wholesale is a frozen Grade A turkey hen of 8 to 16 lb at the plant, before freight, which would widen the gap; it is the price USDA forecasts at a record $1.76 a pound on average for 2026, and toms of 16 to 24 lb trade within a few cents of it.</li>
+        <li>The wholesale figure averages the weeks with trades in the {WHOLESALE_WEEKS} weeks to the compared week; the table has every week's price.</li>
         <li>The wholesale report covers negotiated trades only; much turkey is sold under contract, so a store's own cost can differ.</li>
-        <li>Ad prices are store-weighted averages of advertised prices, not shelf prices; gaps are weeks with fewer than {number(MIN_TURKEY_STORES)} stores advertising frozen turkey, or with no wholesale trades.</li>
+        <li>Ad prices are store-weighted averages of advertised prices, not shelf prices; the table marks weeks with fewer than {number(MIN_TURKEY_STORES)} stores advertising frozen turkey, or with no wholesale trades.</li>
         <li>Each food in the second chart is one product, the same pack in both years, compared at the same number of days before Thanksgiving; our data starts in September 2024.</li>
       </ul>
     </section>

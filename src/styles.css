@@ -258,3 +258,25 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .mix-chart__legend{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:14px}.mix-chart__legend .mix-chart__dot{position:static;transform:none;margin-left:12px}.mix-chart__legend .mix-chart__dot:first-child{margin-left:0}
 .mix-chart__dot{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;transform:translate(-50%,-50%);display:inline-block}.mix-chart__dot--same{background:#12436d}.mix-chart__dot--paid{background:#d4351c}
 .mix-chart__link{position:absolute;top:50%;height:2px;margin-top:-1px;background:#b1b4b6}
+/* Thanksgiving turkey: wholesale against ad price, one row per year (TurkeyChart.jsx). */
+.turkey-gap{margin:0;padding:10px 0 4px}
+.turkey-gap__key{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.turkey-gap__rows{list-style:none;margin:16px 0 0;padding:0}
+.turkey-gap__row,.turkey-gap__axis{display:grid;grid-template-columns:56px 1fr 64px;align-items:center}
+.turkey-gap__row{height:56px;border-bottom:1px solid var(--dk-rule-soft,#e5e6e7)}
+.turkey-gap__year{font-weight:700;font-size:19px}
+.turkey-gap__track{position:relative;height:100%;grid-column:2/4;margin-right:64px;background:linear-gradient(to right,var(--dk-rule-soft,#e5e6e7) 1px,transparent 1px) 0 0/25% 100%}
+.turkey-gap__bar{position:absolute;top:50%;height:4px;margin-top:-2px;background:#b1b4b6}
+.turkey-gap__dot{position:absolute;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;border:2px solid #fff;box-sizing:border-box}
+.turkey-gap__value{position:absolute;top:50%;transform:translateY(-50%);font-weight:700;font-size:19px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.turkey-gap__axis .turkey-gap__ticks{position:relative;height:26px;grid-column:2/4;margin-right:64px}
+.turkey-gap__ticks span{position:absolute;top:6px;transform:translateX(-50%);font-size:14px;color:var(--dk-muted);white-space:nowrap}
+.turkey-gap__ticks span:first-child{transform:none}
+.turkey-gap__caption{font-size:16px;color:var(--dk-muted);margin-top:6px;text-align:center}
+@media (max-width:640px){.turkey-gap__row,.turkey-gap__axis{grid-template-columns:44px 1fr 56px}.turkey-gap__track,.turkey-gap__axis .turkey-gap__ticks{margin-right:56px}.turkey-gap__year,.turkey-gap__value{font-size:16px}}
+.govuk-tabs__panel:has(> .turkey-gap){min-height:0}
+@media (min-width:641px){.turkey-gap__row{height:68px}.turkey-gap__year,.turkey-gap__value{font-size:21px}.turkey-gap__dot{width:20px;height:20px;margin:-10px 0 0 -10px}.turkey-gap__dot--ad{width:14px;height:14px;margin:-7px 0 0 -7px}.turkey-gap__bar{height:6px;margin-top:-3px}.turkey-gap__ticks span{font-size:16px}}
+.turkey-gap__dot--wholesale{background:#fff!important;border:4px solid var(--turkey-wholesale,#12436d)}
+.turkey-gap__dot--ad{width:12px;height:12px;margin:-6px 0 0 -6px;border:0}
+.turkey-gap__key--ring{background:#fff!important;border:3px solid #12436d;box-sizing:border-box}
+.turkey-gap__track{box-shadow:inset -1px 0 0 var(--dk-rule-soft,#e5e6e7)}
