@@ -13,6 +13,7 @@ import { ALL_ITEMS, FOOD_AT_HOME, FOOD_INFLATION_FILES, FOOD_INFLATION_FOODS, FO
 import { GROCERY_CATEGORIES, GROCERY_FILES, GROCERY_FOODS, GROCERY_INDEXES, buildGroceries, category, groceriesCsv, groceryHeadline, longMonth } from '../src/groceries.mjs';
 import { BASE, addDays, curated, familyFor, marketKey, newsFamilies, groupSeries, markonNews, movers, nearest, pickBenchmark, priced, reports, summarize, usdaNews, isRetail, quote, unitLabel, quoteShort } from '../src/model.mjs';
 import { existsSync } from 'node:fs';
+import { SHRINK_SLUG, buildShrinkflation, shrinkflationCsv, shrinkflationTitle } from '../src/shrinkflation.mjs';
 import { THANKSGIVING_SLUG, THANKSGIVING_SOURCES, buildThanksgiving, thanksgivingBanner, thanksgivingCsv, thanksgivingTitle, turkeyNow } from '../src/thanksgiving.mjs';
 
 const root = resolve(import.meta.dirname, '..');
@@ -147,6 +148,16 @@ try {
   console.error(JSON.stringify({ step: 'thanksgiving', status: 'ok', week: turkey.latest, against: turkey.previous, turkey: turkeyNow(turkey), dropped: turkey.dropped, foods: turkey.foods.map((f) => `${f.name} ${f.change}%`) }));
 } catch (error) {
   console.error(JSON.stringify({ step: 'thanksgiving', status: 'unavailable', error: error.message }));
+}
+// Shrinkflation: the dataset pipeline's BLS comparison (shrinkflation/data.py writes exports/shrinkflation.json) and GAO's fixed figures. A missing or
+// unreadable file drops the insight for the run rather than failing the build.
+let shrink = null;
+try {
+  shrink = buildShrinkflation(JSON.parse(await readFile(join(dataset, 'exports', 'shrinkflation.json'), 'utf8')));
+  await writeFile(join(data, 'downloads', `${SHRINK_SLUG}.csv.gz`), gzipSync(shrinkflationCsv(shrink)));
+  console.error(JSON.stringify({ step: 'shrinkflation', status: 'ok', to: shrink.to, food: shrink.food, top: shrink.ranked.slice(0, 3).map((r) => `${r.name} ${r.share}%`) }));
+} catch (error) {
+  console.error(JSON.stringify({ step: 'shrinkflation', status: 'unavailable', error: error.message }));
 }
 // Grocery prices since October 2019 against overall inflation, for its insight: the food categories of the CPI, the
 // food at home and all-items indexes, and the BLS average prices, each file fetched once for the run. A failure is
@@ -365,6 +376,7 @@ try {
 // Insights: one page per analysis, newest first, so a link (Reddit, a newsletter) opens the chart with its own title.
 // Each page carries only the data its own view needs.
 const INSIGHTS = [
+  ...(shrink ? [{ slug: SHRINK_SLUG, title: shrinkflationTitle(shrink), summary: `How much smaller packs added to US grocery prices since 2019, by aisle, from BLS and GAO data: about ${Math.round(shrink.food.share)}% overall, ${Math.round(shrink.ranked[0].share)}% for toilet paper and paper towels.`, data: { shrink } }] : []),
   ...(turkey ? [{ slug: THANKSGIVING_SLUG, title: thanksgivingTitle(turkey), summary: `The wholesale price of a frozen turkey against its price in US grocery ads, week by week, and the rest of the Thanksgiving table against last year, from USDA reports.`, data: { turkey } }] : []),
   { slug: FOOD_INFLATION_SLUG, title: foodInflation ? foodInflationHeadline(foodInflation) : 'US grocery prices since 2019, compared with inflation', summary: foodInflation ? `Food categories making up ${Math.round(foodInflation.fasterShare)}% of grocery spending rose faster than inflation; ${foodInflation.strata.slice(-3).reverse().map((c) => c.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1')} rose least.` : 'All 53 grocery categories in the CPI since October 2019, against overall inflation.', data: { foodInflation } },
   { slug: GROCERY_SLUG, title: groceryTitle, summary: groceries ? `Over the month, beef rose ${category(groceries, 'Beef').change.toFixed(1)}%, fresh vegetables ${category(groceries, 'Fresh vegetables').change.toFixed(1)}% and eating out ${category(groceries, 'Eating out').change.toFixed(1)}%.` : 'October 2026 food prices from BLS.', data: { groceries } },

@@ -15,6 +15,8 @@ import { longMonth } from './groceries.mjs';
 import { FOOD_INFLATION_SLUG } from './foodInflation.mjs';
 import { MIN_TURKEY_STORES, THANKSGIVING_SLUG, WHOLESALE_WEEKS } from './thanksgiving.mjs';
 import TurkeyChart from './TurkeyChart';
+import { BLS_URL, GAO_URL, SHRINK_SLUG } from './shrinkflation.mjs';
+import { ItemsAndSales, ShareOfRise, SizeChanges } from './ShrinkCharts';
 
 const url = (slug) => `${BASE}/commodity/${slug}`;
 // The file is gzipped: a full history runs to tens of megabytes as plain CSV, and compressing it is what keeps a
@@ -446,10 +448,61 @@ function InsightsIndex({ page }) {
 }
 // Each insight page has its own view; the data build gives each only the data it needs.
 function Insight({ page }) {
+  if (page.slug === SHRINK_SLUG) return <ShrinkInsight page={page} />;
   if (page.slug === THANKSGIVING_SLUG) return <TurkeyInsight page={page} />;
   if (page.slug === FOOD_INFLATION_SLUG) return <FoodInflationInsight page={page} />;
   if (page.slug === 'grocery-prices-october-2026') return <GroceryInsight page={page} />;
   return page.slug === 'halloween-candy' ? <HalloweenInsight page={page} /> : <CandyInsight page={page} />;
+}
+// ── Shrinkflation report: what smaller packs added to each packaged category's price rise since 2019 (BLS), GAO's
+// finding that downsized products are few but big sellers, and downsized and upsized items each year.
+const monthYear = (ym) => new Date(`${ym}-01`).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+function ShrinkInsight({ page }) {
+  const s = page.shrink, top = s.ranked[0], [snacks] = s.ranked.filter((r) => r.code === 'SEFT03');
+  const paper = s.gao[0], latest = s.counts.at(-1), peak = s.counts.filter((r) => !r.partial).reduce((m, r) => (r.down > m.down ? r : m));
+  const lede = `Since ${monthYear(s.from)}, smaller packs have added ${s.food.added.toFixed(1)} points to the ${Math.round(s.food.published)}% rise in grocery prices, about ${Math.round(s.food.share)}% of it. The effect is concentrated in a few aisles: ${Math.round(top.share)}% of the rise in toilet paper and paper towel prices${snacks ? ` and ${Math.round(snacks.share)}% for chips and snacks` : ''} came from smaller packs.`;
+  return <>
+    <div className="title-block"><h1 className="dk-h1">{page.title}</h1><p className="lede">{lede}</p></div>
+    <ChartCard
+      id="shrink-share-title"
+      title="Share of each price rise that came from smaller packs"
+      description={`Packaged groceries and household goods, ${monthYear(s.from)} to ${monthYear(s.to)}.`}
+      tabs={[
+        { label: 'Chart', content: <ShareOfRise food={s.food} rows={s.ranked} label="Share of the price rise of each packaged category that came from smaller packs, with all food at home for scale" /> },
+        { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={[{ ...s.food, code: 'SAF11', name: 'All food at home' }, ...s.ranked]} rowKey={(r) => r.code} columns={[
+          { key: 'name', header: 'Category', render: (r) => r.name },
+          { key: 'published', header: 'Price rise', align: 'right', render: (r) => `${r.published.toFixed(1)}%` },
+          { key: 'withoutSize', header: 'Without size changes', align: 'right', hideBelow: 'sm', render: (r) => `${r.withoutSize.toFixed(1)}%` },
+          { key: 'added', header: 'Points added', align: 'right', render: (r) => r.added.toFixed(1) },
+          { key: 'share', header: 'Share of rise', align: 'right', render: (r) => `${r.share.toFixed(0)}%` },
+        ]} /> },
+        { label: 'Download', content: <><p className="download-intro">Each category's price rise with and without size changes, the yearly counts of downsized and upsized items, and GAO's figures, as a gzipped CSV.</p><a className="dk-btn" href={fileUrl(page.common, download(SHRINK_SLUG))} download>Download CSV (gzip)</a></> },
+      ]}
+    />
+    <ChartCard
+      id="shrink-sales-title"
+      title="Share of products downsized, and their share of sales, 2021 to 2023"
+      description={`${paper.name}: ${paper.items.toFixed(1)}% of products were downsized, but they made up ${Math.round(paper.sales)}% of sales.`}
+      tabs={[{ label: 'Chart', content: <ItemsAndSales rows={s.gao} label="For seven product categories, the share of products downsized from 2021 to 2023 and their share of sales" /> }]}
+    />
+    <ChartCard
+      id="shrink-counts-title"
+      title="Products downsized and upsized in the CPI sample, by year"
+      description={`Downsizing peaked in ${peak.year} (${peak.down} items), fell in 2020 and 2021, and rose again from 2022. Since 2021, about ${Math.round(s.downPerUp)} products have shrunk for every one that grew.`}
+      tabs={[{ label: 'Chart', content: <><SizeChanges rows={s.counts} label="Number of downsized and upsized products in the BLS consumer price index sample each year since 2015" />{latest.partial && <p className="chart-note">* {latest.year} through {monthYear(latest.through)}.</p>}</> }]}
+    />
+    <section className="insight-notes">
+      <SectionHeading>About the data</SectionHeading>
+      <ul>
+        <li>Sources: the BLS consumer price index and its {external(BLS_URL, 'research index without product size changes')}, and GAO's {external(GAO_URL, 'July 2025 report on shrinkflation')}, which used NielsenIQ checkout data.</li>
+        <li>Shrinkflation is already in official inflation: when a product in the CPI sample shrinks, BLS records its price per ounce or per sheet.</li>
+        <li>What smaller packs added is the published index minus the research index; it is net, so products that grew pull it the other way.</li>
+        <li>Goods sold by weight (meat, fish, eggs, fruit and vegetables) are left out, and categories where size changes moved the price by less than half a point are not ranked.</li>
+        <li>GAO counts a product as downsized when a smaller size (by up to 20%) replaced the old one at a higher price per unit.</li>
+        <li>The BLS sample is not designed to measure how often products change size, so the yearly counts show direction rather than frequency, and changes in recipe or quality are not measured.</li>
+      </ul>
+    </section>
+  </>;
 }
 // ── Thanksgiving: what a frozen turkey costs wholesale against what grocery ads sell it for, week by week, then the
 // foods on a Thanksgiving table in this week's ads against the same week before Thanksgiving last year.

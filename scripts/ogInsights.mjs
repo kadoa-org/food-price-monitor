@@ -15,6 +15,15 @@ const month = (ym) => `${MONTHS[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
 const pct = (v) => `${v > 0 ? '+' : ''}${Math.round(v)}%`;
 
 const builders = {
+  'shrinkflation-2026': (page) => {
+    const sh = page.shrink, top = sh.ranked[0];
+    // The concentrated effect against the overall one, the two numbers the headline sets against each other.
+    return {
+      title: page.title, source: 'BLS consumer price index; GAO',
+      key: `Share of the price rise since ${month(sh.from)} that came from smaller packs.`,
+      figures: [{ value: `${Math.round(top.share)}%`, label: 'Toilet paper and paper towels', colour: ORANGE }, { value: `${Math.round(sh.food.share)}%`, label: 'All food at home', colour: GREY }],
+    };
+  },
   'thanksgiving-prices': (page) => {
     const t = page.turkey, n = t.years.at(-1);
     const day = new Date(n.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });

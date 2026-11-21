@@ -87,6 +87,12 @@ function seo(page, path) {
       : 'US food prices in October 2026 from the BLS consumer price index.';
     crumbs.push({ name: 'Insights', url: `${SITE}/food-prices/insights` }, { name: 'Food prices, October 2026', url: canonical });
     ld = [{ '@context': 'https://schema.org', '@type': 'Article', headline: title, description, url: canonical, dateModified: updated, keywords: ['food prices october 2026', 'cpi october 2026 food', 'beef prices', 'food inflation', 'grocery prices'], author: { '@type': 'Organization', name: 'Kadoa', url: SITE }, publisher: { '@type': 'Organization', name: 'Kadoa', url: SITE } }];
+  } else if (page.kind === 'insight' && page.slug === 'shrinkflation-2026') {
+    const sh = page.shrink; const top = sh.ranked.slice(0, 3);
+    title = 'Shrinkflation Report 2026: How Much Smaller Packs Added to US Grocery Prices';
+    description = `Smaller packs added ${sh.food.added.toFixed(1)} points to the ${Math.round(sh.food.published)}% rise in US grocery prices since 2019. By aisle: ${top.map((r) => `${r.name.toLowerCase()} ${Math.round(r.share)}%`).join(', ')}. BLS and GAO data.`;
+    crumbs.push({ name: 'Insights', url: `${SITE}/food-prices/insights` }, { name: 'Shrinkflation report 2026', url: canonical });
+    ld = [{ '@context': 'https://schema.org', '@type': 'Article', headline: title, description, url: canonical, dateModified: updated, keywords: ['shrinkflation', 'shrinkflation 2026', 'shrinkflation examples', 'smaller packages same price', 'grocery shrinkflation data'], author: { '@type': 'Organization', name: 'Kadoa', url: SITE }, publisher: { '@type': 'Organization', name: 'Kadoa', url: SITE } }];
   } else if (page.kind === 'insight' && page.slug === 'thanksgiving-prices') {
     const t = page.turkey; const n = t.years.at(-1), first = t.years[0];
     title = page.title;
