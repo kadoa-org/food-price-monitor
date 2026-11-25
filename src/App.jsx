@@ -16,6 +16,7 @@ import { FOOD_INFLATION_SLUG } from './foodInflation.mjs';
 import { MIN_TURKEY_STORES, THANKSGIVING_SLUG, WHOLESALE_WEEKS } from './thanksgiving.mjs';
 import TurkeyChart from './TurkeyChart';
 import DinnerItems from './DinnerItems';
+import SurveyCompare from './SurveyCompare';
 import { BLS_URL, GAO_URL, SHRINK_SLUG } from './shrinkflation.mjs';
 import { ItemsAndSales, ShareOfRise, SizeChanges } from './ShrinkCharts';
 
@@ -529,13 +530,10 @@ function TurkeyInsight({ page }) {
     : turkeyLede;
   const fbCard = fb && <ChartCard
       id="thanksgiving-farm-bureau-title"
-      title="Thanksgiving dinner foods: the Farm Bureau's survey against grocery ads and government prices"
-      description={`Change on last year. Bold rows are the Farm Bureau's; the rows under each are our measures of the same food.`}
+      title="The Farm Bureau's survey against grocery ads and BLS prices"
+      description="Change on last year. Where the two dots are far apart, the survey and the other prices disagree."
       tabs={[
-        { label: 'Chart', content: <GroceryRanking ranking={[...new Set(fb.rows.map((r) => r.key))].flatMap((key) => {
-          const rows = fb.rows.filter((r) => r.key === key);
-          return [{ name: `${rows[0].item} (Farm Bureau)`, change: rows[0].survey, total: true }, ...rows.map((r) => ({ name: r.measure, change: r.change }))];
-        })} /> },
+        { label: 'Chart', content: <SurveyCompare fb={fb} label="Change on last year for six Thanksgiving foods: the Farm Bureau survey against grocery ad prices or BLS average prices" /> },
         { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={fb.rows} rowKey={(r) => r.measure} columns={[
           { key: 'item', header: 'Farm Bureau item', render: (r) => r.item },
           { key: 'survey', header: 'Survey', align: 'right', render: (r) => pctLabel(r.survey) },

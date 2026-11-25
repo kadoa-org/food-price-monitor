@@ -324,3 +324,19 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
   .dinner__row--head > span:last-child{display:none}
 }
 
+/* Farm Bureau survey against our data (SurveyCompare.jsx): one row per food, two dots on one percent scale, the survey's
+   value above its dot and ours below, so they never collide. On a phone the name sits above the track. */
+.survey{margin:0}.survey__list{list-style:none;margin:0;padding:0}
+.survey__key{display:inline-block;width:12px;height:12px;border-radius:50%}
+.survey__row{display:grid;grid-template-columns:200px minmax(0,1fr);align-items:center;gap:16px;padding:4px 0;border-bottom:1px solid #f0f0f0}
+.survey__row--total{border-top:2px solid #0b0c0c;border-bottom:0}
+.survey__name{display:flex;flex-direction:column;font-size:16px}.survey__name span{font-size:14px;color:var(--gov-secondary)}
+.survey__track{position:relative;height:58px;margin:0 28px}
+.survey__zero{position:absolute;top:6px;bottom:6px;border-left:1px solid #0b0c0c}
+.survey__gap{position:absolute;top:28px;height:2px;background:#b1b4b6}
+.survey__dot{position:absolute;top:22px;width:14px;height:14px;margin-left:-7px;border-radius:50%;border:2px solid #fff;box-sizing:border-box}
+.survey__val{position:absolute;top:2px;transform:translateX(-50%);font-size:14px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;z-index:1;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff}
+.survey__val--below{top:38px}
+.survey__axis{display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;margin-top:4px}
+.survey__ticks{position:relative;height:18px;margin:0 28px;font-size:14px;color:var(--gov-secondary)}.survey__ticks span{position:absolute;transform:translateX(-50%)}
+@media (max-width:640px){.survey__row{grid-template-columns:minmax(0,1fr);gap:0}.survey__axis{grid-template-columns:minmax(0,1fr);gap:0}.survey__axis > span:first-child{display:none}.survey__track,.survey__ticks{margin:0 22px}}
