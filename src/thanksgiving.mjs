@@ -102,6 +102,50 @@ export function buildThanksgiving(rows) {
   return { latest, previous, year, previousYear: year - 1, day, foods, dropped, weeks, years };
 }
 
+// The Farm Bureau's Thanksgiving survey (data/thanksgiving, typed in from its release) against our own measures of the
+// same foods: the grocery ad price of the matching product (from the food table above), the wholesale turkey price, and
+// BLS average prices and the food-at-home index. BLS is compared over 12 months to the latest month that has a price a
+// year earlier (BLS priced nothing in October 2025). Bread stands in for rolls, the closest item BLS prices.
+export const FARM_BUREAU_BLS_FILES = { prices: 'ap/ap.data.3.Food', indexes: 'cu/cu.data.11.USFoodBeverage' };
+const FARM_BUREAU_BLS = [
+  { fb: 'milk', id: 'APU0000709112', measure: 'Whole milk, gallon', source: 'bls' },
+  { fb: 'rolls', id: 'APU0000702111', measure: 'White bread, lb (closest BLS item)', source: 'bls' },
+  { fb: 'total', id: 'CUUR0000SAF11', measure: 'All groceries (food at home index)', source: 'bls' },
+];
+const FARM_BUREAU_ADS = [
+  { fb: 'turkey', food: 'turkeyFrozen' },
+  { fb: 'cranberries', food: 'cranberries' },
+  { fb: 'sweetPotatoes', food: 'sweetPotatoes' },
+  { fb: 'veggieTray', food: 'carrots' },
+  { fb: 'veggieTray', food: 'celery' },
+];
+const monthBefore = (ym, n) => { const d = new Date(`${ym}-01T00:00:00Z`); d.setUTCMonth(d.getUTCMonth() - n); return d.toISOString().slice(0, 7); };
+
+// t: buildThanksgiving's result; fb: the typed-in survey; bls: Map of series id to Map('YYYY-MM' -> value) (parseBls).
+export function compareFarmBureau(t, fb, bls) {
+  const series = FARM_BUREAU_BLS.map((s) => bls.get(s.id));
+  if (series.some((s) => !s?.size)) throw new Error('Farm Bureau comparison: a BLS series is missing');
+  const month = [...series[0].keys()].sort().reverse().find((m) => series.every((s) => s.has(m) && s.has(monthBefore(m, 12))));
+  if (!month) throw new Error('Farm Bureau comparison: no BLS month with a price a year earlier');
+  const item = (key) => fb.items.find((i) => i.key === key) ?? (key === 'total' ? { name: 'The whole dinner', change: fb.total.change } : null);
+  const rows = [];
+  const add = (key, measure, source, change) => { const i = item(key); if (i) rows.push({ key, item: i.name, survey: i.change, measure, source, change: round(change, 1) }); };
+  for (const a of FARM_BUREAU_ADS) {
+    const f = t.foods.find((x) => x.key === a.food);
+    if (f) add(a.fb, `${f.name} in grocery ads, ${f.unit === 'lb' ? 'per lb' : f.unit}`, 'ads', f.change);
+  }
+  const [then, now] = t.years.slice(-2);
+  if (then?.year === t.year - 1) add('turkey', 'Frozen turkey hen, wholesale per lb', 'wholesale', (now.wholesale / then.wholesale - 1) * 100);
+  FARM_BUREAU_BLS.forEach((s, i) => add(s.fb, s.measure, s.source, (series[i].get(month) / series[i].get(monthBefore(month, 12)) - 1) * 100));
+  const order = [...fb.items.map((i) => i.key), 'total'];
+  rows.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
+  // Turkey's share of the dinner's rise in dollars, from the survey's own prices and changes.
+  const rise = (price, change) => price - price / (1 + change / 100);
+  const bird = fb.items.find((i) => i.key === 'turkey');
+  const turkeyShare = bird ? round(rise(bird.price, bird.change) / rise(fb.total.price, fb.total.change), 2) : null;
+  return { year: fb.year, collected: fb.collected, url: fb.url, total: fb.total, blsMonth: month, turkeyShare, rows };
+}
+
 // Cheaper and pricier count a change of more than 2% either way; within that a food counts as unchanged.
 export const FLAT = 2;
 export const tally = (t) => ({ cheaper: t.foods.filter((f) => f.change < -FLAT).length, pricier: t.foods.filter((f) => f.change > FLAT).length, total: t.foods.length });
@@ -111,6 +155,8 @@ export function thanksgivingTitle(t) {
   const n = turkeyNow(t);
   return `Wholesale turkey costs ${perLb(n.wholesale)} a pound. Grocery ads price it at ${perLb(n.ad)}`;
 }
+// The page asks the reader's question; the turkey finding titles the shareable chart image (thanksgivingTitle).
+export const thanksgivingPageTitle = (t) => `How much does Thanksgiving dinner cost in ${t.year}?`;
 // The banner: the two prices first.
 export const thanksgivingBanner = (t) => `Turkey: ${perLb(turkeyNow(t).wholesale)} a pound wholesale, ${perLb(turkeyNow(t).ad)} in grocery ads`;
 
@@ -120,5 +166,9 @@ export function thanksgivingCsv(t) {
   for (const f of t.foods) lines.push([f.name, f.unit, f.price, f.previous, f.change, f.stores, f.previousStores].map(q).join(','));
   lines.push('', 'week_ending,wholesale_frozen_hen_usd_per_lb,frozen_whole_turkey_ad_usd_per_lb,stores_advertising_frozen_turkey');
   for (const w of t.weeks) lines.push([w.date, w.wholesale ?? '', w.ad ?? '', w.stores].join(','));
+  if (t.farmBureau) {
+    lines.push('', `farm_bureau_item,farm_bureau_change_pct_${t.farmBureau.year},our_measure,our_source,our_change_pct`);
+    for (const r of t.farmBureau.rows) lines.push([r.item, r.survey, r.measure, r.source, r.change].map(q).join(','));
+  }
   return lines.join('\n') + '\n';
 }

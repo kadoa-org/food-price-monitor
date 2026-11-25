@@ -516,15 +516,41 @@ function TurkeyInsight({ page }) {
   const weeksOut = Math.round(-t.day / 7);
   const same = earlier.every((y) => Math.abs(y.ad - now.ad) < 0.03);
   const words = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six'];
+  // The compared week moves as USDA publishes, so every "weeks before" phrase reads it from the data.
+  const whenWords = weeksOut === 1 ? 'the week before' : `${(words[weeksOut] ?? String(weeksOut)).toLowerCase()} weeks before`;
+  const fb = t.farmBureau;
   const matched = Math.abs(first.ad - first.wholesale) < 0.03;
-  const lede = `${words[weeksOut] ?? weeksOut} ${weeksOut === 1 ? 'week' : 'weeks'} before Thanksgiving, US grocery ads priced a frozen whole turkey at ${perUnit(now.ad)} a pound${same ? `, as in ${listWords(earlier.map((y) => y.year))}` : ''}. ${matched ? `In ${first.year} that matched the wholesale price of a frozen turkey hen. Now the hen costs ${perUnit(now.wholesale)} wholesale` : `A frozen turkey hen costs ${perUnit(now.wholesale)} wholesale, up from ${perUnit(first.wholesale)} in ${first.year}`}, so ads price the bird at ${Math.abs(now.ad / now.wholesale - 0.5) < 0.06 ? "about half that" : `${Math.round((now.ad / now.wholesale) * 100)}% of that`}.`;
+  const turkeyLede = `${words[weeksOut] ?? weeksOut} ${weeksOut === 1 ? 'week' : 'weeks'} before Thanksgiving, US grocery ads priced a frozen whole turkey at ${perUnit(now.ad)} a pound${same ? `, as in ${listWords(earlier.map((y) => y.year))}` : ''}. ${matched ? `In ${first.year} that matched the wholesale price of a frozen turkey hen. Now the hen costs ${perUnit(now.wholesale)} wholesale` : `A frozen turkey hen costs ${perUnit(now.wholesale)} wholesale, up from ${perUnit(first.wholesale)} in ${first.year}`}, so ads price the bird at ${Math.abs(now.ad / now.wholesale - 0.5) < 0.06 ? "about half that" : `${Math.round((now.ad / now.wholesale) * 100)}% of that`}.`;
+  // With the survey comparison, the lede answers the page's question first, then turkey; without it, turkey alone.
+  const frozen = t.foods.find((f) => f.key === 'turkeyFrozen');
+  const lede = fb
+    ? `The Farm Bureau's survey puts a classic Thanksgiving dinner for 10 at $${fb.total.price.toFixed(2)} in ${fb.year}, up ${fb.total.change}% on last year, and turkey is ${Math.round(fb.turkeyShare * 100)}% of that rise. Government prices for all groceries rose ${fb.rows.find((r) => r.key === 'total').change.toFixed(1)}% in the year to ${longMonth(fb.blsMonth)}. ${frozen ? `In grocery ads, a frozen turkey costs ${perUnit(frozen.price)} a pound ${whenWords} Thanksgiving, up ${Math.round(frozen.change)}%, against ${perUnit(now.wholesale)} wholesale.` : ''}`
+    : turkeyLede;
+  const fbCard = fb && <ChartCard
+      id="thanksgiving-farm-bureau-title"
+      title="Thanksgiving dinner foods: the Farm Bureau's survey against grocery ads and government prices"
+      description={`Change on last year. Bold rows are the Farm Bureau's; the rows under each are our measures of the same food.`}
+      tabs={[
+        { label: 'Chart', content: <GroceryRanking ranking={[...new Set(fb.rows.map((r) => r.key))].flatMap((key) => {
+          const rows = fb.rows.filter((r) => r.key === key);
+          return [{ name: `${rows[0].item} (Farm Bureau)`, change: rows[0].survey, total: true }, ...rows.map((r) => ({ name: r.measure, change: r.change }))];
+        })} /> },
+        { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={fb.rows} rowKey={(r) => r.measure} columns={[
+          { key: 'item', header: 'Farm Bureau item', render: (r) => r.item },
+          { key: 'survey', header: 'Survey', align: 'right', render: (r) => pctLabel(r.survey) },
+          { key: 'measure', header: 'Our measure', render: (r) => r.measure },
+          { key: 'change', header: 'Change', align: 'right', render: (r) => pctLabel(r.change) },
+        ]} /> },
+      ]}
+    />;
   return <>
     <div className="title-block"><h1 className="dk-h1">{page.title}</h1><p className="lede">{lede}</p></div>
+    {fbCard}
     <ChartCard
       id="thanksgiving-turkey-title"
-      title="Frozen turkey per pound two weeks before Thanksgiving, in grocery ads and wholesale"
+      title={`Frozen turkey per pound ${whenWords} Thanksgiving, in grocery ads and wholesale`}
       tabs={[
-        { label: 'Chart', content: <TurkeyChart years={t.years} label="Price per pound of frozen turkey two weeks before each Thanksgiving: in grocery ads and wholesale" /> },
+        { label: 'Chart', content: <TurkeyChart years={t.years} when={whenWords} label={`Price per pound of frozen turkey ${whenWords} each Thanksgiving: in grocery ads and wholesale`} /> },
         { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={[...t.weeks].reverse()} rowKey={(r) => r.date} columns={[
           { key: 'date', header: 'Week ending', render: (r) => `${longDay(r.date)}, ${r.date.slice(0, 4)}` },
           { key: 'wholesale', header: 'Wholesale', align: 'right', render: (r) => (r.wholesale === null ? 'No trades' : `$${r.wholesale.toFixed(2)}`) },
@@ -558,7 +584,8 @@ function TurkeyInsight({ page }) {
         <li>The wholesale figure averages the weeks with trades in the {WHOLESALE_WEEKS} weeks to the compared week; the table has every week's price.</li>
         <li>The wholesale report covers negotiated trades only; much turkey is sold under contract, so a store's own cost can differ.</li>
         <li>Ad prices are store-weighted averages of advertised prices, not shelf prices; the table marks weeks with fewer than {number(MIN_TURKEY_STORES)} stores advertising frozen turkey, or with no wholesale trades.</li>
-        <li>Each food in the second chart is one product, the same pack in both years, compared at the same number of days before Thanksgiving; our data starts in September 2024.</li>
+        <li>Each food in the grocery ad chart is one product, the same pack in both years, compared at the same number of days before Thanksgiving; our data starts in September 2024.</li>
+        {fb && <li>The {external(fb.url, "Farm Bureau's survey")} is volunteer shoppers' shelf prices from the {fb.collected}; it is informal, not a statistical sample. Ad prices are the week ending {longDay(t.latest)}. BLS {external(BLS_PRICES, 'average prices')} and the food-at-home index are {longMonth(fb.blsMonth)} against a year earlier, the latest month with a year-earlier price since BLS priced nothing in October 2025. BLS does not price dinner rolls, so white bread stands in.</li>}
       </ul>
     </section>
   </>;

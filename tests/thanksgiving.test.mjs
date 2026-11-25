@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { MIN_STORES, buildThanksgiving, tally, thanksgiving, thanksgivingBanner, thanksgivingTitle } from '../src/thanksgiving.mjs';
+import { MIN_STORES, buildThanksgiving, compareFarmBureau, tally, thanksgiving, thanksgivingBanner, thanksgivingTitle } from '../src/thanksgiving.mjs';
 
 const ad = (source_id, date, dimensions, price, stores) => ({ source_id, market: 'NATIONAL', date, advertised_average: price, dimensions, evidence: { store_count: stores } });
 const turkey = (date, condition, size, price, stores) => ad('usda-2867', date, { section: 'Whole', condition, environment: 'Conventional', type: `Whole Turkey ${size} 16 Lbs` }, price, stores);
@@ -54,5 +54,22 @@ describe('thanksgiving', () => {
     const t = buildThanksgiving([...week('2025-11-14', 1), crop('2025-11-14', 'Pumpkins', 'PIE TYPE', 'per lb', 1, 2000), ...week('2026-11-13', 1.1), thin, ...partial]);
     expect(t.latest).toBe('2026-11-13');
     expect(t.dropped).toContain('Pie pumpkins');
+  });
+
+  test('sets the Farm Bureau survey against ads, wholesale and BLS, over 12 months to the latest BLS month with a year-earlier price', () => {
+    const t = buildThanksgiving([...week('2025-11-14', 1), ...week('2026-11-13', 1.1)]);
+    const fb = { year: 2026, collected: 'first week of November 2026', url: 'https://example.org', total: { price: 58.63, change: 6 },
+      items: [{ key: 'turkey', name: 'Turkey, 16 lb frozen', change: 10.1 }, { key: 'milk', name: 'Whole milk, gallon', change: 8.6 },
+        { key: 'rolls', name: 'Dinner rolls, dozen', change: 7 }, { key: 'cranberries', name: 'Fresh cranberries, 12 oz', change: 8.8 }] };
+    // October 2025 is missing, as in the shutdown, so October 2026 has no year-earlier price and September is compared.
+    const months = (sep25, sep26, oct26) => new Map([['2025-09', sep25], ['2026-09', sep26], ['2026-10', oct26]]);
+    const bls = new Map([['APU0000709112', months(4, 4.1, 4.2)], ['APU0000702111', months(2, 1.9, 2)], ['CUUR0000SAF11', months(300, 306, 307)]]);
+    const c = compareFarmBureau(t, fb, bls);
+    expect(c.blsMonth).toBe('2026-09');
+    expect(c.rows.map((r) => [r.key, r.source, r.change])).toEqual([
+      ['turkey', 'ads', 0], ['turkey', 'wholesale', 10], ['milk', 'bls', 2.5], ['rolls', 'bls', -5], ['cranberries', 'ads', 0], ['total', 'bls', 2],
+    ]);
+    expect(c.rows.at(-1)).toMatchObject({ item: 'The whole dinner', survey: 6 });
+    expect(() => compareFarmBureau(t, fb, new Map([['APU0000709112', months(4, 4.1, 4.2)]]))).toThrow('BLS series is missing');
   });
 });

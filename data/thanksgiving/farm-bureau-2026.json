@@ -1,0 +1,21 @@
+{
+ "source": "American Farm Bureau Federation, 41st annual Thanksgiving dinner cost survey (classic menu for 10), released 18 Nov 2026",
+ "url": "https://www.fb.org/news-release/cost-of-thanksgiving-dinner-increases-remains-below-2022-record-high",
+ "collected": "first week of November 2026",
+ "year": 2026,
+ "total": { "price": 58.63, "change": 6 },
+ "items": [
+  { "key": "turkey", "name": "Turkey, 16 lb frozen", "price": 23.68, "change": 10.1 },
+  { "key": "pumpkinPie", "name": "Pumpkin pie mix, 30 oz", "price": 4.24, "change": 1.9 },
+  { "key": "milk", "name": "Whole milk, gallon", "price": 4.05, "change": 8.6 },
+  { "key": "veggieTray", "name": "Veggie tray, carrots and celery, 1 lb", "price": 1.31, "change": -3.7 },
+  { "key": "misc", "name": "Other ingredients", "price": 3.84, "change": 6.4 },
+  { "key": "rolls", "name": "Dinner rolls, dozen", "price": 3.81, "change": 7 },
+  { "key": "pieCrusts", "name": "Frozen pie crusts, 2", "price": 3.28, "change": -2.7 },
+  { "key": "peas", "name": "Frozen peas, 1 lb", "price": 1.99, "change": -2 },
+  { "key": "cranberries", "name": "Fresh cranberries, 12 oz", "price": 2.48, "change": 8.8 },
+  { "key": "whippingCream", "name": "Whipping cream, half pint", "price": 1.84, "change": -1.6 },
+  { "key": "sweetPotatoes", "name": "Sweet potatoes, 3 lb", "price": 4.2, "change": 5 },
+  { "key": "stuffing", "name": "Cubed stuffing, 14 oz", "price": 3.91, "change": 5.4 }
+ ]
+}

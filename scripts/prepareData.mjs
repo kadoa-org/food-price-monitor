@@ -14,7 +14,7 @@ import { GROCERY_CATEGORIES, GROCERY_FILES, GROCERY_FOODS, GROCERY_INDEXES, buil
 import { BASE, addDays, curated, familyFor, marketKey, newsFamilies, groupSeries, markonNews, movers, nearest, pickBenchmark, priced, reports, summarize, usdaNews, isRetail, quote, unitLabel, quoteShort } from '../src/model.mjs';
 import { existsSync } from 'node:fs';
 import { SHRINK_SLUG, buildShrinkflation, shrinkflationCsv, shrinkflationTitle } from '../src/shrinkflation.mjs';
-import { THANKSGIVING_SLUG, THANKSGIVING_SOURCES, buildThanksgiving, thanksgivingBanner, thanksgivingCsv, thanksgivingTitle, turkeyNow } from '../src/thanksgiving.mjs';
+import { FARM_BUREAU_BLS_FILES, THANKSGIVING_SLUG, THANKSGIVING_SOURCES, buildThanksgiving, compareFarmBureau, thanksgivingBanner, thanksgivingCsv, thanksgivingPageTitle, turkeyNow } from '../src/thanksgiving.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 // The dataset pipeline lives outside this repository; point FOOD_PRICES_DATASET_DIR at its folder (a local .env works).
@@ -144,6 +144,16 @@ try {
 let turkey = null;
 try {
   turkey = buildThanksgiving(thanksgivingRows);
+  // The Farm Bureau comparison needs BLS; without it the card drops and the rest of the insight stays.
+  try {
+    const fb = JSON.parse(await readFile(join(root, 'data/thanksgiving/farm-bureau-2026.json'), 'utf8'));
+    const [prices, indexes] = await Promise.all([blsText(FARM_BUREAU_BLS_FILES.prices), blsText(FARM_BUREAU_BLS_FILES.indexes)]);
+    const bls = new Map([...parseBls(prices, ['APU0000709112', 'APU0000702111']), ...parseBls(indexes, ['CUUR0000SAF11'])]);
+    turkey.farmBureau = compareFarmBureau(turkey, fb, bls);
+    console.error(JSON.stringify({ step: 'thanksgiving-farm-bureau', status: 'ok', blsMonth: turkey.farmBureau.blsMonth, rows: turkey.farmBureau.rows.map((r) => `${r.measure} ${r.change}% vs ${r.survey}%`) }));
+  } catch (error) {
+    console.error(JSON.stringify({ step: 'thanksgiving-farm-bureau', status: 'unavailable', error: error.message }));
+  }
   await writeFile(join(data, 'downloads', `${THANKSGIVING_SLUG}.csv.gz`), gzipSync(thanksgivingCsv(turkey)));
   console.error(JSON.stringify({ step: 'thanksgiving', status: 'ok', week: turkey.latest, against: turkey.previous, turkey: turkeyNow(turkey), dropped: turkey.dropped, foods: turkey.foods.map((f) => `${f.name} ${f.change}%`) }));
 } catch (error) {
@@ -377,7 +387,7 @@ try {
 // Each page carries only the data its own view needs.
 const INSIGHTS = [
   ...(shrink ? [{ slug: SHRINK_SLUG, title: shrinkflationTitle(shrink), summary: `How much smaller packs added to US grocery prices since 2019, by aisle, from BLS and GAO data: about ${Math.round(shrink.food.share)}% overall, ${Math.round(shrink.ranked[0].share)}% for toilet paper and paper towels.`, data: { shrink } }] : []),
-  ...(turkey ? [{ slug: THANKSGIVING_SLUG, title: thanksgivingTitle(turkey), summary: `The wholesale price of a frozen turkey against its price in US grocery ads, week by week, and the rest of the Thanksgiving table against last year, from USDA reports.`, data: { turkey } }] : []),
+  ...(turkey ? [{ slug: THANKSGIVING_SLUG, title: thanksgivingPageTitle(turkey), summary: `The Farm Bureau's dinner survey against grocery ads and government prices for the same foods, and what turkey costs wholesale and in US grocery ads.`, data: { turkey } }] : []),
   { slug: FOOD_INFLATION_SLUG, title: foodInflation ? foodInflationHeadline(foodInflation) : 'US grocery prices since 2019, compared with inflation', summary: foodInflation ? `Food categories making up ${Math.round(foodInflation.fasterShare)}% of grocery spending rose faster than inflation; ${foodInflation.strata.slice(-3).reverse().map((c) => c.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1')} rose least.` : 'All 53 grocery categories in the CPI since October 2019, against overall inflation.', data: { foodInflation } },
   { slug: GROCERY_SLUG, title: groceryTitle, summary: groceries ? `Over the month, beef rose ${category(groceries, 'Beef').change.toFixed(1)}%, fresh vegetables ${category(groceries, 'Fresh vegetables').change.toFixed(1)}% and eating out ${category(groceries, 'Eating out').change.toFixed(1)}%.` : 'October 2026 food prices from BLS.', data: { groceries } },
   // The slug stays, so links already shared keep working; the page now answers the question in its title.
