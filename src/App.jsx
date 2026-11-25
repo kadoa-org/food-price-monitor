@@ -523,14 +523,14 @@ function TurkeyInsight({ page }) {
   const fb = t.farmBureau;
   const matched = Math.abs(first.ad - first.wholesale) < 0.03;
   const turkeyLede = `${words[weeksOut] ?? weeksOut} ${weeksOut === 1 ? 'week' : 'weeks'} before Thanksgiving, US grocery ads priced a frozen whole turkey at ${perUnit(now.ad)} a pound${same ? `, as in ${listWords(earlier.map((y) => y.year))}` : ''}. ${matched ? `In ${first.year} that matched the wholesale price of a frozen turkey hen. Now the hen costs ${perUnit(now.wholesale)} wholesale` : `A frozen turkey hen costs ${perUnit(now.wholesale)} wholesale, up from ${perUnit(first.wholesale)} in ${first.year}`}, so ads price the bird at ${Math.abs(now.ad / now.wholesale - 0.5) < 0.06 ? "about half that" : `${Math.round((now.ad / now.wholesale) * 100)}% of that`}.`;
-  // With the survey comparison, the lede answers the page's question first, then turkey; without it, turkey alone.
-  const frozen = t.foods.find((f) => f.key === 'turkeyFrozen');
-  const lede = fb
-    ? `The Farm Bureau's survey puts a classic Thanksgiving dinner for 10 at $${fb.total.price.toFixed(2)} in ${fb.year}, up ${fb.total.change}% on last year, and turkey is ${Math.round(fb.turkeyShare * 100)}% of that rise. Government prices for all groceries rose ${fb.rows.find((r) => r.key === 'total').change.toFixed(1)}% in the year to ${longMonth(fb.blsMonth)}. ${frozen ? `In grocery ads, a frozen turkey costs ${perUnit(frozen.price)} a pound ${whenWords} Thanksgiving, up ${Math.round(frozen.change)}%, against ${perUnit(now.wholesale)} wholesale.` : ''}`
+  // The lede is the Farm Bureau's answer; our own grocery data is offered as comparison, not as a second headline.
+  const bird = fb?.items?.find((i) => i.key === 'turkey');
+  const lede = fb && bird
+    ? `A classic Thanksgiving dinner for 10 costs $${fb.total.price.toFixed(2)} in ${fb.year}, up $${(fb.total.price - fb.total.previous).toFixed(2)} (${((fb.total.price / fb.total.previous - 1) * 100).toFixed(1)}%) on last year, according to the American Farm Bureau Federation's annual survey. Turkey is the main reason: it rose ${((bird.price / bird.previous - 1) * 100).toFixed(0)}% and adds $${bird.diff.toFixed(2)} of the rise. Further down, for comparison, are the same foods in grocery ads and government price data.`
     : turkeyLede;
   const fbCard = fb && <ChartCard
       id="thanksgiving-farm-bureau-title"
-      title="The Farm Bureau's survey against grocery ads and BLS prices"
+      title="For comparison: the same foods in grocery ads and BLS prices"
       description="Change on last year. Where the two dots are far apart, the survey and the other prices disagree."
       tabs={[
         { label: 'Chart', content: <SurveyCompare fb={fb} label="Change on last year for six Thanksgiving foods: the Farm Bureau survey against grocery ad prices or BLS average prices" /> },
