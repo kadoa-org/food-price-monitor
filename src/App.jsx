@@ -15,6 +15,7 @@ import { longMonth } from './groceries.mjs';
 import { FOOD_INFLATION_SLUG } from './foodInflation.mjs';
 import { MIN_TURKEY_STORES, THANKSGIVING_SLUG, WHOLESALE_WEEKS } from './thanksgiving.mjs';
 import TurkeyChart from './TurkeyChart';
+import DinnerItems from './DinnerItems';
 import { BLS_URL, GAO_URL, SHRINK_SLUG } from './shrinkflation.mjs';
 import { ItemsAndSales, ShareOfRise, SizeChanges } from './ShrinkCharts';
 
@@ -543,8 +544,23 @@ function TurkeyInsight({ page }) {
         ]} /> },
       ]}
     />;
+  const itemsCard = fb?.items && <ChartCard
+      id="thanksgiving-dinner-title"
+      title={`Thanksgiving dinner for 10, item by item, ${fb.year - 1} and ${fb.year}`}
+      description={`The Farm Bureau's classic menu. Turkey is $${fb.items.find((i) => i.key === 'turkey').diff.toFixed(2)} of the $${(fb.total.price - fb.total.previous).toFixed(2)} rise.`}
+      tabs={[
+        { label: 'Chart', content: <DinnerItems items={fb.items} total={fb.total} year={fb.year} label={`Price of each item on the Farm Bureau's Thanksgiving menu in ${fb.year - 1} and ${fb.year}, and the change in dollars`} /> },
+        { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={fb.items} rowKey={(r) => r.key} columns={[
+          { key: 'name', header: 'Item', render: (r) => r.name },
+          { key: 'previous', header: String(fb.year - 1), align: 'right', render: (r) => `$${r.previous.toFixed(2)}` },
+          { key: 'price', header: String(fb.year), align: 'right', render: (r) => `$${r.price.toFixed(2)}` },
+          { key: 'diff', header: 'Change', align: 'right', render: (r) => `${r.diff > 0 ? '+' : r.diff < 0 ? '-' : ''}$${Math.abs(r.diff).toFixed(2)}` },
+        ]} /> },
+      ]}
+    />;
   return <>
     <div className="title-block"><h1 className="dk-h1">{page.title}</h1><p className="lede">{lede}</p></div>
+    {itemsCard}
     {fbCard}
     <ChartCard
       id="thanksgiving-turkey-title"

@@ -306,3 +306,22 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .shrink-cols__label{text-align:center;font-size:14px;color:var(--dk-muted);margin-top:6px;position:relative;top:24px;height:0}
 .shrink-cols{padding-bottom:28px}
 @media (max-width:640px){.shrink-share__row,.shrink-pair__row{grid-template-columns:1fr;gap:4px}.shrink-cols__col span{display:none}.shrink-cols__col--down span{display:block;font-size:11px}}
+/* Thanksgiving dinner, item by item (DinnerItems.jsx): icon, name, last year, this year, change bar and value. On a
+   phone last year's column drops; the bar and the signed change carry the comparison. */
+.dinner{margin:0}.dinner__list{list-style:none;margin:0;padding:0}
+.dinner__row{display:grid;grid-template-columns:44px minmax(0,1fr) 64px 64px minmax(140px,1.3fr);align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid #f0f0f0}
+.dinner__row--head{font-size:14px;font-weight:700;color:var(--gov-secondary);border-bottom:1px solid #b1b4b6}
+.dinner__row--total{border-top:2px solid #0b0c0c;border-bottom:0;font-weight:700}
+.dinner__icon{width:44px;height:44px;display:block}
+.dinner__name{font-size:16px}.dinner__row--total .dinner__name{font-weight:700}
+.dinner__num{font-size:16px;font-variant-numeric:tabular-nums;text-align:right}
+.dinner__change{display:grid;grid-template-columns:minmax(0,1fr) 70px;align-items:center;gap:10px}
+.dinner__track{position:relative;height:16px}
+.dinner__value{font-size:16px;font-variant-numeric:tabular-nums;text-align:right}
+@media (max-width:640px){
+  .dinner__row{grid-template-columns:36px minmax(0,1fr) minmax(150px,1.2fr);grid-template-areas:"icon name change" "icon now change";column-gap:10px;row-gap:0}
+  .dinner__icon{width:36px;height:36px;grid-area:icon}.dinner__name{grid-area:name}.dinner__change{grid-area:change;grid-template-columns:minmax(0,1fr) 54px;gap:6px}
+  .dinner__prev{display:none}.dinner__num:not(.dinner__prev){grid-area:now;text-align:left;color:var(--gov-secondary)}
+  .dinner__row--head{grid-template-areas:"icon name change"}.dinner__row--head .dinner__num{display:none}
+  .dinner__row--head > span:nth-child(2){grid-area:name}.dinner__row--head > span:last-child{grid-area:change}
+}

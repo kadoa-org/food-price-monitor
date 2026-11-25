@@ -59,8 +59,8 @@ describe('thanksgiving', () => {
   test('sets the Farm Bureau survey against ads, wholesale and BLS, over 12 months to the latest BLS month with a year-earlier price', () => {
     const t = buildThanksgiving([...week('2025-11-14', 1), ...week('2026-11-13', 1.1)]);
     const fb = { year: 2026, collected: 'first week of November 2026', url: 'https://example.org', total: { price: 58.63, change: 6 },
-      items: [{ key: 'turkey', name: 'Turkey, 16 lb frozen', change: 10.1 }, { key: 'milk', name: 'Whole milk, gallon', change: 8.6 },
-        { key: 'rolls', name: 'Dinner rolls, dozen', change: 7 }, { key: 'cranberries', name: 'Fresh cranberries, 12 oz', change: 8.8 }] };
+      items: [{ key: 'turkey', name: 'Turkey, 16 lb frozen', change: 10.1, price: 23.68, previous: 21.5 }, { key: 'milk', name: 'Whole milk, gallon', change: 8.6, price: 4.05, previous: 3.73 },
+        { key: 'rolls', name: 'Dinner rolls, dozen', change: 7, price: 3.81, previous: 3.56 }, { key: 'cranberries', name: 'Fresh cranberries, 12 oz', change: 8.8, price: 2.48, previous: 2.28 }] };
     // October 2025 is missing, as in the shutdown, so October 2026 has no year-earlier price and September is compared.
     const months = (sep25, sep26, oct26) => new Map([['2025-09', sep25], ['2026-09', sep26], ['2026-10', oct26]]);
     const bls = new Map([['APU0000709112', months(4, 4.1, 4.2)], ['APU0000702111', months(2, 1.9, 2)], ['CUUR0000SAF11', months(300, 306, 307)]]);
@@ -70,6 +70,8 @@ describe('thanksgiving', () => {
       ['turkey', 'ads', 0], ['turkey', 'wholesale', 10], ['milk', 'bls', 2.5], ['rolls', 'bls', -5], ['cranberries', 'ads', 0], ['total', 'bls', 2],
     ]);
     expect(c.rows.at(-1)).toMatchObject({ item: 'The whole dinner', survey: 6 });
+    expect(c.items.map((i) => [i.key, i.diff])).toEqual([['turkey', 2.18], ['milk', 0.32], ['rolls', 0.25], ['cranberries', 0.2]]);
+    expect(c.total.previous).toBe(31.07);
     expect(() => compareFarmBureau(t, fb, new Map([['APU0000709112', months(4, 4.1, 4.2)]]))).toThrow('BLS series is missing');
   });
 });

@@ -143,7 +143,9 @@ export function compareFarmBureau(t, fb, bls) {
   const rise = (price, change) => price - price / (1 + change / 100);
   const bird = fb.items.find((i) => i.key === 'turkey');
   const turkeyShare = bird ? round(rise(bird.price, bird.change) / rise(fb.total.price, fb.total.change), 2) : null;
-  return { year: fb.year, collected: fb.collected, url: fb.url, total: fb.total, blsMonth: month, turkeyShare, rows };
+  // Each item's price both years and the change in dollars, largest rise first, for the item-by-item card.
+  const items = fb.items.map((i) => ({ key: i.key, name: i.name, previous: i.previous, price: i.price, diff: round(i.price - i.previous) })).sort((a, b) => b.diff - a.diff);
+  return { year: fb.year, collected: fb.collected, url: fb.url, total: { ...fb.total, previous: round(items.reduce((t, i) => t + i.previous, 0)) }, blsMonth: month, turkeyShare, items, rows };
 }
 
 // Cheaper and pricier count a change of more than 2% either way; within that a food counts as unchanged.
