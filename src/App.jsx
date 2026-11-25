@@ -547,7 +547,7 @@ function TurkeyInsight({ page }) {
   const itemsCard = fb?.items && <ChartCard
       id="thanksgiving-dinner-title"
       title={`Thanksgiving dinner for 10, item by item, ${fb.year - 1} and ${fb.year}`}
-      description={`The Farm Bureau's classic menu. Turkey is $${fb.items.find((i) => i.key === 'turkey').diff.toFixed(2)} of the $${(fb.total.price - fb.total.previous).toFixed(2)} rise.`}
+      description={`The Farm Bureau's classic menu, up ${(((fb.total.price / fb.total.previous) - 1) * 100).toFixed(1)}%. Turkey rose most and, as the priciest item, adds $${fb.items.find((i) => i.key === 'turkey').diff.toFixed(2)} of the $${(fb.total.price - fb.total.previous).toFixed(2)}.`}
       tabs={[
         { label: 'Chart', content: <DinnerItems items={fb.items} total={fb.total} year={fb.year} label={`Price of each item on the Farm Bureau's Thanksgiving menu in ${fb.year - 1} and ${fb.year}, and the change in dollars`} /> },
         { label: 'Tabular data', short: 'Tabular', content: <DataTable rows={fb.items} rowKey={(r) => r.key} columns={[
@@ -555,6 +555,7 @@ function TurkeyInsight({ page }) {
           { key: 'previous', header: String(fb.year - 1), align: 'right', render: (r) => `$${r.previous.toFixed(2)}` },
           { key: 'price', header: String(fb.year), align: 'right', render: (r) => `$${r.price.toFixed(2)}` },
           { key: 'diff', header: 'Change', align: 'right', render: (r) => `${r.diff > 0 ? '+' : r.diff < 0 ? '-' : ''}$${Math.abs(r.diff).toFixed(2)}` },
+          { key: 'pct', header: '%', align: 'right', render: (r) => pctLabel(Number((((r.price / r.previous) - 1) * 100).toFixed(1))) },
         ]} /> },
       ]}
     />;
